@@ -21,6 +21,11 @@ func configure(game_node: Node, paddle_node: Node2D) -> void:
 	paddle = paddle_node
 
 
+func debug_deploy_immediately() -> void:
+	# MINE LAUNCHER DEBUG - REMOVE BEFORE RELEASE
+	cooldown_left = 0.0
+
+
 func _process(delta: float) -> void:
 	_prune_mines()
 	if not is_instance_valid(game) or not is_instance_valid(paddle):
