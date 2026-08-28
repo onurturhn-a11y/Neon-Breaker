@@ -213,7 +213,7 @@ const CARDS := {
 		"rarity": RARITY_EPIC,
 		"max_level": 1,
 		"roman": false,
-		"icon": "res://assets/items/icons/crown-coin.svg",
+		"icon": "res://assets/items/icons/heart-plus.svg",
 		"descriptions": [
 			"",
 			"Run başına bir kez: son canını kaybettiğinde\niki canla ayağa kalkarsın.",
@@ -224,7 +224,7 @@ const CARDS := {
 		"rarity": RARITY_EPIC,
 		"max_level": 1,
 		"roman": false,
-		"icon": "res://assets/items/icons/laurels.svg",
+		"icon": "res://assets/items/icons/time-trap.svg",
 		"descriptions": [
 			"",
 			"Tuğla satırlarının iniş hızı kalıcı olarak %15 yavaşlar.",

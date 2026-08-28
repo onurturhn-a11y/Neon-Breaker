@@ -1,0 +1,28 @@
+# ==================================================
+# Neon Break — inceleme sahipliği
+# ==================================================
+# !!! ÖNEMLİ: Aşağıdaki kullanıcı adlarını gerçek GitHub
+# kullanıcı adlarınızla DEĞİŞTİRİN. Yanlış veya yazma yetkisi
+# olmayan bir kullanıcı adı yazarsanız CODEOWNERS sessizce
+# hiçbir şey yapmaz — hata da vermez.
+# ==================================================
+
+# Varsayılan: her ikisi de inceler
+*                            @ONUR_KULLANICI_ADI @ARKADAS_KULLANICI_ADI
+
+# ---------- CODEX bölgesi ----------
+/weapons/                    @ARKADAS_KULLANICI_ADI
+/paddle.gd                   @ARKADAS_KULLANICI_ADI
+/plasma_bullet.gd            @ARKADAS_KULLANICI_ADI
+/paddle_weapon_visual.gd     @ARKADAS_KULLANICI_ADI
+
+# ---------- CLAUDE bölgesi ----------
+/continuous_brick_field.gd   @ONUR_KULLANICI_ADI
+/level_generator.gd          @ONUR_KULLANICI_ADI
+/side_attacker_spawner.gd    @ONUR_KULLANICI_ADI
+/combo_manager.gd            @ONUR_KULLANICI_ADI
+
+# ---------- Kural dosyaları: ikisi de onaylamalı ----------
+/AGENTS.md                   @ONUR_KULLANICI_ADI @ARKADAS_KULLANICI_ADI
+/CLAUDE.md                   @ONUR_KULLANICI_ADI @ARKADAS_KULLANICI_ADI
+/.github/CODEOWNERS          @ONUR_KULLANICI_ADI @ARKADAS_KULLANICI_ADI
