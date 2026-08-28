@@ -1,21 +1,45 @@
-[gd_scene format=3 uid="uid://b8644l4tow244"]
+[gd_scene load_steps=7 format=3]
 
-[ext_resource type="Script" uid="uid://cc36h6m08hjhx" path="res://building_part_pickup.gd" id="1_part"]
-[ext_resource type="Texture2D" uid="uid://du5kqox1fhuy0" path="res://assets/items/building_part.png" id="2_texture"]
+[ext_resource type="Script" path="res://building_part_pickup.gd" id="1_part"]
+[ext_resource type="Texture2D" path="res://assets/items/building_part_gear_sheet.png" id="2_sheet"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_base"]
+atlas = ExtResource("2_sheet")
+region = Rect2(14, 0, 742, 724)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_energy"]
+atlas = ExtResource("2_sheet")
+region = Rect2(790, 49, 593, 604)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_core"]
+atlas = ExtResource("2_sheet")
+region = Rect2(1522, 128, 489, 457)
+filter_clip = true
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_part"]
 radius = 15.0
 
-[node name="BuildingPartPickup" type="Area2D" unique_id=904572117]
+[node name="BuildingPartPickup" type="Area2D"]
 collision_layer = 0
 collision_mask = 16
 script = ExtResource("1_part")
 
-[node name="Visual" type="Node2D" parent="." unique_id=1139640202]
+[node name="VisualRoot" type="Node2D" parent="."]
 
-[node name="Sprite2D" type="Sprite2D" parent="Visual" unique_id=1184834976]
-scale = Vector2(0.027, 0.027)
-texture = ExtResource("2_texture")
+[node name="Base" type="Sprite2D" parent="VisualRoot"]
+texture = SubResource("AtlasTexture_base")
+scale = Vector2(0.042, 0.042)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=640499003]
+[node name="Energy" type="Sprite2D" parent="VisualRoot"]
+texture = SubResource("AtlasTexture_energy")
+scale = Vector2(0.042, 0.042)
+self_modulate = Color(1, 0.96, 0.72, 0.8)
+
+[node name="Core" type="Sprite2D" parent="VisualRoot"]
+texture = SubResource("AtlasTexture_core")
+scale = Vector2(0.042, 0.042)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_part")

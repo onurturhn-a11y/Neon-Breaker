@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://c8ds34q54tvq"]
 
 [ext_resource type="Script" uid="uid://hcbdb8fyt7bm" path="res://brick_piece.gd" id="1_lrigu"]
-[ext_resource type="AudioStream" uid="uid://dhh2ba11tiu1c" path="res://hit.mp3" id="2_pcw5e"]
-[ext_resource type="Script" uid="uid://bnuh2iljix1qa" path="res://brick_visual.gd" id="3_brick_visual"]
+[ext_resource type="AudioStream" uid="uid://dhh2ba11tiu1c" path="res://assets/audio/sfx/bricks/brick_hit.mp3" id="2_pcw5e"]
+[ext_resource type="Script" path="res://brick_visual.gd" id="3_brick_visual"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_y0sca"]
 size = Vector2(100, 35)
@@ -33,10 +33,10 @@ offset_right = 50.0
 offset_bottom = 17.5
 color = Color(0, 0.72156864, 1, 1)
 
-[node name="BrickVisual" type="Node2D" parent="." unique_id=249883]
+[node name="BrickVisual" type="Node2D" parent="."]
 script = ExtResource("3_brick_visual")
 
-[node name="Sprite2D" type="Sprite2D" parent="BrickVisual" unique_id=181991099]
+[node name="Sprite2D" type="Sprite2D" parent="BrickVisual"]
 scale = Vector2(0.43, 0.22)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2060421633]

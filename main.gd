@@ -8,6 +8,14 @@ const MENU_SHOP_TEXTURE: Texture2D = preload("res://assets/menu/shop_button.png"
 const MENU_MUSIC_ON_TEXTURE: Texture2D = preload("res://assets/menu/music_button.png")
 const MENU_MUSIC_OFF_TEXTURE: Texture2D = preload("res://assets/menu/music_off_button.png")
 const MENU_QUIT_TEXTURE: Texture2D = preload("res://assets/menu/quit_button.png")
+const MENU_COLONY_TEXTURE: Texture2D = preload("res://assets/ui/buttons/colony_button.png")
+const MENU_COLONY_VISIBLE_REGION := Rect2(120.0, 96.0, 1772.0, 556.0)
+# Codex silah kontrolcüleri
+const ARC_CANNON_CONTROLLER_SCRIPT := preload("res://arc_cannon_controller.gd")
+const SCATTER_CANNON_CONTROLLER_SCRIPT := preload("res://scatter_cannon_controller.gd")
+const RAILGUN_CONTROLLER_SCRIPT := preload("res://railgun_controller.gd")
+const HOMING_MISSILE_CONTROLLER_SCRIPT := preload("res://homing_missile_controller.gd")
+const PULSE_LASER_CONTROLLER_SCRIPT := preload("res://pulse_laser_controller.gd")
 
 
 var bricks_left = 0
@@ -249,6 +257,15 @@ var menu_records_label: HBoxContainer
 var menu_records_icon: TextureRect
 var menu_records_text: Label
 var reward_sfx_player: AudioStreamPlayer
+# Codex: silah kontrolcüleri ve PARÇA sayacı
+var arc_cannon_controller: Node
+var scatter_cannon_controller: Node
+var railgun_controller: Node
+var homing_missile_controller: Node
+var pulse_laser_controller: Node
+var building_part_counter: Control
+var building_part_label: Label
+var colony_button_visual_tween: Tween
 var boss_reward_screen: CanvasLayer
 var boss_reward_title: Label
 var boss_reward_subtitle: Label
@@ -573,7 +590,7 @@ func _setup_main_menu_assets() -> void:
 	if is_instance_valid(menu_shop):
 		_apply_menu_button_texture(menu_shop, MENU_SHOP_TEXTURE)
 	if is_instance_valid(menu_colony):
-		_apply_colony_menu_button_style(menu_colony)
+		_apply_colony_menu_button_texture(menu_colony)
 	if is_instance_valid(menu_music):
 		_apply_menu_button_texture(menu_music, MENU_MUSIC_ON_TEXTURE)
 	if is_instance_valid(menu_quit):
@@ -628,6 +645,144 @@ func refresh_menu_records_label() -> void:
 		GameManager.total_runs,
 		GameManager.lifetime_boss_kills,
 	]
+
+
+# ==================================================
+# CODEX BÖLÜMÜ — silah kontrolcüleri, PARÇA HUD'u, koloni butonu
+# ==================================================
+
+func _setup_building_part_hud() -> void:
+	if is_instance_valid(building_part_counter):
+		return
+	building_part_counter = Control.new()
+	building_part_counter.name = "BuildingPartCounter"
+	building_part_counter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	building_part_counter.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	building_part_counter.offset_left = -258.0
+	building_part_counter.offset_top = 32.0
+	building_part_counter.offset_right = -128.0
+	building_part_counter.offset_bottom = 70.0
+	$HUD/Layout.add_child(building_part_counter)
+
+	var icon_root := Node2D.new()
+	icon_root.name = "Icon"
+	icon_root.position = Vector2(18.0, 19.0)
+	building_part_counter.add_child(icon_root)
+	var sheet := load("res://assets/items/building_part_gear_sheet.png") as Texture2D
+	var regions: Array[Rect2] = [
+		Rect2(14, 0, 742, 724),
+		Rect2(790, 49, 593, 604),
+		Rect2(1522, 128, 489, 457),
+	]
+	var layer_names := ["Base", "Energy", "Core"]
+	for index in regions.size():
+		var atlas := AtlasTexture.new()
+		atlas.atlas = sheet
+		atlas.region = regions[index]
+		atlas.filter_clip = true
+		var layer := Sprite2D.new()
+		layer.name = layer_names[index]
+		layer.texture = atlas
+		layer.scale = Vector2.ONE * 0.032
+		icon_root.add_child(layer)
+
+	building_part_label = Label.new()
+	building_part_label.name = "TotalLabel"
+	building_part_label.position = Vector2(36.0, 3.0)
+	building_part_label.size = Vector2(92.0, 32.0)
+	building_part_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	building_part_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	building_part_label.add_theme_font_size_override("font_size", 17)
+	building_part_label.add_theme_color_override("font_color", Color(1.0, 0.86, 0.34, 1.0))
+	building_part_label.add_theme_color_override("font_shadow_color", Color(0.38, 0.20, 0.01, 0.85))
+	building_part_label.add_theme_constant_override("shadow_offset_x", 1)
+	building_part_label.add_theme_constant_override("shadow_offset_y", 1)
+	building_part_counter.add_child(building_part_label)
+
+
+func _on_total_salvage_changed(total: int) -> void:
+	if is_instance_valid(building_part_label):
+		building_part_label.text = str(total)
+
+
+func _apply_colony_menu_button_texture(button: Button) -> void:
+	button.text = ""
+	button.icon = null
+	button.flat = true
+	button.clip_contents = false
+	button.custom_minimum_size = Vector2(320.0, 84.0)
+	var empty_style := StyleBoxEmpty.new()
+	for state in [&"normal", &"hover", &"pressed", &"focus", &"disabled"]:
+		button.add_theme_stylebox_override(state, empty_style)
+	var visual := button.get_node_or_null("ColonyButtonVisual") as TextureRect
+	if not is_instance_valid(visual):
+		visual = TextureRect.new()
+		visual.name = "ColonyButtonVisual"
+		button.add_child(visual)
+	var cropped_texture := AtlasTexture.new()
+	cropped_texture.atlas = MENU_COLONY_TEXTURE
+	cropped_texture.region = MENU_COLONY_VISIBLE_REGION
+	visual.texture = cropped_texture
+	visual.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	visual.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	visual.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	visual.pivot_offset = button.custom_minimum_size * 0.5
+	visual.scale = Vector2.ONE
+	visual.modulate = Color.WHITE
+
+
+func _animate_colony_button_visual(target_scale: Vector2, target_modulate: Color, duration: float) -> void:
+	var visual := colony_button.get_node_or_null("ColonyButtonVisual") as TextureRect
+	if not is_instance_valid(visual):
+		return
+	if colony_button_visual_tween != null and colony_button_visual_tween.is_valid():
+		colony_button_visual_tween.kill()
+	colony_button_visual_tween = visual.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	colony_button_visual_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	colony_button_visual_tween.parallel().tween_property(visual, "scale", target_scale, duration)
+	colony_button_visual_tween.parallel().tween_property(visual, "modulate", target_modulate, duration)
+
+
+func _restore_colony_button_visual() -> void:
+	var target_scale := Vector2.ONE * 1.03 if colony_button.is_hovered() else Vector2.ONE
+	var target_modulate := Color(1.08, 1.08, 1.08, 1.0) if colony_button.is_hovered() else Color.WHITE
+	_animate_colony_button_visual(target_scale, target_modulate, 0.10)
+
+
+func _setup_arc_cannon_controller() -> void:
+	arc_cannon_controller = ARC_CANNON_CONTROLLER_SCRIPT.new()
+	arc_cannon_controller.name = "ArcCannonController"
+	add_child(arc_cannon_controller)
+	arc_cannon_controller.configure(self, paddle, $ChainLightningManager)
+
+
+func _setup_scatter_cannon_controller() -> void:
+	scatter_cannon_controller = SCATTER_CANNON_CONTROLLER_SCRIPT.new()
+	scatter_cannon_controller.name = "ScatterCannonController"
+	add_child(scatter_cannon_controller)
+	scatter_cannon_controller.configure(self, paddle)
+
+
+func _setup_railgun_controller() -> void:
+	railgun_controller = RAILGUN_CONTROLLER_SCRIPT.new()
+	railgun_controller.name = "RailgunController"
+	add_child(railgun_controller)
+	railgun_controller.configure(self, paddle)
+
+
+func _setup_homing_missile_controller() -> void:
+	homing_missile_controller = HOMING_MISSILE_CONTROLLER_SCRIPT.new()
+	homing_missile_controller.name = "HomingMissileController"
+	add_child(homing_missile_controller)
+	homing_missile_controller.configure(self, paddle)
+
+
+func _setup_pulse_laser_controller() -> void:
+	pulse_laser_controller = PULSE_LASER_CONTROLLER_SCRIPT.new()
+	pulse_laser_controller.name = "PulseLaserController"
+	add_child(pulse_laser_controller)
+	pulse_laser_controller.configure(self, paddle)
 
 
 func _apply_menu_button_texture(button: Button, texture: Texture2D) -> void:
@@ -691,6 +846,14 @@ func _refresh_desktop_gameplay_layout() -> void:
 func _ready():
 	_setup_card_presentation()
 	_setup_main_menu_assets()
+	_setup_building_part_hud()
+	if not GameManager.total_salvage_changed.is_connected(_on_total_salvage_changed):
+		GameManager.total_salvage_changed.connect(_on_total_salvage_changed)
+	_setup_arc_cannon_controller()
+	_setup_scatter_cannon_controller()
+	_setup_railgun_controller()
+	_setup_homing_missile_controller()
+	_setup_pulse_laser_controller()
 	if not GameManager.total_coins_changed.is_connected(_on_total_coins_changed):
 		GameManager.total_coins_changed.connect(_on_total_coins_changed)
 	_on_total_coins_changed(GameManager.total_coins)
@@ -3290,7 +3453,7 @@ func _render_card_slot(slot: Button, card_id: StringName) -> void:
 	slot.text = ""
 	slot.set_meta("card_id", String(card_id))
 	var next_level: int = mini(
-		GameManager.get_card_level(card_id) + 1,
+		CardPool.get_display_level(GameManager, card_id) + 1,
 		CardPool.get_max_level(card_id)
 	)
 	var tone := CardPool.get_rarity_color(card_id)
@@ -3373,20 +3536,20 @@ func _on_card_slot_pressed(slot: Button) -> void:
 
 func _apply_card_selection(card_id: StringName) -> void:
 	var next_level: int = mini(
-		GameManager.get_card_level(card_id) + 1,
+		CardPool.get_display_level(GameManager, card_id) + 1,
 		CardPool.get_max_level(card_id)
 	)
-	GameManager.set_card_level(card_id, next_level)
-	print("CARD TAKEN: %s Lv%d (%s)" % [card_id, next_level, CardPool.get_rarity(card_id)])
 
-	# Silah kartlari weapons/weapon_system.gd tarafindan islenir.
-	# Codex silah davranisi eklerken bu dosyaya dokunmaz.
+	# Monteli silahlar yuva sistemine gider; seviyeyi orasi yazar.
 	if WeaponSystem.handles(card_id):
 		WeaponSystem.apply(self, card_id, next_level)
 		build_hud.refresh_from_run_state()
 		refresh_dynamic_build_difficulty()
 		call_deferred("_try_resolve_pending_rewards")
 		return
+
+	GameManager.set_card_level(card_id, next_level)
+	print("CARD TAKEN: %s Lv%d (%s)" % [card_id, next_level, CardPool.get_rarity(card_id)])
 
 	match card_id:
 		&"plasma":

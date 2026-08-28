@@ -256,6 +256,13 @@ static func is_mounted_weapon(card_id: StringName) -> bool:
 	return bool(get_data(card_id).get("weapon", false))
 
 
+## Kartin gosterilecek seviyesi. Monteli silahlar yuva sisteminden okunur.
+static func get_display_level(gm: Node, card_id: StringName) -> int:
+	if is_mounted_weapon(card_id):
+		return WeaponCards.get_level(gm, card_id)
+	return gm.get_card_level(card_id) if gm != null else 0
+
+
 static func get_title(card_id: StringName) -> String:
 	return String(get_data(card_id).get("title", "?"))
 

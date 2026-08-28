@@ -1,6 +1,7 @@
 extends Node
 
 signal total_coins_changed(total: int)
+signal total_salvage_changed(total: int)
 
 
 # HUD alt kenarıyla ortak oyun alanı üst sınırı.
@@ -10,7 +11,15 @@ const DESKTOP_GAMEPLAY_CAMERA_ZOOM := 0.88
 const DESKTOP_GAMEPLAY_SIDE_MARGIN := 24.0
 const DESKTOP_PADDLE_BOTTOM_MARGIN := 48.0
 const META_SAVE_PATH := "user://neon_break_meta.cfg"
-const BUILDING_PART_DROP_CHANCE := 0.06
+const BUILDING_PART_DROP_CHANCE := 0.08
+const MAX_WEAPON_SLOTS := 2
+const MAX_WEAPON_LEVEL := 3
+const WEAPON_PLASMA: StringName = &"PLASMA"
+const WEAPON_ARC_CANNON: StringName = &"ARC_CANNON"
+const WEAPON_SCATTER_CANNON: StringName = &"SCATTER_CANNON"
+const WEAPON_RAILGUN: StringName = &"RAILGUN"
+const WEAPON_HOMING_MISSILE: StringName = &"HOMING_MISSILE"
+const WEAPON_PULSE_LASER: StringName = &"PULSE_LASER"
 const PADDLE_NEUTRAL: StringName = &"NEUTRAL"
 const PADDLE_PLASMA: StringName = &"PLASMA"
 const PADDLE_FIRE: StringName = &"FIRE"
@@ -435,6 +444,7 @@ func add_salvage(amount: int) -> void:
 		return
 	total_salvage = maxi(0, total_salvage + amount)
 	save_meta_progression()
+	total_salvage_changed.emit(total_salvage)
 
 # COLONY DEBUG - REMOVE BEFORE RELEASE
 func debug_reset_colony_building_progression() -> void:
@@ -575,6 +585,11 @@ const RUN_START_REROLLS := 2
 const RUN_START_BANISHES := 1
 # Yedek Çekirdek kartı harcanınca kapanır.
 var revive_available := false
+# Codex silah yuvasi sistemi: iki yuva, her biri Lv3'e kadar.
+var weapon_slots: Array[Dictionary] = [
+	{"weapon_id": &"", "level": 0},
+	{"weapon_id": &"", "level": 0},
+]
 # Kalkan Jeneratörü'nden gelen, can kaybını önleyen ücretsiz yükler.
 var colony_shield_charges := 0
 
@@ -604,6 +619,7 @@ func reset_run():
 	post_boss_descent_multiplier = 1.0
 	card_levels = {}
 	banished_cards = {}
+	reset_weapon_slots()
 	_apply_paddle_profile_to_run()
 
 
@@ -624,7 +640,11 @@ func _apply_paddle_profile_to_run() -> void:
 	# Raketin imza silahi ucretsiz gelir; acilis kart eli buna gore daralir.
 	var start_card: StringName = profile.get("start_card", &"none")
 	if start_card != &"none":
-		set_card_level(start_card, 1)
+		if start_card == &"plasma":
+			# Plazma artik yuva sisteminde tutuluyor; iki taraf ayni degeri gormeli.
+			acquire_or_upgrade_weapon(WEAPON_PLASMA)
+		else:
+			set_card_level(start_card, 1)
 
 
 func add_life():
@@ -644,6 +664,100 @@ func set_magnet_time(duration):
 # ==================================================
 # KART SEVİYELERİ VE PASİF EFEKTLER
 # ==================================================
+
+# ==================================================
+# SİLAH YUVALARI (Codex)
+# ==================================================
+
+func _empty_weapon_slot() -> Dictionary:
+	return {"weapon_id": &"", "level": 0}
+
+
+func reset_weapon_slots() -> void:
+	weapon_slots.clear()
+	for slot_index in range(MAX_WEAPON_SLOTS):
+		weapon_slots.append(_empty_weapon_slot())
+	plasma_level = 0
+	debug_print_weapon_slots()
+
+
+func get_weapon_slot_index(weapon_id: StringName) -> int:
+	for slot_index in range(weapon_slots.size()):
+		if StringName(weapon_slots[slot_index].get("weapon_id", &"")) == weapon_id:
+			return slot_index
+	return -1
+
+
+func has_weapon(weapon_id: StringName) -> bool:
+	return get_weapon_slot_index(weapon_id) >= 0
+
+
+func get_weapon_level(weapon_id: StringName) -> int:
+	var slot_index := get_weapon_slot_index(weapon_id)
+	if slot_index < 0:
+		return 0
+	return clampi(int(weapon_slots[slot_index].get("level", 0)), 0, MAX_WEAPON_LEVEL)
+
+
+func has_empty_weapon_slot() -> bool:
+	for slot in weapon_slots:
+		if StringName(slot.get("weapon_id", &"")) == &"":
+			return true
+	return false
+
+
+func can_acquire_weapon(weapon_id: StringName) -> bool:
+	if weapon_id == &"":
+		return false
+	var current_level := get_weapon_level(weapon_id)
+	return current_level < MAX_WEAPON_LEVEL and (current_level > 0 or has_empty_weapon_slot())
+
+
+func acquire_or_upgrade_weapon(weapon_id: StringName) -> int:
+	if not can_acquire_weapon(weapon_id):
+		return get_weapon_level(weapon_id)
+	var slot_index := get_weapon_slot_index(weapon_id)
+	if slot_index < 0:
+		for index in range(weapon_slots.size()):
+			if StringName(weapon_slots[index].get("weapon_id", &"")) == &"":
+				slot_index = index
+				weapon_slots[index] = {"weapon_id": weapon_id, "level": 1}
+				break
+	else:
+		weapon_slots[slot_index]["level"] = mini(
+			int(weapon_slots[slot_index].get("level", 0)) + 1,
+			MAX_WEAPON_LEVEL
+		)
+	var level := get_weapon_level(weapon_id)
+	if weapon_id == WEAPON_PLASMA:
+		plasma_level = level
+	debug_print_weapon_slots()
+	return level
+
+
+func get_weapon_slots_debug_text() -> String:
+	var labels: Array[String] = []
+	for slot in weapon_slots:
+		var weapon_id := StringName(slot.get("weapon_id", &""))
+		if weapon_id == &"":
+			labels.append("EMPTY")
+		else:
+			var display_name := "Plasma" if weapon_id == WEAPON_PLASMA else String(weapon_id)
+			labels.append("%s Lv%d" % [display_name, int(slot.get("level", 0))])
+	return " | ".join(labels)
+
+
+func debug_print_weapon_slots() -> void:
+	if not OS.is_debug_build():
+		return
+	for slot_index in range(MAX_WEAPON_SLOTS):
+		var slot := weapon_slots[slot_index]
+		var weapon_id := StringName(slot.get("weapon_id", &""))
+		if weapon_id == &"":
+			print("WEAPON SLOT %d: EMPTY" % (slot_index + 1))
+		else:
+			print("WEAPON SLOT %d: %s LV%d" % [slot_index + 1, String(weapon_id), int(slot.get("level", 0))])
+
 
 func get_card_level(card_id: StringName) -> int:
 	# Silah kartları kendi alanlarında, pasifler card_levels sözlüğünde tutulur.

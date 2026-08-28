@@ -41,6 +41,7 @@ func _ready():
 		add_to_group("shield_brick")
 
 
+
 func set_grid_cell(row_id: int, column_id: int) -> void:
 	grid_row = row_id
 	grid_column = column_id
@@ -222,6 +223,7 @@ func hit(source = "ball", damage_context = null):
 	# --------------------------------------------------
 
 	is_destroyed = true
+
 	if is_shield_brick and is_instance_valid(shield_controller):
 		shield_controller.release_neighbors(true)
 

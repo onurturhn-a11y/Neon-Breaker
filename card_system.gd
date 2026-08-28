@@ -55,10 +55,10 @@ static func is_card_eligible(card_id: StringName, state: Dictionary) -> bool:
 		return false
 	if gm.banished_cards.has(card_id):
 		return false
-	# Yuvası dolu bir rakete yeni silah teklif edilmez.
+	# Monteli silahlar GameManager.weapon_slots üzerinden yönetilir:
+	# hem yuva doluluğu hem seviye tavanı orada kontrol edilir.
 	if CardPool.is_mounted_weapon(card_id):
-		if gm.get_card_level(card_id) <= 0 and not WeaponCards.has_free_mount(gm):
-			return false
+		return WeaponCards.can_offer(gm, card_id)
 	return gm.get_card_level(card_id) < get_card_level_cap(card_id, state)
 
 
