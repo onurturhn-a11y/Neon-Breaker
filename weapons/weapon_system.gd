@@ -30,13 +30,13 @@ static func apply(game: Node, card_id: StringName, _level: int) -> void:
 	# Yuva sistemi seviyeyi kendi hesaplar; kontrolcüler oradan okur.
 	var new_level: int = game.get_node("/root/GameManager").acquire_or_upgrade_weapon(weapon_id)
 	if new_level > 0:
-		_ensure_runtime_controller(game, card_id)
+		ensure_runtime_controller(game, card_id)
 	print("WEAPON ACQUIRED: %s -> Lv%d" % [weapon_id, new_level])
 
 
 ## Veri kaydında controller tanımlayan yeni silahları main.gd'ye hard-code etmeden kurar.
 ## Eski silahların mevcut main.gd controller akışı değişmeden kalır.
-static func _ensure_runtime_controller(game: Node, card_id: StringName) -> void:
+static func ensure_runtime_controller(game: Node, card_id: StringName) -> void:
 	var card: Dictionary = WeaponCards.CARDS.get(card_id, {})
 	var script_path := String(card.get("controller_script", ""))
 	var node_name := String(card.get("controller_node", ""))

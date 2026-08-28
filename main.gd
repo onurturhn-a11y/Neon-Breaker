@@ -16,6 +16,8 @@ const SCATTER_CANNON_CONTROLLER_SCRIPT := preload("res://scatter_cannon_controll
 const RAILGUN_CONTROLLER_SCRIPT := preload("res://railgun_controller.gd")
 const HOMING_MISSILE_CONTROLLER_SCRIPT := preload("res://homing_missile_controller.gd")
 const PULSE_LASER_CONTROLLER_SCRIPT := preload("res://pulse_laser_controller.gd")
+# MINE LAUNCHER DEBUG - REMOVE BEFORE RELEASE
+const DEBUG_FORCE_MINE_LAUNCHER := true
 
 
 var bricks_left = 0
@@ -785,6 +787,15 @@ func _setup_pulse_laser_controller() -> void:
 	pulse_laser_controller.configure(self, paddle)
 
 
+func _debug_force_mine_launcher() -> void:
+	if not DEBUG_FORCE_MINE_LAUNCHER or not OS.is_debug_build():
+		return
+	GameManager.reset_weapon_slots()
+	for _upgrade_index in range(GameManager.MAX_WEAPON_LEVEL):
+		GameManager.acquire_or_upgrade_weapon(GameManager.WEAPON_MINE_LAUNCHER)
+	WeaponSystem.ensure_runtime_controller(self, &"mine_launcher")
+	print("MINE DEBUG FORCE: SLOT 1 = MINE LAUNCHER LV3")
+
 func _apply_menu_button_texture(button: Button, texture: Texture2D) -> void:
 	button.text = ""
 	button.icon = texture
@@ -854,6 +865,7 @@ func _ready():
 	_setup_railgun_controller()
 	_setup_homing_missile_controller()
 	_setup_pulse_laser_controller()
+	_debug_force_mine_launcher()
 	if not GameManager.total_coins_changed.is_connected(_on_total_coins_changed):
 		GameManager.total_coins_changed.connect(_on_total_coins_changed)
 	_on_total_coins_changed(GameManager.total_coins)
