@@ -1042,7 +1042,7 @@ func get_curse_attacker_scale() -> float:
 func get_active_curse_names() -> Array:
 	var names: Array[String] = []
 	for curse_id: StringName in active_curses.keys():
-		names.append(Curses.get_name(curse_id))
+		names.append(Curses.get_curse_name(curse_id))
 	return names
 
 

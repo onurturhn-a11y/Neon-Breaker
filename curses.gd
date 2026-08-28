@@ -65,7 +65,8 @@ static func get_data(curse_id: StringName) -> Dictionary:
 	return CURSES.get(curse_id, {})
 
 
-static func get_name(curse_id: StringName) -> String:
+## NOT: 'get_name' Object'in yerlesik metoduyla cakisir; bu yuzden ozel ad.
+static func get_curse_name(curse_id: StringName) -> String:
 	return String(get_data(curse_id).get("name", "?"))
 
 

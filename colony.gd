@@ -1055,18 +1055,21 @@ func _build_entry_style(border_color: Color) -> StyleBoxFlat:
 func _popup_dim_input(event: InputEvent) -> void:
 	if pending_slot == &"none" or not build_panel.visible:
 		return
-	var pressed := (
-		(event is InputEventMouseButton and event.pressed
-			and event.button_index == MOUSE_BUTTON_LEFT)
-		or (event is InputEventScreenTouch and event.pressed)
-	)
-	if not pressed:
+	# Tip cikarimi InputEvent tabanindan yapilamaz; alt tipler acikca ayrilir.
+	var point := Vector2.ZERO
+	if event is InputEventMouseButton:
+		var mouse_event := event as InputEventMouseButton
+		if not mouse_event.pressed or mouse_event.button_index != MOUSE_BUTTON_LEFT:
+			return
+		point = mouse_event.position
+	elif event is InputEventScreenTouch:
+		var touch_event := event as InputEventScreenTouch
+		if not touch_event.pressed:
+			return
+		point = touch_event.position
+	else:
 		return
-	var local := build_panel.get_global_rect()
-	var point: Vector2 = (
-		event.position if event is InputEventMouseButton else event.position
-	)
-	if not local.has_point(point):
+	if not build_panel.get_global_rect().has_point(point):
 		_close_popup()
 
 

@@ -1564,7 +1564,7 @@ func _build_boss_reward_options(boss_type: StringName) -> Array:
 		options.append({
 			"id": &"curse",
 			"curse_id": curse_offer,
-			"title": Curses.get_name(curse_offer),
+			"title": Curses.get_curse_name(curse_offer),
 			"description": "%s\n%s" % [
 				Curses.get_description(curse_offer),
 				Curses.get_reward_text(curse_offer),
