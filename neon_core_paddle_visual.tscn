@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://cmid6hksf7ob"]
+
+[ext_resource type="Script" uid="uid://bjb5lk4yrpbne" path="res://neon_core_paddle_visual.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://dtba0v88620mc" path="res://assets/paddles/neon_core/paddle_body.png" id="2_body"]
+[ext_resource type="Texture2D" uid="uid://behwyh05e07nm" path="res://assets/paddles/neon_core/paddle_energy1.png" id="3_energy"]
+[ext_resource type="Texture2D" uid="uid://0b03n4pmerue" path="res://assets/paddles/neon_core/paddle_core.png" id="4_core"]
+
+[node name="NeonCoreVisual" type="Node2D" unique_id=86430959]
+script = ExtResource("1_script")
+
+[node name="Body" type="Sprite2D" parent="." unique_id=386486975]
+scale = Vector2(0.087477, 0.087477)
+texture = ExtResource("2_body")
+
+[node name="Energy" type="Sprite2D" parent="." unique_id=485096609]
+z_index = 1
+scale = Vector2(0.087477, 0.087477)
+texture = ExtResource("3_energy")
+
+[node name="Core" type="Sprite2D" parent="." unique_id=1046236383]
+z_index = 2
+scale = Vector2(0.087477, 0.087477)
+texture = ExtResource("4_core")

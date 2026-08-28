@@ -1,0 +1,47 @@
+[gd_scene format=3 uid="uid://cdeisv08r58u0"]
+
+[ext_resource type="Script" uid="uid://cliyokpmphqxo" path="res://magnet_pickup.gd" id="1_magnet"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_magnet"]
+radius = 12.0
+
+[node name="MagnetPickup" type="Area2D" unique_id=1491559391]
+script = ExtResource("1_magnet")
+
+[node name="Visual" type="Node2D" parent="." unique_id=404193496]
+
+[node name="Glow" type="Line2D" parent="Visual" unique_id=1081893814]
+modulate = Color(1, 1, 1, 0.26)
+z_index = -1
+points = PackedVector2Array(-9, -8, -9, 2, -6, 8, 0, 11, 6, 8, 9, 2, 9, -8)
+width = 9.0
+default_color = Color(0.4, 0.2, 1, 0.7)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true
+
+[node name="Magnet" type="Line2D" parent="Visual" unique_id=528080299]
+points = PackedVector2Array(-9, -8, -9, 2, -6, 8, 0, 11, 6, 8, 9, 2, 9, -8)
+width = 4.0
+default_color = Color(0.12, 0.84, 1, 1)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true
+
+[node name="LeftPole" type="Polygon2D" parent="Visual" unique_id=97832339]
+color = Color(0.75, 0.24, 1, 1)
+polygon = PackedVector2Array(-12, -11, -6, -11, -6, -5, -12, -5)
+
+[node name="RightPole" type="Polygon2D" parent="Visual" unique_id=850409393]
+color = Color(0.75, 0.24, 1, 1)
+polygon = PackedVector2Array(6, -11, 12, -11, 12, -5, 6, -5)
+
+[node name="Core" type="Polygon2D" parent="Visual" unique_id=1029043093]
+z_index = 1
+color = Color(0.9, 1, 1, 0.95)
+polygon = PackedVector2Array(0, 5, 3, 9, 0, 13, -3, 9)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1889913225]
+shape = SubResource("CircleShape2D_magnet")

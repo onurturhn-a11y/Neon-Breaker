@@ -1,0 +1,91 @@
+[gd_scene format=3 uid="uid://cekjhgh7kgorr"]
+
+[ext_resource type="Script" uid="uid://c2vngux7hhscw" path="res://boss_sentinel.gd" id="1_sentinel"]
+[ext_resource type="Texture2D" uid="uid://bph7a1p6u6ytp" path="res://assets/bosses/the_sentinel.png" id="2_sentinel_texture"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(252, 92)
+
+[node name="TheSentinel" type="StaticBody2D" unique_id=102928200]
+z_index = 5
+collision_mask = 0
+script = ExtResource("1_sentinel")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=351414082]
+shape = SubResource("RectangleShape2D_body")
+
+[node name="VisualRoot" type="Node2D" parent="." unique_id=998742827]
+
+[node name="BossTexture" type="Sprite2D" parent="VisualRoot" unique_id=571376216]
+scale = Vector2(0.18, 0.18)
+texture = ExtResource("2_sentinel_texture")
+
+[node name="Body" type="Polygon2D" parent="VisualRoot" unique_id=1131205490]
+visible = false
+color = Color(0.035, 0.075, 0.12, 1)
+polygon = PackedVector2Array(-126, -30, -104, -48, 104, -48, 126, -30, 126, 30, 104, 48, -104, 48, -126, 30)
+
+[node name="BodyEdge" type="Line2D" parent="VisualRoot" unique_id=786048908]
+visible = false
+points = PackedVector2Array(-126, -30, -104, -48, 104, -48, 126, -30, 126, 30, 104, 48, -104, 48, -126, 30, -126, -30)
+width = 2.2
+default_color = Color(0.16, 0.72, 0.92, 0.72)
+antialiased = true
+
+[node name="MainCore" type="Polygon2D" parent="VisualRoot" unique_id=752348123]
+visible = false
+color = Color(0.22, 0.88, 1, 1)
+polygon = PackedVector2Array(34, 0, 24, 24, 0, 34, -24, 24, -34, 0, -24, -24, 0, -34, 24, -24)
+
+[node name="CoreRing" type="Line2D" parent="VisualRoot" unique_id=447565839]
+visible = false
+points = PackedVector2Array(43, 0, 30, 30, 0, 43, -30, 30, -43, 0, -30, -30, 0, -43, 30, -30, 43, 0)
+width = 3.0
+default_color = Color(0.2, 0.82, 1, 0.9)
+antialiased = true
+
+[node name="ShieldSurface" type="Polygon2D" parent="VisualRoot" unique_id=219380175]
+z_index = 1
+color = Color(0.12, 0.78, 1, 0.11)
+polygon = PackedVector2Array(50, 0, 46, 19, 35, 35, 19, 46, 0, 50, -19, 46, -35, 35, -46, 19, -50, 0, -46, -19, -35, -35, -19, -46, 0, -50, 19, -46, 35, -35, 46, -19)
+
+[node name="ShieldRing" type="Line2D" parent="VisualRoot" unique_id=1348983331]
+z_index = 2
+points = PackedVector2Array(52, 0, 45, 26, 26, 45, 0, 52, -26, 45, -45, 26, -52, 0, -45, -26, -26, -45, 0, -52, 26, -45, 45, -26, 52, 0)
+width = 4.0
+default_color = Color(0.35, 0.9, 1, 0.42)
+antialiased = true
+
+[node name="LeftGenerator" type="Node2D" parent="VisualRoot" unique_id=284911223]
+visible = false
+position = Vector2(-86, 8)
+
+[node name="Pod" type="Polygon2D" parent="VisualRoot/LeftGenerator" unique_id=459567316]
+color = Color(0.08, 0.18, 0.25, 1)
+polygon = PackedVector2Array(-30, -22, 22, -22, 31, 0, 22, 22, -30, 22, -38, 0)
+
+[node name="Core" type="Polygon2D" parent="VisualRoot/LeftGenerator" unique_id=2012293930]
+color = Color(0.32, 0.95, 1, 1)
+polygon = PackedVector2Array(14, 0, 7, 12, -7, 12, -14, 0, -7, -12, 7, -12)
+
+[node name="Edge" type="Line2D" parent="VisualRoot/LeftGenerator" unique_id=1121464094]
+points = PackedVector2Array(-30, -22, 22, -22, 31, 0, 22, 22, -30, 22, -38, 0, -30, -22)
+width = 2.0
+default_color = Color(0.24, 0.8, 1, 0.85)
+
+[node name="RightGenerator" type="Node2D" parent="VisualRoot" unique_id=1884103504]
+visible = false
+position = Vector2(86, 8)
+
+[node name="Pod" type="Polygon2D" parent="VisualRoot/RightGenerator" unique_id=1324345040]
+color = Color(0.08, 0.18, 0.25, 1)
+polygon = PackedVector2Array(-22, -22, 30, -22, 38, 0, 30, 22, -22, 22, -31, 0)
+
+[node name="Core" type="Polygon2D" parent="VisualRoot/RightGenerator" unique_id=1337137721]
+color = Color(0.32, 0.95, 1, 1)
+polygon = PackedVector2Array(14, 0, 7, 12, -7, 12, -14, 0, -7, -12, 7, -12)
+
+[node name="Edge" type="Line2D" parent="VisualRoot/RightGenerator" unique_id=1898258944]
+points = PackedVector2Array(-22, -22, 30, -22, 38, 0, 30, 22, -22, 22, -31, 0, -22, -22)
+width = 2.0
+default_color = Color(0.24, 0.8, 1, 0.85)

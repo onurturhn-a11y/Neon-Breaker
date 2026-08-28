@@ -1,0 +1,37 @@
+[gd_scene format=3 uid="uid://cwnka66m5mb5l"]
+
+[ext_resource type="Script" uid="uid://r7myh2n5ec1q" path="res://colony/buildings/plasma_lab_live.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://crspt78vfhlua" path="res://assets/colony/buildings/plasma_layers/plasma_body.png" id="2_body"]
+[ext_resource type="Texture2D" uid="uid://d0f2i0ixa80dp" path="res://assets/colony/buildings/plasma_layers/plasma_core.png" id="3_core"]
+[ext_resource type="Texture2D" uid="uid://6cx6kbfdks1c" path="res://assets/colony/buildings/plasma_layers/plasma_ring.png" id="4_ring"]
+
+[node name="PlasmaLabLive" type="Node2D" unique_id=502967759]
+script = ExtResource("1_script")
+
+[node name="ContactShadow" type="Sprite2D" parent="." unique_id=2094358066]
+z_index = -2
+position = Vector2(0, 380)
+
+[node name="PlatformGlow" type="Sprite2D" parent="." unique_id=669115276]
+z_index = -1
+position = Vector2(0, 370)
+
+[node name="Body" type="Sprite2D" parent="." unique_id=406889646]
+texture = ExtResource("2_body")
+
+[node name="CorePivot" type="Node2D" parent="." unique_id=1688601485]
+position = Vector2(0, 18)
+
+[node name="CoreGlow" type="Sprite2D" parent="CorePivot" unique_id=141769995]
+z_index = 1
+
+[node name="Core" type="Sprite2D" parent="CorePivot" unique_id=333517132]
+z_index = 2
+texture = ExtResource("3_core")
+
+[node name="RingPivot" type="Node2D" parent="." unique_id=1140331087]
+position = Vector2(0, -235)
+
+[node name="Ring" type="Sprite2D" parent="RingPivot" unique_id=1834912699]
+z_index = 3
+texture = ExtResource("4_ring")

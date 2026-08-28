@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://c28yqve1i4r21"]
+
+[ext_resource type="Script" uid="uid://cxn2kssc6j5xv" path="res://xp_orb.gd" id="1_xp_orb"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_xp_orb"]
+
+[node name="XPOrb" type="Area2D" unique_id=1790926704]
+script = ExtResource("1_xp_orb")
+
+[node name="Glow" type="Polygon2D" parent="." unique_id=490263634]
+z_index = -1
+color = Color(0.05, 0.75, 1, 0.24)
+polygon = PackedVector2Array(0, -13, 9, -9, 13, 0, 9, 9, 0, 13, -9, 9, -13, 0, -9, -9)
+
+[node name="Orb" type="Polygon2D" parent="." unique_id=2113075376]
+color = Color(0.15, 0.9, 1, 1)
+polygon = PackedVector2Array(0, -8, 6, -6, 8, 0, 6, 6, 0, 8, -6, 6, -8, 0, -6, -6)
+
+[node name="Core" type="Polygon2D" parent="." unique_id=833773292]
+z_index = 1
+color = Color(0.85, 1, 1, 1)
+polygon = PackedVector2Array(0, -3, 3, 0, 0, 3, -3, 0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1989417585]
+shape = SubResource("CircleShape2D_xp_orb")

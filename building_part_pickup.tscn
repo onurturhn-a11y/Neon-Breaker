@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://b8644l4tow244"]
+
+[ext_resource type="Script" uid="uid://cc36h6m08hjhx" path="res://building_part_pickup.gd" id="1_part"]
+[ext_resource type="Texture2D" uid="uid://du5kqox1fhuy0" path="res://assets/items/building_part.png" id="2_texture"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_part"]
+radius = 15.0
+
+[node name="BuildingPartPickup" type="Area2D" unique_id=904572117]
+collision_layer = 0
+collision_mask = 16
+script = ExtResource("1_part")
+
+[node name="Visual" type="Node2D" parent="." unique_id=1139640202]
+
+[node name="Sprite2D" type="Sprite2D" parent="Visual" unique_id=1184834976]
+scale = Vector2(0.027, 0.027)
+texture = ExtResource("2_texture")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=640499003]
+shape = SubResource("CircleShape2D_part")

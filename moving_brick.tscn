@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://bqi1rqf45n4c3"]
+
+[ext_resource type="Script" uid="uid://dp00a0sg0nx35" path="res://moving_brick.gd" id="1_1vfrj"]
+[ext_resource type="AudioStream" uid="uid://dhh2ba11tiu1c" path="res://hit.mp3" id="2_hit_sound"]
+[ext_resource type="Script" uid="uid://bnuh2iljix1qa" path="res://brick_visual.gd" id="3_brick_visual"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_y0sca"]
+size = Vector2(100, 35)
+
+[node name="MovingBrick" type="AnimatableBody2D" unique_id=1177245902]
+script = ExtResource("1_1vfrj")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1592629759]
+visible = false
+offset_left = -50.0
+offset_top = -17.5
+offset_right = 50.0
+offset_bottom = 17.5
+color = Color(0, 0.72156864, 1, 1)
+
+[node name="BrickVisual" type="Node2D" parent="." unique_id=62381311]
+script = ExtResource("3_brick_visual")
+
+[node name="Sprite2D" type="Sprite2D" parent="BrickVisual" unique_id=264480027]
+scale = Vector2(0.43, 0.22)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1057756703]
+shape = SubResource("RectangleShape2D_y0sca")
+
+[node name="HitSound" type="AudioStreamPlayer" parent="." unique_id=765502295]
+stream = ExtResource("2_hit_sound")
+bus = &"SFX"

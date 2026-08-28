@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://cb5efuawumhod"]
+
+[ext_resource type="Script" uid="uid://bxom220l3bug2" path="res://colony/buildings/fire_reactor_live.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://b3dlo4ee2sc2t" path="res://assets/colony/buildings/plasma_layers/fire_body.png" id="2_body"]
+[ext_resource type="Texture2D" uid="uid://bpx6ky47p437a" path="res://assets/colony/buildings/plasma_layers/fire_core.png" id="3_core"]
+[ext_resource type="Texture2D" uid="uid://cyhkvo6mdoab6" path="res://assets/colony/buildings/plasma_layers/fire_flames.png" id="4_flames"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_main"]
+atlas = ExtResource("4_flames")
+region = Rect2(128, 0, 512, 1024)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_side"]
+atlas = ExtResource("4_flames")
+region = Rect2(1016, 464, 224, 544)
+
+[node name="FireReactorLive" type="Node2D" unique_id=68057340]
+script = ExtResource("1_script")
+
+[node name="GroundGlow" type="Sprite2D" parent="." unique_id=1691372062]
+z_index = -1
+position = Vector2(0, 390)
+
+[node name="Body" type="Sprite2D" parent="." unique_id=762875862]
+texture = ExtResource("2_body")
+
+[node name="CoreContainer" type="Node2D" parent="." unique_id=839815922]
+position = Vector2(0, 24)
+
+[node name="CoreGlow" type="Sprite2D" parent="CoreContainer" unique_id=1352680790]
+z_index = 1
+
+[node name="Core" type="Sprite2D" parent="CoreContainer" unique_id=1095082779]
+z_index = 2
+texture = ExtResource("3_core")
+
+[node name="FlameLayer" type="Node2D" parent="." unique_id=930727024]
+z_index = 3
+
+[node name="MainFlame" type="Sprite2D" parent="FlameLayer" unique_id=72136428]
+position = Vector2(-36, -445)
+texture = SubResource("AtlasTexture_main")
+
+[node name="SideFlame" type="Sprite2D" parent="FlameLayer" unique_id=2133075235]
+position = Vector2(256, -292)
+texture = SubResource("AtlasTexture_side")
+
+[node name="SparkParticles" type="GPUParticles2D" parent="." unique_id=1757348025]
+z_index = 4
+position = Vector2(92, -360)

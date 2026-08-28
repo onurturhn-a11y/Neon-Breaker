@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://qracijnaxa51"]
+
+[ext_resource type="Script" uid="uid://cu1aus45er6jq" path="res://void_comet.gd" id="1_comet"]
+
+[node name="VoidComet" type="Area2D" unique_id=139526656]
+script = ExtResource("1_comet")

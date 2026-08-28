@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -t \"C:/Users/Onur/Downloads\" 2>/dev/null | head -20; echo \"---DESKTOP---\"; ls -t \"C:/Users/Onur/Desktop\" 2>/dev/null | head -20)",
+      "Bash(\"C:/Users/Onur/Downloads/Godot_v4.7.2-stable_win64.exe\" --headless --check-only --script \"C:/Users/Onur/Documents/neonbreak/boss_celestial.gd\" --path \"C:/Users/Onur/Documents/neonbreak\")",
+      "Bash(echo \"EXIT=$?\")"
+    ]
+  }
+}

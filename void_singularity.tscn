@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dek631oyqc313"]
+
+[ext_resource type="Script" uid="uid://bnnyb1id4vtrt" path="res://void_singularity.gd" id="1_sing"]
+
+[node name="VoidSingularity" type="Node2D" unique_id=784447321]
+script = ExtResource("1_sing")

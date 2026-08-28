@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cak37nn48qka1"]
+
+[ext_resource type="Script" uid="uid://n7hah44eg1bt" path="res://napalm_field.gd" id="1_napalm"]
+
+[node name="NapalmField" type="Node2D" unique_id=2036438302]
+script = ExtResource("1_napalm")

@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://b0l8bjmjx5wfc"]
+
+[ext_resource type="Script" uid="uid://b1aqkv2wy2w7s" path="res://balls/fire_ball_visual.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://cakf1iuwdg3qt" path="res://assets/balls/fire_ball/fire_ball_body.png" id="2_body"]
+[ext_resource type="Texture2D" uid="uid://doyktkds0703d" path="res://assets/balls/fire_ball/fire_ball_core.png" id="3_core"]
+[ext_resource type="Texture2D" uid="uid://d3v174qtig07j" path="res://assets/balls/fire_ball/fire_ball_ring.png" id="4_ring"]
+
+[node name="FireBallVisual" type="Node2D" unique_id=1271929512]
+script = ExtResource("1_script")
+
+[node name="Glow" type="Sprite2D" parent="." unique_id=234154976]
+z_index = -3
+
+[node name="CorePivot" type="Node2D" parent="." unique_id=640667849]
+z_index = -1
+
+[node name="Core" type="Sprite2D" parent="CorePivot" unique_id=55861587]
+texture = ExtResource("3_core")
+
+[node name="RingPivot" type="Node2D" parent="." unique_id=1730557679]
+
+[node name="Ring" type="Sprite2D" parent="RingPivot" unique_id=511238311]
+texture = ExtResource("4_ring")
+
+[node name="Body" type="Sprite2D" parent="." unique_id=2104314516]
+z_index = 1
+texture = ExtResource("2_body")
+
+[node name="FireTrail" type="Line2D" parent="." unique_id=1169856613]
+z_index = -2
+width = 5.0
+default_color = Color(1, 0.32, 0.025, 0.8)
+antialiased = true
+
+[node name="Embers" type="GPUParticles2D" parent="." unique_id=1510568085]
+z_index = -1
+
+[node name="ImpactParticles" type="GPUParticles2D" parent="." unique_id=162586599]
+z_index = 3
+emitting = false

@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://b035etfmo6ucb"]
+
+[ext_resource type="Script" uid="uid://bpecf034t8rrt" path="res://chain_lightning_visual.gd" id="1_lightning"]
+
+[node name="ChainLightningVisual" type="Node2D" unique_id=1363861312]
+z_index = 45
+script = ExtResource("1_lightning")
+
+[node name="GlowLine" type="Line2D" parent="." unique_id=1383375735]
+width = 5.0
+default_color = Color(0.1, 0.75, 1, 0.28)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true
+
+[node name="CoreLine" type="Line2D" parent="." unique_id=466202718]
+width = 1.6
+default_color = Color(0.82, 0.98, 1, 1)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true

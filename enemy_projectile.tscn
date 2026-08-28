@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://cwwytb82vjoao"]
+
+[ext_resource type="Script" uid="uid://b3o6bqhltub87" path="res://enemy_projectile.gd" id="1_enemy_projectile"]
+[ext_resource type="Texture2D" uid="uid://f5x45u1doluc" path="res://assets/bricks/enemies/side_attacker/enemy_projectile_v2.png" id="2_projectile"]
+[ext_resource type="Shader" uid="uid://fpg6wlghxxa6" path="res://side_attacker_asset_mask.gdshader" id="4_mask"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mask"]
+shader = ExtResource("4_mask")
+shader_parameter/dark_cutoff = 0.025
+shader_parameter/edge_softness = 0.075
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_projectile"]
+atlas = ExtResource("2_projectile")
+region = Rect2(150, 20, 1300, 900)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
+radius = 7.0
+
+[node name="EnemyProjectile" type="Area2D" unique_id=36401417]
+collision_layer = 128
+collision_mask = 112
+script = ExtResource("1_enemy_projectile")
+
+[node name="ProjectileSprite" type="Sprite2D" parent="." unique_id=1554651168]
+texture_filter = 1
+material = SubResource("ShaderMaterial_mask")
+position = Vector2(11.5, -7.5)
+scale = Vector2(0.035, 0.035)
+texture = SubResource("AtlasTexture_projectile")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1379843676]
+shape = SubResource("CircleShape2D_enemy")

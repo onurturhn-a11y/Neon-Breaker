@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://csnbwc1kmvko8"]
+
+[ext_resource type="Script" uid="uid://bujeuef5e4hnc" path="res://boss_core.gd" id="1_boss"]
+[ext_resource type="Texture2D" uid="uid://cm7nc8ts8lwg8" path="res://assets/bosses/the_core.png" id="2_core_texture"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_core"]
+radius = 62.0
+
+[node name="TheCore" type="StaticBody2D" unique_id=351355818]
+z_index = 5
+collision_mask = 0
+script = ExtResource("1_boss")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=880007305]
+shape = SubResource("CircleShape2D_core")
+
+[node name="VisualRoot" type="Node2D" parent="." unique_id=73597272]
+
+[node name="BossTexture" type="Sprite2D" parent="VisualRoot" unique_id=196569318]
+scale = Vector2(0.13, 0.13)
+texture = ExtResource("2_core_texture")
+
+[node name="OuterGlow" type="Polygon2D" parent="VisualRoot" unique_id=1305613158]
+visible = false
+color = Color(0.03, 0.52, 0.68, 0.18)
+polygon = PackedVector2Array(68, 0, 62.82, 26.02, 48.08, 48.08, 26.02, 62.82, 0, 68, -26.02, 62.82, -48.08, 48.08, -62.82, 26.02, -68, 0, -62.82, -26.02, -48.08, -48.08, -26.02, -62.82, 0, -68, 26.02, -62.82, 48.08, -48.08, 62.82, -26.02)
+
+[node name="Body" type="Polygon2D" parent="VisualRoot" unique_id=993307001]
+visible = false
+color = Color(0.055, 0.1, 0.15, 1)
+polygon = PackedVector2Array(58, 0, 53.58, 22.2, 41.01, 41.01, 22.2, 53.58, 0, 58, -22.2, 53.58, -41.01, 41.01, -53.58, 22.2, -58, 0, -53.58, -22.2, -41.01, -41.01, -22.2, -53.58, 0, -58, 22.2, -53.58, 41.01, -41.01, 53.58, -22.2)
+
+[node name="InnerRing" type="Line2D" parent="VisualRoot" unique_id=1800121919]
+visible = false
+points = PackedVector2Array(42, 0, 29.7, 29.7, 0, 42, -29.7, 29.7, -42, 0, -29.7, -29.7, 0, -42, 29.7, -29.7, 42, 0)
+closed = true
+width = 4.0
+default_color = Color(0.12, 0.78, 0.96, 0.82)
+antialiased = true
+
+[node name="EnergyCore" type="Polygon2D" parent="VisualRoot" unique_id=252170454]
+visible = false
+color = Color(0.25, 0.94, 1, 1)
+polygon = PackedVector2Array(22, 0, 15.56, 15.56, 0, 22, -15.56, 15.56, -22, 0, -15.56, -15.56, 0, -22, 15.56, -15.56)
+
+[node name="CoreHighlight" type="Polygon2D" parent="VisualRoot" unique_id=939392267]
+visible = false
+color = Color(0.92, 1, 1, 1)
+polygon = PackedVector2Array(9, 0, 6.36, 6.36, 0, 9, -6.36, 6.36, -9, 0, -6.36, -6.36, 0, -9, 6.36, -6.36)

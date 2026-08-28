@@ -1,0 +1,45 @@
+[gd_scene format=3 uid="uid://dyaf4psch5aij"]
+
+[ext_resource type="Script" uid="uid://dwg8t71w0n56a" path="res://colony/buildings/piercing_research_live.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://3f1rmpqptpwb" path="res://assets/colony/buildings/plasma_layers/piercing_body.png" id="2_body"]
+[ext_resource type="Texture2D" uid="uid://cuvr2py8kddpw" path="res://assets/colony/buildings/plasma_layers/piercing_core.png" id="3_core"]
+[ext_resource type="Texture2D" uid="uid://k2r7o054tt00" path="res://assets/colony/buildings/plasma_layers/piercing_hologram.png" id="4_hologram"]
+
+[node name="PiercingResearchLive" type="Node2D" unique_id=1179813226]
+script = ExtResource("1_script")
+
+[node name="GroundGlow" type="Sprite2D" parent="." unique_id=1655117390]
+z_index = -2
+position = Vector2(0, 378)
+
+[node name="CoreClip" type="Node2D" parent="." unique_id=1261312335]
+position = Vector2(-8, 42)
+
+[node name="CorePivot" type="Node2D" parent="CoreClip" unique_id=1632992966]
+
+[node name="CoreGlow" type="Sprite2D" parent="CoreClip/CorePivot" unique_id=982120235]
+z_index = -1
+
+[node name="Core" type="Sprite2D" parent="CoreClip/CorePivot" unique_id=1562893615]
+texture = ExtResource("3_core")
+
+[node name="Body" type="Sprite2D" parent="." unique_id=926764608]
+z_index = 1
+texture = ExtResource("2_body")
+
+[node name="EnergyBeam" type="Line2D" parent="." unique_id=1369897233]
+z_index = 2
+points = PackedVector2Array(-8, 188, -8, 326)
+width = 7.0
+default_color = Color(1, 0.73, 0.12, 0.82)
+
+[node name="HologramPivot" type="Node2D" parent="." unique_id=319064162]
+z_index = 3
+position = Vector2(330, -300)
+
+[node name="Hologram" type="Sprite2D" parent="HologramPivot" unique_id=1222495302]
+texture = ExtResource("4_hologram")
+
+[node name="EnergyParticles" type="GPUParticles2D" parent="." unique_id=1893351858]
+z_index = 4
+position = Vector2(-8, 174)

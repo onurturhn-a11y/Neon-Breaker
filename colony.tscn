@@ -1,0 +1,92 @@
+[gd_scene format=3 uid="uid://dova4rbrc2buu"]
+
+[ext_resource type="Script" uid="uid://caxyxb7j8jk87" path="res://colony.gd" id="1"]
+[ext_resource type="PackedScene" path="res://colony/environment/colony_environment.tscn" id="2"]
+[ext_resource type="Texture2D" uid="uid://b2wlwpssa3n62" path="res://assets/background/space_nebula_bg.png" id="3"]
+
+[node name="Colony" type="Control" unique_id=555814315]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="LetterboxBackground" type="ColorRect" parent="." unique_id=1332713778]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.005, 0.008, 0.025, 1)
+
+[node name="AndroidSpaceFill" type="TextureRect" parent="." unique_id=375654168]
+visible = false
+modulate = Color(0.72, 0.72, 0.82, 1)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("3")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="ColonyCanvas" type="Control" parent="." unique_id=1431297904]
+anchors_preset = 0
+mouse_filter = 2
+
+[node name="Background" type="Control" parent="ColonyCanvas" unique_id=1152946932]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ColonyEnvironment" parent="ColonyCanvas/Background" unique_id=1944716545 instance=ExtResource("2")]
+
+[node name="ColonyWorld" type="Control" parent="ColonyCanvas" unique_id=182857041]
+anchors_preset = 0
+mouse_filter = 2
+
+[node name="top_left" type="Button" parent="ColonyCanvas/ColonyWorld" unique_id=1140907888]
+layout_mode = 0
+
+[node name="top_right" type="Button" parent="ColonyCanvas/ColonyWorld" unique_id=1080031379]
+layout_mode = 0
+
+[node name="middle_left" type="Button" parent="ColonyCanvas/ColonyWorld" unique_id=1197717929]
+layout_mode = 0
+
+[node name="middle_right" type="Button" parent="ColonyCanvas/ColonyWorld" unique_id=1920772904]
+layout_mode = 0
+
+[node name="bottom_left" type="Button" parent="ColonyCanvas/ColonyWorld" unique_id=1310410387]
+layout_mode = 0
+
+[node name="bottom_right" type="Button" parent="ColonyCanvas/ColonyWorld" unique_id=872212046]
+layout_mode = 0
+
+[node name="ColonyBuildings" type="Control" parent="ColonyCanvas" unique_id=1380720400]
+anchors_preset = 0
+mouse_filter = 2
+
+[node name="ColonyHUD" type="Control" parent="." unique_id=270703167]
+anchors_preset = 0
+
+[node name="PopupLayer" type="Control" parent="." unique_id=208528479]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

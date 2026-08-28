@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://bf0c880w50gvt"]
+
+[ext_resource type="Script" uid="uid://udq3u3neffdj" path="res://ball.gd" id="1_ktgx5"]
+[ext_resource type="Texture2D" uid="uid://cscueoy8s5oym" path="res://assets/ball/ball_base.png" id="2_ball_base"]
+[ext_resource type="Texture2D" uid="uid://cqoiux0du28lb" path="res://assets/ball/ball_core.png" id="2_ball_core"]
+[ext_resource type="Texture2D" uid="uid://cutkbwq1estv5" path="res://assets/ball/ball_glow.png" id="2_ball_glow"]
+[ext_resource type="Script" uid="uid://ttpvyarf3k3d" path="res://ball_visual.gd" id="2_ball_visual"]
+[ext_resource type="AudioStream" uid="uid://dsidrj5ilodaa" path="res://assets/audio/sfx/ball_wall_hit.wav" id="4_wall_hit"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_y0sca"]
+radius = 20.0
+
+[node name="Ball" type="CharacterBody2D" unique_id=1712097667]
+collision_layer = 32
+script = ExtResource("1_ktgx5")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1874069950]
+shape = SubResource("CircleShape2D_y0sca")
+
+[node name="BallVisual" type="Node2D" parent="." unique_id=2144927462]
+script = ExtResource("2_ball_visual")
+
+[node name="GlowLayer" type="Sprite2D" parent="BallVisual" unique_id=62200781]
+modulate = Color(1, 1, 1, 0.4)
+z_index = -1
+scale = Vector2(0.069615, 0.069615)
+texture = ExtResource("2_ball_glow")
+
+[node name="BaseLayer" type="Sprite2D" parent="BallVisual" unique_id=669108899]
+scale = Vector2(0.069615, 0.069615)
+texture = ExtResource("2_ball_base")
+
+[node name="CoreLayer" type="Sprite2D" parent="BallVisual" unique_id=1906754231]
+z_index = 1
+scale = Vector2(0.07541625, 0.07541625)
+texture = ExtResource("2_ball_core")
+
+[node name="WallHitSound1" type="AudioStreamPlayer" parent="." unique_id=874084596]
+stream = ExtResource("4_wall_hit")
+volume_db = -10.0
+bus = &"SFX"
+
+[node name="WallHitSound2" type="AudioStreamPlayer" parent="." unique_id=423058178]
+stream = ExtResource("4_wall_hit")
+volume_db = -10.0
+bus = &"SFX"
+
+[node name="WallHitSound3" type="AudioStreamPlayer" parent="." unique_id=1169610177]
+stream = ExtResource("4_wall_hit")
+volume_db = -10.0
+bus = &"SFX"
+
+[node name="WallHitSound4" type="AudioStreamPlayer" parent="." unique_id=222986322]
+stream = ExtResource("4_wall_hit")
+volume_db = -10.0
+bus = &"SFX"

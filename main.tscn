@@ -1,0 +1,1430 @@
+[gd_scene format=3 uid="uid://bonmonio1csdd"]
+
+[ext_resource type="Script" uid="uid://bo81kvmkp6h3y" path="res://main.gd" id="1_1bvp3"]
+[ext_resource type="Script" uid="uid://b6s8swfrxvh53" path="res://paddle.gd" id="1_ig7tw"]
+[ext_resource type="Texture2D" uid="uid://chw65nixo0va7" path="res://assets/weapons/muzzle_charge.png" id="2_muzzle_charge"]
+[ext_resource type="Texture2D" uid="uid://c6owafqrov4qw" path="res://assets/weapons/muzzle_fire.png" id="2_muzzle_fire"]
+[ext_resource type="Texture2D" uid="uid://cprwmsqkkk6ff" path="res://assets/paddles/paddle_aura.png" id="2_paddle_aura"]
+[ext_resource type="Texture2D" uid="uid://cpat7pik00gw8" path="res://assets/paddles/paddle_base.png" id="2_paddle_base"]
+[ext_resource type="Texture2D" uid="uid://cjotssybfwjhw" path="res://assets/paddles/paddle_energy.png" id="2_paddle_energy"]
+[ext_resource type="Script" uid="uid://dlryknre06uvh" path="res://paddle_neon_effect.gd" id="2_paddle_neon"]
+[ext_resource type="Texture2D" uid="uid://b380bebwy5uoy" path="res://assets/paddles/paddle_side_glow.png" id="2_paddle_side_glow"]
+[ext_resource type="Script" uid="uid://dq484dh8cgtjq" path="res://paddle_weapon_visual.gd" id="2_paddle_weapon"]
+[ext_resource type="AudioStream" uid="uid://bsb43wosr1mvh" path="res://assets/audio/sfx/plasma_fire.wav" id="2_plasma_fire_sfx"]
+[ext_resource type="Texture2D" uid="uid://8rqsn0v3hvea" path="res://assets/weapons/plasma_left.png" id="2_plasma_left"]
+[ext_resource type="Texture2D" uid="uid://wkq2sfiponwj" path="res://assets/weapons/plasma_right.png" id="2_plasma_right"]
+[ext_resource type="Script" uid="uid://c11dnp1p47lqt" path="res://build_hud.gd" id="3_build_hud"]
+[ext_resource type="Script" uid="uid://c68plsiq50mma" path="res://chain_lightning_manager.gd" id="3_chain_manager"]
+[ext_resource type="Script" uid="uid://s74kc6vgx7xu" path="res://combo_manager.gd" id="3_combo_manager"]
+[ext_resource type="Script" uid="uid://lstu3jn72rrb" path="res://frame_glow.gd" id="3_frame_glow"]
+[ext_resource type="Script" uid="uid://ba6cbtvs6tcpx" path="res://side_attacker_spawner.gd" id="3_side_attacker_spawner"]
+[ext_resource type="Script" uid="uid://dynnmdjludfka" path="res://world_shake.gd" id="3_world_shake"]
+[ext_resource type="PackedScene" uid="uid://bf0c880w50gvt" path="res://ball.tscn" id="4_1bvp3"]
+[ext_resource type="Script" uid="uid://82p61o7f4llj" path="res://music_manager.gd" id="5_7mycd"]
+[ext_resource type="Texture2D" uid="uid://c0h4es3f5qljj" path="res://plasma_card.png" id="6_272bh"]
+[ext_resource type="Texture2D" uid="uid://doxsai164uwo4" path="res://ball_card.png" id="7_5vw27"]
+[ext_resource type="Script" uid="uid://2gbahyqtfokj" path="res://card_ui.gd" id="8_5vw27"]
+[ext_resource type="AudioStream" uid="uid://um2upirht1jk" path="res://assets/audio/sfx/ui/card_move.wav" id="9_card_move_sfx"]
+[ext_resource type="AudioStream" uid="uid://cc6n4ryaixvl0" path="res://assets/audio/sfx/ui/card_select.wav" id="10_card_select_sfx"]
+[ext_resource type="Script" uid="uid://dimga0usys6j3" path="res://evolution_screen.gd" id="11_evolution_screen"]
+[ext_resource type="Script" uid="uid://cngeeruyaloqu" path="res://animated_starfield.gd" id="12_animated_starfield"]
+[ext_resource type="Texture2D" uid="uid://b2wlwpssa3n62" path="res://assets/background/space_nebula_bg.png" id="13_space_nebula_bg"]
+[ext_resource type="Script" uid="uid://ba2oxtcivf7dp" path="res://nebula_background_drift.gd" id="14_nebula_drift"]
+[ext_resource type="Script" uid="uid://xhx105y6023h" path="res://mobile_paddle_controls.gd" id="15_mobile_controls"]
+[ext_resource type="Script" uid="uid://hqj418qwkyji" path="res://pause_menu.gd" id="33_pause_menu"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_y0sca"]
+size = Vector2(190, 24)
+
+[sub_resource type="Shader" id="Shader_paddle_energy_flow"]
+code = "shader_type canvas_item;
+
+void fragment() {
+	vec2 uv = UV;
+	uv.x += sin(UV.y * 18.0 + TIME * 1.15) * 0.0035;
+	uv.y += sin(UV.x * 22.0 - TIME * 0.95) * 0.004;
+	vec4 energy = texture(TEXTURE, uv);
+	float flow = 0.92 + 0.14 * sin(UV.x * 24.0 - TIME * 1.4);
+	COLOR = energy * COLOR * vec4(vec3(flow), 1.0);
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_paddle_energy_flow"]
+shader = SubResource("Shader_paddle_energy_flow")
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_playfield_top"]
+size = Vector2(1152, 8)
+
+[sub_resource type="Shader" id="Shader_edge_vignette"]
+code = "shader_type canvas_item;
+
+uniform vec4 glow_color : source_color = vec4(0.0, 0.9, 1.0, 1.0);
+uniform float glow_strength : hint_range(0.0, 1.0) = 0.0;
+uniform float glow_width : hint_range(1.0, 150.0) = 60.0;
+
+void fragment() {
+	float left_glow = 1.0 - smoothstep(0.0, glow_width, UV.x / SCREEN_PIXEL_SIZE.x);
+	float right_glow = 1.0 - smoothstep(0.0, glow_width, (1.0 - UV.x) / SCREEN_PIXEL_SIZE.x);
+	float top_glow = 1.0 - smoothstep(0.0, glow_width, UV.y / SCREEN_PIXEL_SIZE.y);
+	float bottom_glow = 1.0 - smoothstep(0.0, glow_width, (1.0 - UV.y) / SCREEN_PIXEL_SIZE.y);
+
+	float horizontal_glow = max(left_glow, right_glow);
+	float vertical_glow = max(top_glow, bottom_glow);
+	float soft_union = 1.0 - (1.0 - horizontal_glow) * (1.0 - vertical_glow);
+	soft_union = pow(soft_union, 1.35);
+
+	COLOR = vec4(glow_color.rgb, soft_union * glow_strength);
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_edge_vignette"]
+shader = SubResource("Shader_edge_vignette")
+shader_parameter/glow_color = Color(0, 0.9, 1, 1)
+shader_parameter/glow_strength = 0.0
+shader_parameter/glow_width = 60.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_hud_panel"]
+bg_color = Color(0.025, 0.055, 0.105, 0.86)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.12, 0.78, 0.94, 0.72)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+shadow_color = Color(0.05, 0.65, 0.95, 0.22)
+shadow_size = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_xp_background"]
+bg_color = Color(0.012, 0.025, 0.065, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.16, 0.82, 1, 0.82)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="Gradient" id="Gradient_xp_fill"]
+offsets = PackedFloat32Array(0, 0.55, 1)
+colors = PackedColorArray(0.08, 0.72, 1, 1, 0.2, 0.42, 1, 1, 0.58, 0.2, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture_xp_fill"]
+gradient = SubResource("Gradient_xp_fill")
+width = 510
+height = 30
+fill_from = Vector2(0, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="StyleBoxTexture" id="StyleBox_xp_fill"]
+texture = SubResource("GradientTexture_xp_fill")
+
+[sub_resource type="Shader" id="Shader_procedural_nebula"]
+code = "shader_type canvas_item;
+
+uniform float primary_intensity : hint_range(0.0, 0.25) = 0.14;
+uniform float secondary_intensity : hint_range(0.0, 0.15) = 0.075;
+uniform float primary_drift_seconds : hint_range(40.0, 70.0) = 56.0;
+uniform float secondary_drift_seconds : hint_range(40.0, 80.0) = 68.0;
+uniform float ambience_intensity : hint_range(0.0, 0.03) = 0.012;
+uniform vec3 deep_navy = vec3(0.015, 0.045, 0.10);
+uniform vec3 muted_cyan = vec3(0.055, 0.22, 0.28);
+uniform vec3 muted_indigo = vec3(0.12, 0.065, 0.23);
+
+float hash21(vec2 point) {
+	point = fract(point * vec2(123.34, 456.21));
+	point += dot(point, point + 45.32);
+	return fract(point.x * point.y);
+}
+
+float value_noise(vec2 point) {
+	vec2 cell = floor(point);
+	vec2 local = fract(point);
+	local = local * local * (3.0 - 2.0 * local);
+	float a = hash21(cell);
+	float b = hash21(cell + vec2(1.0, 0.0));
+	float c = hash21(cell + vec2(0.0, 1.0));
+	float d = hash21(cell + vec2(1.0, 1.0));
+	return mix(mix(a, b, local.x), mix(c, d, local.x), local.y);
+}
+
+float fbm(vec2 point) {
+	float sum = 0.0;
+	float weight = 0.55;
+	for (int octave = 0; octave < 3; octave++) {
+		sum += value_noise(point) * weight;
+		point = point * 2.03 + vec2(13.7, 9.2);
+		weight *= 0.48;
+	}
+	return sum;
+}
+
+void fragment() {
+	vec2 aspect_uv = vec2(UV.x * 1.78, UV.y);
+
+	float primary_time = TIME / max(primary_drift_seconds, 1.0);
+	vec2 primary_uv = aspect_uv + vec2(primary_time * 0.72, primary_time * 0.22);
+	float primary_warp = fbm(primary_uv * 1.55 + vec2(2.4, 5.7));
+	float primary_detail = fbm(primary_uv * 3.15 + vec2(8.1, 1.3));
+	float diagonal_center = 0.52 + (UV.x - 0.5) * 0.24 + (primary_warp - 0.5) * 0.30;
+	float band_distance = abs(UV.y - diagonal_center);
+	float primary_band = 1.0 - smoothstep(0.10, 0.34, band_distance);
+	primary_band *= smoothstep(0.34, 0.72, primary_warp * 0.62 + primary_detail * 0.38);
+
+	float secondary_time = TIME / max(secondary_drift_seconds, 1.0);
+	vec2 secondary_center = vec2(
+		1.22 + sin(secondary_time * 6.28318) * 0.18,
+		0.68 + cos(secondary_time * 6.28318) * 0.12
+	);
+	vec2 secondary_delta = aspect_uv - secondary_center;
+	secondary_delta.x *= 0.72;
+	float secondary_warp = fbm(aspect_uv * 2.35 - vec2(secondary_time * 0.48, secondary_time * 0.20) + vec2(11.2, 3.6));
+	float secondary_blob = 1.0 - smoothstep(0.16, 0.48, length(secondary_delta) + (secondary_warp - 0.5) * 0.18);
+	secondary_blob *= smoothstep(0.30, 0.66, secondary_warp);
+
+	float ambience_wave = 0.5 + 0.5 * sin(TIME * 6.28318 / 20.0);
+	float ambience_alpha = ambience_intensity * mix(0.35, 1.0, ambience_wave);
+	float primary_alpha = primary_band * primary_intensity;
+	float secondary_alpha = secondary_blob * secondary_intensity;
+	float total_alpha = clamp(primary_alpha + secondary_alpha + ambience_alpha, 0.0, 0.18);
+	vec3 combined_color = deep_navy;
+	combined_color = mix(combined_color, muted_cyan, primary_alpha / max(total_alpha, 0.0001));
+	combined_color = mix(combined_color, muted_indigo, secondary_alpha / max(total_alpha, 0.0001));
+	combined_color = mix(combined_color, vec3(0.07, 0.11, 0.18), ambience_alpha / max(total_alpha, 0.0001));
+	COLOR = vec4(combined_color, total_alpha);
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_procedural_nebula"]
+shader = SubResource("Shader_procedural_nebula")
+shader_parameter/primary_intensity = 0.14
+shader_parameter/secondary_intensity = 0.075
+shader_parameter/primary_drift_seconds = 56.0
+shader_parameter/secondary_drift_seconds = 68.0
+shader_parameter/ambience_intensity = 0.012
+shader_parameter/deep_navy = Vector3(0.015, 0.045, 0.1)
+shader_parameter/muted_cyan = Vector3(0.055, 0.22, 0.28)
+shader_parameter/muted_indigo = Vector3(0.12, 0.065, 0.23)
+
+[sub_resource type="Gradient" id="Gradient_lquwl"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_1g7ai"]
+gradient = SubResource("Gradient_lquwl")
+fill = 1
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_y0sca"]
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(576, 324, 1)
+gravity = Vector3(0, 98, 0)
+scale_min = 0.01
+scale_max = 0.03
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_card_normal"]
+bg_color = Color(0.015, 0.025, 0.06, 0.94)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_card_focus"]
+bg_color = Color(0.015, 0.025, 0.06, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.15, 0.9, 1, 0.95)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0.05, 0.75, 1, 0.42)
+shadow_size = 5
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_plasma_art"]
+atlas = ExtResource("6_272bh")
+region = Rect2(0, 0, 768, 610)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_pierce_title"]
+bg_color = Color(0.015, 0.03, 0.075, 0.98)
+border_width_top = 1
+border_color = Color(0.2, 0.85, 1, 0.72)
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pierce_art"]
+atlas = ExtResource("7_5vw27")
+region = Rect2(0, 0, 768, 610)
+
+[node name="Node2D" type="Node2D" unique_id=1931913582]
+script = ExtResource("1_1bvp3")
+
+[node name="WorldShake" type="Node" parent="." unique_id=1194906532]
+script = ExtResource("3_world_shake")
+
+[node name="ChainLightningManager" type="Node" parent="." unique_id=395827810]
+script = ExtResource("3_chain_manager")
+
+[node name="SideAttackerSpawner" type="Node" parent="." unique_id=640251325]
+script = ExtResource("3_side_attacker_spawner")
+
+[node name="Paddle" type="CharacterBody2D" parent="." unique_id=2092592914]
+position = Vector2(576, 600)
+scale = Vector2(0.8, 0.8)
+collision_layer = 17
+script = ExtResource("1_ig7tw")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Paddle" unique_id=332550869]
+shape = SubResource("RectangleShape2D_y0sca")
+
+[node name="MagnetAura" type="Node2D" parent="Paddle" unique_id=677484122]
+visible = false
+z_index = -1
+
+[node name="CyanField" type="Line2D" parent="Paddle/MagnetAura" unique_id=1650373628]
+points = PackedVector2Array(-104, -14, -70, -23, 0, -27, 70, -23, 104, -14)
+width = 3.0
+default_color = Color(0.12, 0.84, 1, 0.42)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true
+
+[node name="PurpleField" type="Line2D" parent="Paddle/MagnetAura" unique_id=102671243]
+points = PackedVector2Array(-104, 14, -70, 23, 0, 27, 70, 23, 104, 14)
+width = 3.0
+default_color = Color(0.68, 0.28, 1, 0.34)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true
+
+[node name="NeonEffect" type="Node2D" parent="Paddle" unique_id=1416644643]
+script = ExtResource("2_paddle_neon")
+
+[node name="VisualLayers" type="Node2D" parent="Paddle/NeonEffect" unique_id=2139247719]
+
+[node name="AuraLayer" type="Sprite2D" parent="Paddle/NeonEffect/VisualLayers" unique_id=494958821]
+modulate = Color(0.86, 0.86, 1, 0.2)
+z_index = -2
+scale = Vector2(0.128, 0.128)
+texture = ExtResource("2_paddle_aura")
+
+[node name="BaseLayer" type="Sprite2D" parent="Paddle/NeonEffect/VisualLayers" unique_id=414003344]
+scale = Vector2(0.128, 0.128)
+texture = ExtResource("2_paddle_base")
+
+[node name="EnergyLayer" type="Sprite2D" parent="Paddle/NeonEffect/VisualLayers" unique_id=313006144]
+z_index = 1
+material = SubResource("ShaderMaterial_paddle_energy_flow")
+scale = Vector2(0.128, 0.128)
+texture = ExtResource("2_paddle_energy")
+
+[node name="SideGlowLayer" type="Sprite2D" parent="Paddle/NeonEffect/VisualLayers" unique_id=1216545540]
+modulate = Color(0.96, 0.96, 0.96, 0.76)
+z_index = 2
+scale = Vector2(0.128, 0.128)
+texture = ExtResource("2_paddle_side_glow")
+
+[node name="WeaponSystem" type="Node2D" parent="Paddle" unique_id=1185439471]
+z_index = 4
+script = ExtResource("2_paddle_weapon")
+
+[node name="FireSound1" type="AudioStreamPlayer" parent="Paddle/WeaponSystem" unique_id=331706884]
+stream = ExtResource("2_plasma_fire_sfx")
+volume_db = -8.0
+bus = &"SFX"
+
+[node name="FireSound2" type="AudioStreamPlayer" parent="Paddle/WeaponSystem" unique_id=1816599645]
+stream = ExtResource("2_plasma_fire_sfx")
+volume_db = -8.0
+bus = &"SFX"
+
+[node name="FireSound3" type="AudioStreamPlayer" parent="Paddle/WeaponSystem" unique_id=1122793789]
+stream = ExtResource("2_plasma_fire_sfx")
+volume_db = -8.0
+bus = &"SFX"
+
+[node name="FireSound4" type="AudioStreamPlayer" parent="Paddle/WeaponSystem" unique_id=1860493698]
+stream = ExtResource("2_plasma_fire_sfx")
+volume_db = -8.0
+bus = &"SFX"
+
+[node name="FireSound5" type="AudioStreamPlayer" parent="Paddle/WeaponSystem" unique_id=1535837362]
+stream = ExtResource("2_plasma_fire_sfx")
+volume_db = -8.0
+bus = &"SFX"
+
+[node name="FireSound6" type="AudioStreamPlayer" parent="Paddle/WeaponSystem" unique_id=202007100]
+stream = ExtResource("2_plasma_fire_sfx")
+volume_db = -8.0
+bus = &"SFX"
+
+[node name="MainWeaponMount" type="Node2D" parent="Paddle/WeaponSystem" unique_id=1089353109]
+position = Vector2(0, -2)
+
+[node name="MainGun" type="Node2D" parent="Paddle/WeaponSystem/MainWeaponMount" unique_id=1848798647]
+modulate = Color(1, 1, 1, 0)
+position = Vector2(0, 4)
+rotation = -1.5708
+scale = Vector2(0.25, 0.25)
+
+[node name="GunSprite" type="Sprite2D" parent="Paddle/WeaponSystem/MainWeaponMount/MainGun" unique_id=976641075]
+scale = Vector2(0.08, 0.08)
+texture = ExtResource("2_plasma_right")
+
+[node name="MainMuzzle" type="Marker2D" parent="Paddle/WeaponSystem/MainWeaponMount/MainGun" unique_id=1908523005]
+position = Vector2(21, 0)
+
+[node name="ChargeEffect" type="Sprite2D" parent="Paddle/WeaponSystem/MainWeaponMount/MainGun/MainMuzzle" unique_id=2113496020]
+modulate = Color(1, 1, 1, 0)
+rotation = 3.14159
+scale = Vector2(0.08, 0.08)
+texture = ExtResource("2_muzzle_charge")
+
+[node name="FireEffect" type="Sprite2D" parent="Paddle/WeaponSystem/MainWeaponMount/MainGun/MainMuzzle" unique_id=2022994697]
+modulate = Color(1, 1, 1, 0)
+rotation = 3.14159
+scale = Vector2(0.075, 0.075)
+texture = ExtResource("2_muzzle_fire")
+
+[node name="LeftWeaponMount" type="Node2D" parent="Paddle/WeaponSystem" unique_id=992650982]
+position = Vector2(-38, -2)
+
+[node name="MountPlate" type="Polygon2D" parent="Paddle/WeaponSystem/LeftWeaponMount" unique_id=1814786771]
+color = Color(0.12, 0.2, 0.32, 1)
+polygon = PackedVector2Array(-10, -7, 7, -7, 10, 5, -8, 7)
+
+[node name="LeftGun" type="Node2D" parent="Paddle/WeaponSystem/LeftWeaponMount" unique_id=1349079154]
+modulate = Color(1, 1, 1, 0)
+position = Vector2(10, 4)
+rotation = 1.2
+scale = Vector2(0.25, 0.25)
+
+[node name="GunSprite" type="Sprite2D" parent="Paddle/WeaponSystem/LeftWeaponMount/LeftGun" unique_id=1121216159]
+scale = Vector2(0.08, 0.08)
+texture = ExtResource("2_plasma_left")
+
+[node name="LeftMuzzle" type="Marker2D" parent="Paddle/WeaponSystem/LeftWeaponMount/LeftGun" unique_id=968399198]
+position = Vector2(-21, 0)
+
+[node name="ChargeEffect" type="Sprite2D" parent="Paddle/WeaponSystem/LeftWeaponMount/LeftGun/LeftMuzzle" unique_id=1925409158]
+modulate = Color(1, 1, 1, 0)
+rotation = 3.14159
+scale = Vector2(0.08, 0.08)
+texture = ExtResource("2_muzzle_charge")
+
+[node name="FireEffect" type="Sprite2D" parent="Paddle/WeaponSystem/LeftWeaponMount/LeftGun/LeftMuzzle" unique_id=1181619568]
+modulate = Color(1, 1, 1, 0)
+rotation = 3.14159
+scale = Vector2(0.075, 0.075)
+texture = ExtResource("2_muzzle_fire")
+
+[node name="RightWeaponMount" type="Node2D" parent="Paddle/WeaponSystem" unique_id=143769328]
+position = Vector2(38, -2)
+
+[node name="MountPlate" type="Polygon2D" parent="Paddle/WeaponSystem/RightWeaponMount" unique_id=506749142]
+color = Color(0.12, 0.2, 0.32, 1)
+polygon = PackedVector2Array(-7, -7, 10, -7, 8, 7, -10, 5)
+
+[node name="RightGun" type="Node2D" parent="Paddle/WeaponSystem/RightWeaponMount" unique_id=591536941]
+modulate = Color(1, 1, 1, 0)
+position = Vector2(-10, 4)
+rotation = -1.2
+scale = Vector2(0.25, 0.25)
+
+[node name="GunSprite" type="Sprite2D" parent="Paddle/WeaponSystem/RightWeaponMount/RightGun" unique_id=961263303]
+scale = Vector2(0.08, 0.08)
+texture = ExtResource("2_plasma_right")
+
+[node name="RightMuzzle" type="Marker2D" parent="Paddle/WeaponSystem/RightWeaponMount/RightGun" unique_id=1855149375]
+position = Vector2(21, 0)
+
+[node name="ChargeEffect" type="Sprite2D" parent="Paddle/WeaponSystem/RightWeaponMount/RightGun/RightMuzzle" unique_id=24700016]
+modulate = Color(1, 1, 1, 0)
+scale = Vector2(0.08, 0.08)
+texture = ExtResource("2_muzzle_charge")
+
+[node name="FireEffect" type="Sprite2D" parent="Paddle/WeaponSystem/RightWeaponMount/RightGun/RightMuzzle" unique_id=412551660]
+modulate = Color(1, 1, 1, 0)
+scale = Vector2(0.075, 0.075)
+texture = ExtResource("2_muzzle_fire")
+
+[node name="Ball" parent="." unique_id=1712097667 instance=ExtResource("4_1bvp3")]
+position = Vector2(576, 500)
+
+[node name="PlayfieldTopWall" type="StaticBody2D" parent="." unique_id=32101483 groups=["game_wall"]]
+position = Vector2(0, 58)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlayfieldTopWall" unique_id=1329584723]
+position = Vector2(576, 0)
+shape = SubResource("RectangleShape2D_playfield_top")
+
+[node name="MobilePaddleControl" type="CanvasLayer" parent="." unique_id=1693311545]
+layer = 12
+visible = false
+script = ExtResource("15_mobile_controls")
+
+[node name="Rail" type="Panel" parent="MobilePaddleControl" unique_id=1373680415]
+offset_right = 829.0
+offset_bottom = 56.0
+mouse_filter = 2
+
+[node name="Knob" type="Panel" parent="MobilePaddleControl/Rail" unique_id=690131770]
+layout_mode = 0
+offset_right = 72.0
+offset_bottom = 72.0
+mouse_filter = 2
+
+[node name="Core" type="ColorRect" parent="MobilePaddleControl/Rail/Knob" unique_id=1765491366]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -18.0
+offset_top = -3.0
+offset_right = 18.0
+offset_bottom = 3.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.36, 0.92, 1, 0.74)
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1172186996]
+layer = 10
+
+[node name="FrameGlow" type="Control" parent="HUD" unique_id=1195896462]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_frame_glow")
+
+[node name="EdgeVignette" type="ColorRect" parent="HUD/FrameGlow" unique_id=172864464]
+material = SubResource("ShaderMaterial_edge_vignette")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ComboManager" type="Control" parent="HUD" unique_id=546161928]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_combo_manager")
+
+[node name="RankLabel" type="Label" parent="HUD/ComboManager" unique_id=794162637]
+layout_mode = 0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -205.0
+offset_top = 78.0
+offset_right = -28.0
+offset_bottom = 140.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.45, 0.95, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.08, 0.2, 0.45, 0.85)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 48
+text = "F"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Layout" type="Control" parent="HUD" unique_id=1458398930]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="LivesPanel" type="PanelContainer" parent="HUD/Layout" unique_id=203209654]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 14.0
+offset_right = 198.0
+offset_bottom = 58.0
+theme_override_styles/panel = SubResource("StyleBox_hud_panel")
+
+[node name="LivesLabel" type="Label" parent="HUD/Layout/LivesPanel" unique_id=956306264]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.32, 0.48, 1)
+theme_override_colors/font_shadow_color = Color(1, 0.08, 0.25, 0.45)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 24
+text = "♥ ♥ ♥ "
+horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("5_7mycd")
+
+[node name="DepthLabel" type="Label" parent="HUD/Layout" unique_id=244793622]
+layout_mode = 0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -118.0
+offset_top = 8.0
+offset_right = -18.0
+offset_bottom = 58.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.45, 0.82, 1, 0.78)
+theme_override_font_sizes/font_size = 12
+text = "DEPTH 1"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="CoinCounter" type="Control" parent="HUD/Layout" unique_id=1090562121]
+anchors_preset = 0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -258.0
+offset_top = 10.0
+offset_right = -128.0
+offset_bottom = 58.0
+grow_horizontal = 0
+mouse_filter = 2
+
+[node name="IconGlow" type="Polygon2D" parent="HUD/Layout/CoinCounter" unique_id=998515369]
+z_index = -1
+position = Vector2(18, 19)
+color = Color(1, 0.64, 0.08, 0.24)
+polygon = PackedVector2Array(0, -15, 10.5, -10.5, 15, 0, 10.5, 10.5, 0, 15, -10.5, 10.5, -15, 0, -10.5, -10.5)
+
+[node name="CoinIcon" type="Polygon2D" parent="HUD/Layout/CoinCounter" unique_id=908703231]
+position = Vector2(18, 19)
+color = Color(1, 0.72, 0.08, 1)
+polygon = PackedVector2Array(0, -10, 7, -7, 10, 0, 7, 7, 0, 10, -7, 7, -10, 0, -7, -7)
+
+[node name="InnerMark" type="Line2D" parent="HUD/Layout/CoinCounter" unique_id=1394644273]
+position = Vector2(18, 19)
+points = PackedVector2Array(-2.5, -5, 2.5, -5, 4, -1.5, 2.5, 1, -1.5, 1, -3.5, 4, -3.5, -3.5, -1.5, -6)
+width = 1.4
+default_color = Color(1, 0.95, 0.55, 0.92)
+antialiased = true
+
+[node name="TotalLabel" type="Label" parent="HUD/Layout/CoinCounter" unique_id=1685500827]
+layout_mode = 0
+offset_left = 36.0
+offset_top = 3.0
+offset_right = 128.0
+offset_bottom = 35.0
+theme_override_colors/font_color = Color(1, 0.82, 0.28, 1)
+theme_override_colors/font_shadow_color = Color(0.38, 0.16, 0.01, 0.85)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 17
+text = "0"
+vertical_alignment = 1
+
+[node name="XPPanel" type="Panel" parent="HUD/Layout" unique_id=1178165639]
+layout_mode = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -310.0
+offset_top = 10.0
+offset_right = 310.0
+offset_bottom = 62.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBox_hud_panel")
+
+[node name="LevelLabel" type="Label" parent="HUD/Layout/XPPanel" unique_id=826507441]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 92.0
+offset_bottom = 42.0
+theme_override_colors/font_color = Color(0.55, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "LEVEL 1"
+vertical_alignment = 1
+
+[node name="XPBar" type="ProgressBar" parent="HUD/Layout/XPPanel" unique_id=1481804086]
+layout_mode = 0
+offset_left = 96.0
+offset_top = 11.0
+offset_right = 606.0
+offset_bottom = 41.0
+theme_override_styles/background = SubResource("StyleBox_xp_background")
+theme_override_styles/fill = SubResource("StyleBox_xp_fill")
+show_percentage = false
+
+[node name="XPValueLabel" type="Label" parent="HUD/Layout/XPPanel/XPBar" unique_id=281499328]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.91, 0.97, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.02, 0.04, 0.12, 0.9)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 14
+text = "0 / 100 XP"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="BossHP" type="Panel" parent="HUD" unique_id=1005458771]
+visible = false
+offset_left = 366.0
+offset_top = 72.0
+offset_right = 786.0
+offset_bottom = 124.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_hud_panel")
+
+[node name="BossName" type="Label" parent="HUD/BossHP" unique_id=1425460721]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 4.0
+offset_right = 112.0
+offset_bottom = 26.0
+theme_override_colors/font_color = Color(0.68, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "THE CORE"
+
+[node name="HPBar" type="ProgressBar" parent="HUD/BossHP" unique_id=439364337]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 27.0
+offset_right = 410.0
+offset_bottom = 45.0
+theme_override_styles/background = SubResource("StyleBox_xp_background")
+theme_override_styles/fill = SubResource("StyleBox_xp_fill")
+value = 100.0
+show_percentage = false
+
+[node name="HPValue" type="Label" parent="HUD/BossHP" unique_id=580332917]
+visible = false
+layout_mode = 0
+offset_left = 300.0
+offset_top = 3.0
+offset_right = 408.0
+offset_bottom = 26.0
+theme_override_colors/font_color = Color(1, 0.82, 0.66, 1)
+theme_override_font_sizes/font_size = 14
+text = "100 / 100"
+horizontal_alignment = 2
+
+[node name="BossWarning" type="Control" parent="HUD" unique_id=2143894456]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="WarningLabel" type="Label" parent="HUD/BossWarning" unique_id=595554842]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -310.0
+offset_top = -42.0
+offset_right = 310.0
+offset_bottom = 42.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.3, 0.1, 1)
+theme_override_colors/font_shadow_color = Color(0.18, 0.01, 0, 0.95)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_font_sizes/font_size = 42
+text = "WARNING"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BuildHUD" type="Control" parent="HUD" unique_id=381628169]
+visible = false
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -88.0
+offset_top = 176.0
+offset_right = -18.0
+offset_bottom = 628.0
+grow_horizontal = 0
+mouse_filter = 2
+script = ExtResource("3_build_hud")
+
+[node name="Title" type="Label" parent="HUD/BuildHUD" unique_id=731076844]
+layout_mode = 0
+offset_right = 70.0
+offset_bottom = 18.0
+theme_override_colors/font_color = Color(0.42, 0.86, 1, 0.82)
+theme_override_colors/font_shadow_color = Color(0.02, 0.1, 0.25, 0.9)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 11
+text = "BUILD"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="UpgradeList" type="GridContainer" parent="HUD/BuildHUD" unique_id=211832108]
+layout_mode = 0
+offset_left = 3.0
+offset_top = 21.0
+offset_right = 67.0
+offset_bottom = 452.0
+mouse_filter = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+
+[node name="SectorTransition" type="Control" parent="HUD" unique_id=776785363]
+visible = false
+z_index = 40
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -210.0
+offset_top = -56.0
+offset_right = 210.0
+offset_bottom = 56.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SectorLabel" type="Label" parent="HUD/SectorTransition" unique_id=863029768]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 70.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.35, 0.94, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.05, 0.55, 0.72, 0.65)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 38
+text = "SEKTÖR II"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ThreatLabel" type="Label" parent="HUD/SectorTransition" unique_id=1144743759]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 66.0
+offset_bottom = 106.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.62, 0.28, 0.92)
+theme_override_font_sizes/font_size = 18
+text = "TEHDİT ARTIYOR"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PauseButton" type="Button" parent="HUD" unique_id=1591935675]
+visible = false
+offset_right = 48.0
+offset_bottom = 48.0
+theme_override_font_sizes/font_size = 25
+text = "⏸"
+
+[node name="BackgroundLayer" type="CanvasLayer" parent="." unique_id=1953163294]
+layer = -10
+
+[node name="Background" type="ColorRect" parent="BackgroundLayer" unique_id=1296324968]
+z_index = -10
+offset_right = 1152.0
+offset_bottom = 648.0
+color = Color(0.043137256, 0.0627451, 0.1254902, 1)
+
+[node name="SpaceNebulaBackground" type="TextureRect" parent="BackgroundLayer" unique_id=501928027]
+modulate = Color(1, 1, 1, 0.62)
+z_index = -9
+offset_right = 1152.0
+offset_bottom = 648.0
+mouse_filter = 2
+texture = ExtResource("13_space_nebula_bg")
+expand_mode = 1
+stretch_mode = 6
+script = ExtResource("14_nebula_drift")
+
+[node name="ProceduralNebula" type="ColorRect" parent="BackgroundLayer" unique_id=1207943401]
+visible = false
+z_index = -9
+material = SubResource("ShaderMaterial_procedural_nebula")
+offset_right = 1152.0
+offset_bottom = 648.0
+mouse_filter = 2
+
+[node name="AnimatedStarfield" type="Node2D" parent="BackgroundLayer" unique_id=1379187000]
+z_index = -8
+script = ExtResource("12_animated_starfield")
+
+[node name="Stars" type="GPUParticles2D" parent="BackgroundLayer" unique_id=1759243978]
+visible = false
+position = Vector2(576, 324)
+emitting = false
+amount = 80
+texture = SubResource("GradientTexture2D_1g7ai")
+process_material = SubResource("ParticleProcessMaterial_y0sca")
+
+[node name="CardScreen" type="CanvasLayer" parent="." unique_id=2087445641]
+process_mode = 2
+
+[node name="CardPanel" type="Control" parent="CardScreen" unique_id=1867596125]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PlasmaCard" type="Button" parent="CardScreen/CardPanel" unique_id=1186748445]
+layout_mode = 0
+offset_left = 468.0
+offset_top = 180.0
+offset_right = 684.0
+offset_bottom = 468.0
+theme_override_styles/normal = SubResource("StyleBox_card_normal")
+theme_override_styles/pressed = SubResource("StyleBox_card_focus")
+theme_override_styles/hover = SubResource("StyleBox_card_focus")
+theme_override_styles/focus = SubResource("StyleBox_card_focus")
+script = ExtResource("8_5vw27")
+
+[node name="CardImage" type="TextureRect" parent="CardScreen/CardPanel/PlasmaCard" unique_id=1409158082]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 211.0
+offset_bottom = 210.0
+mouse_filter = 2
+texture = SubResource("AtlasTexture_plasma_art")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="TitlePanel" type="Panel" parent="CardScreen/CardPanel/PlasmaCard" unique_id=1244259185]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 210.0
+offset_right = 211.0
+offset_bottom = 283.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_pierce_title")
+
+[node name="Title" type="Label" parent="CardScreen/CardPanel/PlasmaCard/TitlePanel" unique_id=1617131466]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.88, 1, 0.92, 1)
+theme_override_font_sizes/font_size = 18
+text = "PLASMA I"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PierceCard" type="Button" parent="CardScreen/CardPanel" unique_id=516187225]
+layout_mode = 0
+offset_left = 218.0
+offset_top = 180.0
+offset_right = 434.0
+offset_bottom = 468.0
+theme_override_styles/normal = SubResource("StyleBox_card_normal")
+theme_override_styles/pressed = SubResource("StyleBox_card_focus")
+theme_override_styles/hover = SubResource("StyleBox_card_focus")
+theme_override_styles/focus = SubResource("StyleBox_card_focus")
+script = ExtResource("8_5vw27")
+
+[node name="CardImage" type="TextureRect" parent="CardScreen/CardPanel/PierceCard" unique_id=804292895]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 211.0
+offset_bottom = 210.0
+mouse_filter = 2
+texture = SubResource("AtlasTexture_pierce_art")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="TitlePanel" type="Panel" parent="CardScreen/CardPanel/PierceCard" unique_id=821876248]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 210.0
+offset_right = 211.0
+offset_bottom = 283.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_pierce_title")
+
+[node name="Title" type="Label" parent="CardScreen/CardPanel/PierceCard/TitlePanel" unique_id=843757659]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.88, 0.98, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.05, 0.55, 0.9, 0.9)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 18
+text = "PIERCING BALL"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="FireballCard" type="Button" parent="CardScreen/CardPanel" unique_id=2098463770]
+layout_mode = 0
+offset_left = 218.0
+offset_top = 180.0
+offset_right = 434.0
+offset_bottom = 468.0
+theme_override_styles/normal = SubResource("StyleBox_card_normal")
+theme_override_styles/pressed = SubResource("StyleBox_card_focus")
+theme_override_styles/hover = SubResource("StyleBox_card_focus")
+theme_override_styles/focus = SubResource("StyleBox_card_focus")
+script = ExtResource("8_5vw27")
+
+[node name="CardImage" type="TextureRect" parent="CardScreen/CardPanel/FireballCard" unique_id=5489956]
+modulate = Color(1, 0.58, 0.22, 1)
+layout_mode = 0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 211.0
+offset_bottom = 210.0
+mouse_filter = 2
+texture = SubResource("AtlasTexture_pierce_art")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="ImpactRing" type="Line2D" parent="CardScreen/CardPanel/FireballCard" unique_id=452054754]
+points = PackedVector2Array(147, 75, 159, 80, 166, 92, 166, 106, 159, 118, 147, 123, 135, 118, 128, 106, 128, 92, 135, 80, 147, 75)
+width = 2.0
+default_color = Color(1, 0.68, 0.18, 0.82)
+antialiased = true
+
+[node name="ImpactBrick" type="Polygon2D" parent="CardScreen/CardPanel/FireballCard" unique_id=524248135]
+color = Color(0.18, 0.55, 0.95, 0.74)
+polygon = PackedVector2Array(161, 86, 195, 86, 195, 110, 161, 110)
+
+[node name="TitlePanel" type="Panel" parent="CardScreen/CardPanel/FireballCard" unique_id=911033168]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 210.0
+offset_right = 211.0
+offset_bottom = 283.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_pierce_title")
+
+[node name="Title" type="Label" parent="CardScreen/CardPanel/FireballCard/TitlePanel" unique_id=834328819]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.78, 0.42, 1)
+theme_override_font_sizes/font_size = 20
+text = "FIREBALL"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CardMoveSFX" type="AudioStreamPlayer" parent="CardScreen" unique_id=1197400695]
+process_mode = 3
+stream = ExtResource("9_card_move_sfx")
+volume_db = -10.0
+bus = &"SFX"
+
+[node name="CardSelectSFX" type="AudioStreamPlayer" parent="CardScreen" unique_id=1491998050]
+process_mode = 3
+stream = ExtResource("10_card_select_sfx")
+volume_db = -6.0
+bus = &"SFX"
+
+[node name="EvolutionScreen" type="CanvasLayer" parent="." unique_id=2010280478]
+process_mode = 2
+script = ExtResource("11_evolution_screen")
+
+[node name="Panel" type="Control" parent="EvolutionScreen" unique_id=1161380536]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="EvolutionScreen/Panel" unique_id=828550160]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.004, 0.01, 0.035, 0.88)
+
+[node name="Title" type="Label" parent="EvolutionScreen/Panel" unique_id=949647649]
+layout_mode = 0
+offset_left = 326.0
+offset_top = 68.0
+offset_right = 826.0
+offset_bottom = 111.0
+theme_override_colors/font_color = Color(0.62, 0.94, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.04, 0.55, 0.95, 0.9)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 34
+text = "EVOLUTION"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Subtitle" type="Label" parent="EvolutionScreen/Panel" unique_id=1852259227]
+layout_mode = 0
+offset_left = 326.0
+offset_top = 113.0
+offset_right = 826.0
+offset_bottom = 141.0
+theme_override_colors/font_color = Color(0.72, 0.78, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+text = "CHOOSE PLASMA FINAL FORM"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="OverchargeCard" type="Button" parent="EvolutionScreen/Panel" unique_id=1531254984]
+layout_mode = 0
+offset_left = 276.0
+offset_top = 174.0
+offset_right = 536.0
+offset_bottom = 506.0
+theme_override_styles/normal = SubResource("StyleBox_card_normal")
+theme_override_styles/pressed = SubResource("StyleBox_card_focus")
+theme_override_styles/hover = SubResource("StyleBox_card_focus")
+theme_override_styles/focus = SubResource("StyleBox_card_focus")
+script = ExtResource("8_5vw27")
+
+[node name="CardImage" type="TextureRect" parent="EvolutionScreen/Panel/OverchargeCard" unique_id=563798646]
+modulate = Color(1, 0.58, 0.28, 1)
+layout_mode = 0
+offset_left = 7.0
+offset_top = 7.0
+offset_right = 253.0
+offset_bottom = 219.0
+mouse_filter = 2
+texture = SubResource("AtlasTexture_plasma_art")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Title" type="Label" parent="EvolutionScreen/Panel/OverchargeCard" unique_id=490809798]
+layout_mode = 0
+offset_left = 7.0
+offset_top = 221.0
+offset_right = 253.0
+offset_bottom = 255.0
+theme_override_colors/font_color = Color(1, 0.78, 0.42, 1)
+theme_override_font_sizes/font_size = 22
+text = "OVERCHARGE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Description" type="Label" parent="EvolutionScreen/Panel/OverchargeCard" unique_id=147419741]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 261.0
+offset_right = 244.0
+offset_bottom = 319.0
+theme_override_colors/font_color = Color(0.83, 0.87, 0.96, 1)
+theme_override_font_sizes/font_size = 14
+text = "Faster plasma fire.
+Maximum offensive pressure."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="RicochetCard" type="Button" parent="EvolutionScreen/Panel" unique_id=1389444777]
+layout_mode = 0
+offset_left = 616.0
+offset_top = 174.0
+offset_right = 876.0
+offset_bottom = 506.0
+theme_override_styles/normal = SubResource("StyleBox_card_normal")
+theme_override_styles/pressed = SubResource("StyleBox_card_focus")
+theme_override_styles/hover = SubResource("StyleBox_card_focus")
+theme_override_styles/focus = SubResource("StyleBox_card_focus")
+script = ExtResource("8_5vw27")
+
+[node name="CardImage" type="TextureRect" parent="EvolutionScreen/Panel/RicochetCard" unique_id=36985821]
+modulate = Color(0.46, 0.88, 1, 1)
+layout_mode = 0
+offset_left = 7.0
+offset_top = 7.0
+offset_right = 253.0
+offset_bottom = 219.0
+mouse_filter = 2
+texture = SubResource("AtlasTexture_plasma_art")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Title" type="Label" parent="EvolutionScreen/Panel/RicochetCard" unique_id=1756388504]
+layout_mode = 0
+offset_left = 7.0
+offset_top = 221.0
+offset_right = 253.0
+offset_bottom = 255.0
+theme_override_colors/font_color = Color(0.58, 0.94, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "RICOCHET"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Description" type="Label" parent="EvolutionScreen/Panel/RicochetCard" unique_id=206969484]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 261.0
+offset_right = 244.0
+offset_bottom = 319.0
+theme_override_colors/font_color = Color(0.83, 0.87, 0.96, 1)
+theme_override_font_sizes/font_size = 14
+text = "Plasma shots gain enhanced
+wall ricochet."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="LevelTransition" type="CanvasLayer" parent="." unique_id=286960256]
+visible = false
+
+[node name="TransitionBackground" type="ColorRect" parent="LevelTransition" unique_id=607379390]
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0, 0, 0, 1)
+
+[node name="LevelTitle" type="Label" parent="LevelTransition" unique_id=989916936]
+offset_right = 40.0
+offset_bottom = 23.0
+theme_override_font_sizes/font_size = 64
+text = "LEVEL 2"
+
+[node name="ReadyLabel" type="Label" parent="LevelTransition" unique_id=382460775]
+offset_right = 40.0
+offset_bottom = 23.0
+theme_override_font_sizes/font_size = 24
+text = "HAZIR OL!"
+
+[node name="PauseMenu" type="CanvasLayer" parent="." unique_id=248253044]
+process_mode = 3
+layer = 60
+visible = false
+script = ExtResource("33_pause_menu")
+
+[node name="InputBlocker" type="ColorRect" parent="PauseMenu" unique_id=2088015500]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.005, 0.015, 0.04, 0.82)
+
+[node name="Panel" type="Panel" parent="PauseMenu" unique_id=278061445]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -190.0
+offset_top = -132.0
+offset_right = 190.0
+offset_bottom = 132.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBox_hud_panel")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PauseMenu/Panel" unique_id=1670806473]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = 24.0
+offset_right = -28.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="PauseMenu/Panel/VBoxContainer" unique_id=888603744]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.94, 1, 1)
+theme_override_font_sizes/font_size = 27
+text = "OYUN DURAKLATILDI"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="PauseMenu/Panel/VBoxContainer" unique_id=1984742048]
+custom_minimum_size = Vector2(280, 58)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "DEVAM ET"
+
+[node name="MainMenuButton" type="Button" parent="PauseMenu/Panel/VBoxContainer" unique_id=1869627573]
+custom_minimum_size = Vector2(280, 58)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "ANA MENÜ"
+
+[node name="MainMenu" type="CanvasLayer" parent="." unique_id=1093094857]
+
+[node name="MenuBackground" type="ColorRect" parent="MainMenu" unique_id=1231658592]
+offset_right = 1152.0
+offset_bottom = 648.0
+color = Color(0, 0, 0, 0.003921569)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainMenu" unique_id=554932238]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -150.0
+offset_right = 150.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="MainMenu/VBoxContainer" unique_id=114645780]
+layout_mode = 2
+theme_override_font_sizes/font_size = 52
+text = "NEON BREAK"
+horizontal_alignment = 1
+
+[node name="NewGameButton" type="Button" parent="MainMenu/VBoxContainer" unique_id=1724566249]
+custom_minimum_size = Vector2(260, 55)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "YENİ OYUN"
+
+[node name="ShopButton" type="Button" parent="MainMenu/VBoxContainer" unique_id=1472569807]
+custom_minimum_size = Vector2(260, 55)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "PADDLE DÜKKÂNI"
+
+[node name="ColonyButton" type="Button" parent="MainMenu/VBoxContainer" unique_id=1649017194]
+custom_minimum_size = Vector2(260, 55)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 1, 0.95, 1)
+theme_override_font_sizes/font_size = 28
+text = "KOLONİ"
+
+[node name="MusicButton" type="Button" parent="MainMenu/VBoxContainer" unique_id=1607838507]
+custom_minimum_size = Vector2(260, 55)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "MÜZİK: AÇIK"
+
+[node name="QuitButton" type="Button" parent="MainMenu/VBoxContainer" unique_id=1325597348]
+custom_minimum_size = Vector2(260, 55)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "ÇIKIŞ"
+
+[node name="VersionLabel" type="Label" parent="MainMenu" unique_id=590338261]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -258.0
+offset_top = -42.0
+offset_right = -18.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.45, 0.72, 0.8, 0.72)
+theme_override_font_sizes/font_size = 14
+text = "Version Beta 0.1"
+horizontal_alignment = 2
+
+[node name="GameOverScreen" type="CanvasLayer" parent="." unique_id=607827176]
+layer = 30
+
+[node name="GameOverBackground" type="ColorRect" parent="GameOverScreen" unique_id=1116777511]
+offset_right = 1152.0
+offset_bottom = 648.0
+color = Color(0.004, 0.012, 0.035, 0.86)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="GameOverScreen" unique_id=370102379]
+custom_minimum_size = Vector2(460, 540)
+offset_left = 346.0
+offset_top = 54.0
+offset_right = 806.0
+offset_bottom = 594.0
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="GameOverLabel" type="Label" parent="GameOverScreen/VBoxContainer" unique_id=1800033193]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 36
+text = "RUN BİTTİ"
+horizontal_alignment = 1
+
+[node name="StatsLabel" type="Label" parent="GameOverScreen/VBoxContainer" unique_id=1660768722]
+custom_minimum_size = Vector2(420, 145)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.94, 1, 1)
+theme_override_font_sizes/font_size = 19
+text = "ULAŞILAN DEPTH: 1
+TOPLAM SÜRE: 00:00
+YOK EDİLEN TUĞLA: 0
+EN YÜKSEK COMBO RANK: -
+ÖLDÜRÜLEN BOSS: 0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="FinalBuildTitle" type="Label" parent="GameOverScreen/VBoxContainer" unique_id=604679350]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.58, 0.2, 1)
+theme_override_font_sizes/font_size = 21
+text = "FINAL BUILD"
+horizontal_alignment = 1
+
+[node name="FinalBuildLabel" type="Label" parent="GameOverScreen/VBoxContainer" unique_id=1594381866]
+custom_minimum_size = Vector2(420, 125)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "YOK"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="RetryButton" type="Button" parent="GameOverScreen/VBoxContainer" unique_id=2085248031]
+custom_minimum_size = Vector2(320, 55)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 26
+text = "YENİDEN OYNA"
+
+[node name="MainMenuButton" type="Button" parent="GameOverScreen/VBoxContainer" unique_id=1145758116]
+custom_minimum_size = Vector2(320, 55)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 26
+text = "ANA MENÜ"

@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://d0vwg8owe71sq"]
+
+[ext_resource type="Script" uid="uid://dj7nvdsetv8f0" path="res://side_attacker.gd" id="1_side_attacker"]
+[ext_resource type="Texture2D" uid="uid://bv3vpopf6tmem" path="res://assets/bricks/enemies/side_attacker/side_attacker_left.png" id="2_left"]
+[ext_resource type="Shader" uid="uid://fpg6wlghxxa6" path="res://side_attacker_asset_mask.gdshader" id="3_mask"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mask"]
+shader = ExtResource("3_mask")
+shader_parameter/dark_cutoff = 0.025
+shader_parameter/edge_softness = 0.075
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_left"]
+atlas = ExtResource("2_left")
+region = Rect2(0, 32, 295, 333)
+
+[node name="SideAttacker" type="Node2D" unique_id=2024767588]
+z_index = 25
+script = ExtResource("1_side_attacker")
+
+[node name="AttackerSprite" type="Sprite2D" parent="." unique_id=760777986]
+texture_filter = 1
+material = SubResource("ShaderMaterial_mask")
+scale = Vector2(0.275, 0.275)
+texture = SubResource("AtlasTexture_left")
+
+[node name="Body" type="Polygon2D" parent="." unique_id=828232794]
+visible = false
+color = Color(0.11, 0.16, 0.25, 1)
+polygon = PackedVector2Array(-28, -17, 9, -17, 27, -8, 31, 0, 27, 8, 9, 17, -28, 17, -36, 9, -36, -9)
+
+[node name="ArmorEdge" type="Line2D" parent="." unique_id=1624990569]
+visible = false
+points = PackedVector2Array(-28, -17, 9, -17, 27, -8, 31, 0, 27, 8, 9, 17, -28, 17)
+width = 2.0
+default_color = Color(1, 0.34, 0.08, 0.9)
+antialiased = true
+
+[node name="BarrelPivot" type="Node2D" parent="." unique_id=1707004354]
+z_index = 2
+
+[node name="BarrelVisual" type="Node2D" parent="BarrelPivot" unique_id=1093641274]
+
+[node name="BarrelBody" type="Polygon2D" parent="BarrelPivot/BarrelVisual" unique_id=409152007]
+color = Color(0.16, 0.19, 0.25, 1)
+polygon = PackedVector2Array(4, -4, 30, -3.5, 37, 0, 30, 3.5, 4, 4)
+
+[node name="BarrelEdge" type="Line2D" parent="BarrelPivot/BarrelVisual" unique_id=478179105]
+points = PackedVector2Array(5, -4, 30, -3.5, 37, 0, 30, 3.5, 5, 4)
+width = 1.25
+default_color = Color(1, 0.31, 0.055, 0.85)
+antialiased = true
+
+[node name="BarrelCore" type="Polygon2D" parent="BarrelPivot/BarrelVisual" unique_id=2033923337]
+position = Vector2(35, 0)
+color = Color(1, 0.32, 0.045, 0.55)
+polygon = PackedVector2Array(-3, -2, 2, 0, -3, 2)

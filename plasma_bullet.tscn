@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://cyllch0i4gkyo"]
+
+[ext_resource type="Script" uid="uid://cq384vulrx51g" path="res://plasma_bullet.gd" id="1_43gc1"]
+[ext_resource type="Texture2D" uid="uid://dxt5wbaki1r8i" path="res://assets/weapons/plasma_bullet.png" id="2_plasma_bullet"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_y0sca"]
+size = Vector2(4, 24)
+
+[node name="PlasmaBullet" type="Area2D" unique_id=874225107]
+collision_layer = 64
+collision_mask = 129
+script = ExtResource("1_43gc1")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1508722069]
+rotation = -1.5708
+scale = Vector2(0.1, 0.1)
+texture = ExtResource("2_plasma_bullet")
+
+[node name="Trail" type="Line2D" parent="." unique_id=263574838]
+modulate = Color(1, 1, 1, 0)
+z_index = -1
+points = PackedVector2Array(0, 7, 0, 22)
+width = 2.0
+default_color = Color(0.224, 1, 0.078, 0.65)
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=31295782]
+shape = SubResource("RectangleShape2D_y0sca")

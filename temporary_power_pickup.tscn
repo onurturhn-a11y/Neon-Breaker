@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://dwirca57l8ctl"]
+
+[ext_resource type="Script" uid="uid://d3ex7kqt4qm48" path="res://temporary_power_pickup.gd" id="1_pickup"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_pickup"]
+radius = 15.0
+
+[node name="TemporaryPowerPickup" type="Area2D" unique_id=1885116041]
+collision_layer = 0
+collision_mask = 16
+script = ExtResource("1_pickup")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=482688641]
+shape = SubResource("CircleShape2D_pickup")

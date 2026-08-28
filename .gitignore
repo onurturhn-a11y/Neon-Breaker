@@ -1,0 +1,37 @@
+# ==================================================
+# Godot 4
+# ==================================================
+# Makineye özel import önbelleği (127 MB). ASLA commit edilmez.
+.godot/
+/android/
+
+# ÖNEMLİ: *.import ve *.uid dosyaları commit EDİLİR.
+# Godot 4'te kaynak kimliğini taşırlar; ignore edilirse
+# karşı tarafta tüm sahne referansları kopar.
+
+# ==================================================
+# Derleme / dışa aktarım çıktıları
+# ==================================================
+/build/
+/export/
+*.apk
+*.aab
+*.idsig
+.codex_*.idsig
+
+# ==================================================
+# Ajanların geçici test scriptleri
+# ==================================================
+# Claude ve Codex doğrulama için _ ile başlayan script üretir.
+# Bunlar depoya girmez.
+_*.gd
+_*.gd.uid
+
+# ==================================================
+# Editör / işletim sistemi artıkları
+# ==================================================
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store

@@ -1,0 +1,111 @@
+[gd_scene format=3 uid="uid://b24wkog70678u"]
+
+[ext_resource type="Script" uid="uid://ckovhnna7yoqv" path="res://boss_chronoform.gd" id="1_chrono"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_chronoform_body"]
+size = Vector2(180, 180)
+
+[node name="TheChronoform" type="StaticBody2D" unique_id=65104624]
+z_index = 5
+collision_mask = 0
+script = ExtResource("1_chrono")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1624268627]
+shape = SubResource("RectangleShape2D_chronoform_body")
+
+[node name="VisualRoot" type="Node2D" parent="." unique_id=1565503835]
+
+[node name="PoseRoot" type="Node2D" parent="VisualRoot" unique_id=1169055476]
+
+[node name="FallbackVisual" type="Node2D" parent="VisualRoot/PoseRoot" unique_id=452177796]
+position = Vector2(0, 18)
+
+[node name="Torso" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=1772058090]
+color = Color(0.04, 0.05, 0.1, 1)
+polygon = PackedVector2Array(-30, -58, 30, -58, 38, -10, 26, 44, -26, 44, -38, -10)
+
+[node name="TorsoEdge" type="Line2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=1450742454]
+points = PackedVector2Array(-30, -58, 30, -58, 38, -10, 26, 44, -26, 44, -38, -10, -30, -58)
+width = 2.4
+default_color = Color(0.32, 0.98, 0.94, 0.8)
+antialiased = true
+
+[node name="LegLeft" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=168732389]
+color = Color(0.05, 0.07, 0.14, 1)
+polygon = PackedVector2Array(-26, 44, -8, 44, -12, 96, -30, 96)
+
+[node name="LegRight" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=1616393586]
+color = Color(0.05, 0.07, 0.14, 1)
+polygon = PackedVector2Array(8, 44, 26, 44, 30, 96, 12, 96)
+
+[node name="LegEdgeLeft" type="Line2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=1342619284]
+points = PackedVector2Array(-26, 44, -8, 44, -12, 96, -30, 96, -26, 44)
+width = 2.0
+default_color = Color(0.28, 0.92, 0.9, 0.6)
+antialiased = true
+
+[node name="LegEdgeRight" type="Line2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=233314153]
+points = PackedVector2Array(8, 44, 26, 44, 30, 96, 12, 96, 8, 44)
+width = 2.0
+default_color = Color(0.28, 0.92, 0.9, 0.6)
+antialiased = true
+
+[node name="ShoulderLeft" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=150835761]
+color = Color(0.1, 0.16, 0.26, 1)
+polygon = PackedVector2Array(-30, -58, -38, -14, -62, -22, -70, -56, -52, -72)
+
+[node name="ShoulderRight" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=2036158032]
+color = Color(0.1, 0.16, 0.26, 1)
+polygon = PackedVector2Array(30, -58, 38, -14, 62, -22, 70, -56, 52, -72)
+
+[node name="CrystalCrownLeft" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=822795945]
+color = Color(0.08, 0.13, 0.22, 1)
+polygon = PackedVector2Array(-34, -70, -22, -104, -10, -68)
+
+[node name="CrystalCrownMid" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=103912901]
+color = Color(0.09, 0.14, 0.24, 1)
+polygon = PackedVector2Array(-13, -74, 0, -118, 13, -74)
+
+[node name="CrystalCrownRight" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=864792817]
+color = Color(0.07, 0.12, 0.2, 1)
+polygon = PackedVector2Array(10, -68, 22, -104, 34, -70)
+
+[node name="Head" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=1622441209]
+color = Color(0.05, 0.07, 0.13, 1)
+polygon = PackedVector2Array(0, -96, 17, -76, 0, -56, -17, -76)
+
+[node name="HeadEdge" type="Line2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=1709949880]
+points = PackedVector2Array(0, -96, 17, -76, 0, -56, -17, -76, 0, -96)
+width = 2.2
+default_color = Color(0.38, 1, 0.96, 0.88)
+antialiased = true
+
+[node name="EyeLeft" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=843303565]
+color = Color(0.45, 1, 0.98, 1)
+polygon = PackedVector2Array(-12, -80, -3, -77, -12, -73)
+
+[node name="EyeRight" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=750377177]
+color = Color(0.45, 1, 0.98, 1)
+polygon = PackedVector2Array(12, -80, 3, -77, 12, -73)
+
+[node name="ChestCore" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=1945972335]
+position = Vector2(0, -18)
+color = Color(0.3, 0.96, 0.94, 1)
+polygon = PackedVector2Array(0, -15, 14, 0, 0, 15, -14, 0)
+
+[node name="ChestCoreRing" type="Line2D" parent="VisualRoot/PoseRoot/FallbackVisual" unique_id=1750226792]
+position = Vector2(0, -18)
+points = PackedVector2Array(0, -22, 20, 0, 0, 22, -20, 0, 0, -22)
+width = 2.4
+default_color = Color(0.55, 1, 0.98, 0.85)
+antialiased = true
+
+[node name="PoseA" type="Sprite2D" parent="VisualRoot/PoseRoot" unique_id=1888356955]
+visible = false
+
+[node name="PoseB" type="Sprite2D" parent="VisualRoot/PoseRoot" unique_id=2010759388]
+visible = false
+
+[node name="CoreGlow" type="Polygon2D" parent="VisualRoot" unique_id=424685930]
+color = Color(0.35, 0.98, 0.95, 0.18)
+polygon = PackedVector2Array(34, 0, 29.44, 17, 17, 29.44, 0, 34, -17, 29.44, -29.44, 17, -34, 0, -29.44, -17, -17, -29.44, 0, -34, 17, -29.44, 29.44, -17)
