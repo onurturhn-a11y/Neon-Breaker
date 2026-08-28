@@ -92,6 +92,23 @@ const CARDS := {
 			"Neredeyse kesintisiz ışın; sürekli hasar yığar.",
 		],
 	},
+	&"mine_launcher": {
+		"title": "MINE LAUNCHER",
+		"rarity": &"common",
+		"max_level": 3,
+		"roman": true,
+		"weapon": true,
+		"weapon_id": &"MINE_LAUNCHER",
+		"icon": "res://assets/cards/plasma_card.png",
+		"controller_script": "res://mine_launcher_controller.gd",
+		"controller_node": "MineLauncherController",
+		"descriptions": [
+			"",
+			"Orta sahaya mayın yollar. En fazla 2 mayın; 4 saniye bekleme.",
+			"En fazla 3 mayın. Patlama alanı %20 büyür; bekleme 3,6 saniyeye iner.",
+			"Yakındaki aktif mayınlar zincirleme patlar; bekleme 3,3 saniyeye iner.",
+		],
+	},
 }
 
 
