@@ -4,29 +4,24 @@
 # CODEOWNERS, dosyaya dokunan PR'da otomatik olarak sahibinden
 # inceleme ister. Adı geçen kişinin depoda WRITE yetkisi olmalı;
 # yoksa satır sessizce çalışmaz.
-#
-# !!! YAPILACAK: Arkadaşının GitHub kullanıcı adını öğrenip
-# aşağıdaki @ARKADAS satırlarını doldur. O ana kadar tüm
-# dosyalar yalnızca @onurturhn-a11y'ye düşer.
 # ==================================================
 
 # Varsayılan sahip
-*                            @onurturhn-a11y
+*                            @onurturhn-a11y @neonbreak1
 
 # ---------- CODEX bölgesi (silahlar + mobil kontrol) ----------
-# @ARKADAS
-/arc_cannon_controller.gd    @onurturhn-a11y
-/scatter_cannon_controller.gd @onurturhn-a11y
-/scatter_projectile.gd       @onurturhn-a11y
-/railgun_controller.gd       @onurturhn-a11y
-/railgun_visual.gd           @onurturhn-a11y
-/homing_missile.gd           @onurturhn-a11y
-/homing_missile_controller.gd @onurturhn-a11y
-/pulse_laser_controller.gd   @onurturhn-a11y
-/pulse_laser_visual.gd       @onurturhn-a11y
-/weapon_targeting.gd         @onurturhn-a11y
-/paddle.gd                   @onurturhn-a11y
-/mobile_paddle_controls.gd   @onurturhn-a11y
+/arc_cannon_controller.gd    @neonbreak1
+/scatter_cannon_controller.gd @neonbreak1
+/scatter_projectile.gd       @neonbreak1
+/railgun_controller.gd       @neonbreak1
+/railgun_visual.gd           @neonbreak1
+/homing_missile.gd           @neonbreak1
+/homing_missile_controller.gd @neonbreak1
+/pulse_laser_controller.gd   @neonbreak1
+/pulse_laser_visual.gd       @neonbreak1
+/weapon_targeting.gd         @neonbreak1
+/paddle.gd                   @neonbreak1
+/mobile_paddle_controls.gd   @neonbreak1
 
 # ---------- CLAUDE bölgesi (zorluk + koloni + boss) ----------
 /continuous_brick_field.gd   @onurturhn-a11y
@@ -36,6 +31,6 @@
 /colony.gd                   @onurturhn-a11y
 
 # ---------- Kural dosyaları: her iki taraf da onaylamalı ----------
-/AGENTS.md                   @onurturhn-a11y
-/CLAUDE.md                   @onurturhn-a11y
-/.github/CODEOWNERS          @onurturhn-a11y
+/AGENTS.md                   @onurturhn-a11y @neonbreak1
+/CLAUDE.md                   @onurturhn-a11y @neonbreak1
+/.github/CODEOWNERS          @onurturhn-a11y @neonbreak1

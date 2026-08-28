@@ -146,8 +146,8 @@ Birleştirme yalnızca PR ile, karşı tarafın onayıyla.
 
 Kart havuzu: **20 kart** (15 temel + 5 silah).
 
-**Sıradaki:**
-- Codex → kalan silahlar (Drone Bay, Orbital Marker, Mine Launcher, Mortar)
+**Sıradaki:** görev dağılımı `GOREVLER.md` dosyasındadır.
+- Codex → görsel üretim, metin/dil, kalan silahlar
 - Claude → Faz 4: zorluk dengesi, risk mekanikleri, sektör modifier'ları,
   ascension
 
