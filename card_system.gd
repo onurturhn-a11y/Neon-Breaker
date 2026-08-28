@@ -1,0 +1,109 @@
+extends RefCounted
+class_name CardSystem
+
+# ==================================================
+# KART KURALLARI
+# ==================================================
+# Kart ekranının KARAR katmanı: hangi kart uygun, hangi ağırlıkla çıkar,
+# elde hangi üç kart olur. Görsel kısım main.gd'de kalır.
+#
+# Bu ayrımın sebebi: silah/yuva sistemi yalnızca bu kurallara dokunmak
+# zorunda. Codex yuva sınırını buraya değil, weapon_cards.gd'ye yazar;
+# burası yalnızca ona sorar. Böylece iki ajan main.gd'de çakışmaz.
+#
+# ÖNEMLİ: Buradaki fonksiyonlar saf (pure) tutulmuştur — autoload'a
+# doğrudan erişmezler. Godot, class_name script'lerini autoload'lar
+# kaydolmadan önce derleyebildiği için static gövdeden `GameManager`
+# çağırmak "Identifier not found" hatası verir. Bu yüzden çalışma durumu
+# `state` parametresiyle dışarıdan geçirilir.
+
+## main.gd bu sözlüğü üretip kural fonksiyonlarına verir.
+static func make_state(
+	game_manager: Node,
+	first_boss_defeated: bool,
+	second_boss_defeated: bool
+) -> Dictionary:
+	return {
+		"gm": game_manager,
+		"depth": int(game_manager.run_depth),
+		"first_boss": first_boss_defeated,
+		"second_boss": second_boss_defeated,
+	}
+
+
+## Silah kartlarının seviye tavanı boss milestone'larıyla açılır.
+static func get_weapon_level_cap(state: Dictionary) -> int:
+	if bool(state.get("second_boss", false)):
+		return 3
+	if bool(state.get("first_boss", false)):
+		return 2
+	return 1
+
+
+static func get_card_level_cap(card_id: StringName, state: Dictionary) -> int:
+	var pool_cap := CardPool.get_max_level(card_id)
+	if CardPool.is_weapon(card_id):
+		return mini(pool_cap, get_weapon_level_cap(state))
+	return pool_cap
+
+
+static func is_card_eligible(card_id: StringName, state: Dictionary) -> bool:
+	if not CardPool.has_card(card_id):
+		return false
+	var gm: Node = state.get("gm")
+	if gm == null:
+		return false
+	if gm.banished_cards.has(card_id):
+		return false
+	# Yuvası dolu bir rakete yeni silah teklif edilmez.
+	if CardPool.is_mounted_weapon(card_id):
+		if gm.get_card_level(card_id) <= 0 and not WeaponCards.has_free_mount(gm):
+			return false
+	return gm.get_card_level(card_id) < get_card_level_cap(card_id, state)
+
+
+static func get_eligible_card_ids(state: Dictionary) -> Array:
+	var eligible: Array = []
+	for card_id: StringName in CardPool.get_ids():
+		if is_card_eligible(card_id, state):
+			eligible.append(card_id)
+	return eligible
+
+
+static func get_rarity_weight(rarity: StringName, state: Dictionary) -> float:
+	var depth := int(state.get("depth", 1))
+	var gm: Node = state.get("gm")
+	match rarity:
+		CardPool.RARITY_CORE:
+			# İlk iki silah alınana kadar çekirdek kartlar baskın gelsin.
+			var weapons: int = gm.get_active_weapon_count() if gm != null else 0
+			return 60.0 if weapons < 2 else 26.0
+		CardPool.RARITY_COMMON:
+			return 45.0
+		CardPool.RARITY_RARE:
+			return minf(12.0 + float(depth) * 0.8, 32.0)
+		CardPool.RARITY_EPIC:
+			return minf(3.0 + float(depth) * 0.35, 14.0)
+	return 1.0
+
+
+static func roll_card_ids(count: int, state: Dictionary) -> Array:
+	var candidates := get_eligible_card_ids(state)
+	var rolled: Array = []
+	while rolled.size() < count and not candidates.is_empty():
+		var total_weight := 0.0
+		for card_id: StringName in candidates:
+			total_weight += get_rarity_weight(CardPool.get_rarity(card_id), state)
+		if total_weight <= 0.0:
+			break
+		var target := randf() * total_weight
+		var running := 0.0
+		var picked_index := candidates.size() - 1
+		for index in range(candidates.size()):
+			running += get_rarity_weight(CardPool.get_rarity(candidates[index]), state)
+			if target <= running:
+				picked_index = index
+				break
+		rolled.append(candidates[picked_index])
+		candidates.remove_at(picked_index)
+	return rolled

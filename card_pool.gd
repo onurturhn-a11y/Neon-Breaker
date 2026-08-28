@@ -233,16 +233,27 @@ const CARDS := {
 }
 
 
+## Havuz = bu dosyadaki kartlar + weapons/weapon_cards.gd kayitlari.
+## Codex silah eklerken bu dosyaya dokunmaz.
 static func get_ids() -> Array:
-	return CARDS.keys()
+	var ids: Array = CARDS.keys()
+	ids.append_array(WeaponCards.CARDS.keys())
+	return ids
 
 
 static func has_card(card_id: StringName) -> bool:
-	return CARDS.has(card_id)
+	return CARDS.has(card_id) or WeaponCards.CARDS.has(card_id)
 
 
 static func get_data(card_id: StringName) -> Dictionary:
+	if WeaponCards.CARDS.has(card_id):
+		return WeaponCards.CARDS[card_id]
 	return CARDS.get(card_id, {})
+
+
+## Yuva isgal eden silah karti mi? (Cekirdek uc silahtan farkli.)
+static func is_mounted_weapon(card_id: StringName) -> bool:
+	return bool(get_data(card_id).get("weapon", false))
 
 
 static func get_title(card_id: StringName) -> String:

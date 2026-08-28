@@ -3061,73 +3061,26 @@ func _get_card_slots() -> Array:
 	return [plasma_card, pierce_card, fireball_card]
 
 
+# Kart kurallari card_system.gd'de. Buradaki sarmalayicilar yalnizca
+# calisma durumunu paketler; kural mantigi bu dosyada TUTULMAZ.
+func _make_card_state() -> Dictionary:
+	return CardSystem.make_state(GameManager, first_boss_defeated, second_boss_defeated)
+
+
 func _get_unlocked_max_card_level() -> int:
-	# Silah kartlarinin seviye tavani boss milestone'lariyla acilir.
-	if second_boss_defeated:
-		return 3
-	if first_boss_defeated:
-		return 2
-	return 1
-
-
-func _get_card_level_cap(card_id: StringName) -> int:
-	var pool_cap := CardPool.get_max_level(card_id)
-	if CardPool.is_weapon(card_id):
-		return mini(pool_cap, _get_unlocked_max_card_level())
-	return pool_cap
+	return CardSystem.get_weapon_level_cap(_make_card_state())
 
 
 func _is_card_eligible(card_id: StringName) -> bool:
-	if not CardPool.has_card(card_id):
-		return false
-	if GameManager.banished_cards.has(card_id):
-		return false
-	return GameManager.get_card_level(card_id) < _get_card_level_cap(card_id)
+	return CardSystem.is_card_eligible(card_id, _make_card_state())
 
 
 func _get_eligible_card_ids() -> Array:
-	var eligible: Array = []
-	for card_id: StringName in CardPool.get_ids():
-		if _is_card_eligible(card_id):
-			eligible.append(card_id)
-	return eligible
-
-
-func _get_rarity_weight(rarity: StringName, depth: int) -> float:
-	match rarity:
-		CardPool.RARITY_CORE:
-			# Ilk iki silah alinana kadar cekirdek kartlar baskin gelsin.
-			return 60.0 if GameManager.get_active_weapon_count() < 2 else 26.0
-		CardPool.RARITY_COMMON:
-			return 45.0
-		CardPool.RARITY_RARE:
-			return minf(12.0 + float(depth) * 0.8, 32.0)
-		CardPool.RARITY_EPIC:
-			return minf(3.0 + float(depth) * 0.35, 14.0)
-	return 1.0
+	return CardSystem.get_eligible_card_ids(_make_card_state())
 
 
 func _roll_card_ids(count: int) -> Array:
-	var candidates := _get_eligible_card_ids()
-	var rolled: Array = []
-	var depth: int = GameManager.run_depth
-	while rolled.size() < count and not candidates.is_empty():
-		var total_weight := 0.0
-		for card_id: StringName in candidates:
-			total_weight += _get_rarity_weight(CardPool.get_rarity(card_id), depth)
-		if total_weight <= 0.0:
-			break
-		var target := randf() * total_weight
-		var running := 0.0
-		var picked_index := candidates.size() - 1
-		for index in range(candidates.size()):
-			running += _get_rarity_weight(CardPool.get_rarity(candidates[index]), depth)
-			if target <= running:
-				picked_index = index
-				break
-		rolled.append(candidates[picked_index])
-		candidates.remove_at(picked_index)
-	return rolled
+	return CardSystem.roll_card_ids(count, _make_card_state())
 
 
 func choose_random_cards(force_plasma = false):
@@ -3425,6 +3378,15 @@ func _apply_card_selection(card_id: StringName) -> void:
 	)
 	GameManager.set_card_level(card_id, next_level)
 	print("CARD TAKEN: %s Lv%d (%s)" % [card_id, next_level, CardPool.get_rarity(card_id)])
+
+	# Silah kartlari weapons/weapon_system.gd tarafindan islenir.
+	# Codex silah davranisi eklerken bu dosyaya dokunmaz.
+	if WeaponSystem.handles(card_id):
+		WeaponSystem.apply(self, card_id, next_level)
+		build_hud.refresh_from_run_state()
+		refresh_dynamic_build_difficulty()
+		call_deferred("_try_resolve_pending_rewards")
+		return
 
 	match card_id:
 		&"plasma":
