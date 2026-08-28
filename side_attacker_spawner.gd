@@ -63,10 +63,11 @@ func refresh_build_modifier() -> void:
 
 
 func _get_interval_multiplier(depth: int) -> float:
-	var threat_multiplier := 0.85 if GameManager.get_build_threat() == 3 else 1.0
+	# Faz 4: build-tabanlı sıklık cezası kaldırıldı; yalnızca derinlik ölçekler.
 	var mobile_multiplier := MOBILE_INTERVAL_MULTIPLIER if OS.has_feature("mobile") else 1.0
 	return (
-		threat_multiplier
-		* GameManager.get_late_game_side_attacker_multiplier(depth)
+		GameManager.get_late_game_side_attacker_multiplier(depth)
+		* GameManager.get_sector_attacker_scale()
+		* GameManager.get_curse_attacker_scale()
 		* mobile_multiplier
 	)

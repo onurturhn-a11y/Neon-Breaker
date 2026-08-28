@@ -143,10 +143,12 @@ func configure_for_depth(depth):
 			explosive_chance = 0.11
 			shield_chance = 0.05
 		_:
+			# Depth 10+ taban değerleri. Faz 4: eskiden 80. depth'e kadar sabitti;
+			# artık patlayıcı ve kalkan oranı derinlikle yavaşça büyür.
 			continuous_row_fill = 0.95
 			armored_chance = 0.30
-			explosive_chance = 0.12
-			shield_chance = minf(0.055 + float(depth - 10) * 0.005, 0.07)
+			explosive_chance = minf(0.12 + float(depth - 10) * 0.0015, 0.20)
+			shield_chance = minf(0.055 + float(depth - 10) * 0.005, 0.08)
 
 	# İlk üç depth korunur; mobile board-pressure bonusu Depth 4'te devreye girer.
 	if portrait_mobile_layout and depth >= 4:
@@ -161,12 +163,11 @@ func set_mobile_power_synergy(tier: int, pressure_scale: float) -> void:
 
 
 func get_effective_continuous_row_fill() -> float:
-	if not portrait_mobile_layout or mobile_power_synergy_tier <= 0:
-		return continuous_row_fill
-	var synergy_bonus := GameManager.get_power_synergy_row_fill_bonus(
-		mobile_power_synergy_tier
-	) * mobile_power_synergy_pressure_scale
-	return minf(continuous_row_fill + synergy_bonus, MAX_CONTINUOUS_ROW_FILL)
+	# Faz 4: sinerji cezası kaldırıldı; yerini sektör modifier'ı aldı.
+	return minf(
+		continuous_row_fill + GameManager.get_sector_row_fill_bonus(),
+		MAX_CONTINUOUS_ROW_FILL
+	)
 
 func has_any_run_upgrade() -> bool:
 	return (
@@ -179,45 +180,43 @@ func has_any_run_upgrade() -> bool:
 func get_effective_armored_chance() -> float:
 	if not has_any_run_upgrade():
 		return 0.0
+	# Faz 4: build-tabanlı zırh cezası kaldırıldı; yalnızca derinlik ölçekler.
 	var effective_chance: float = armored_chance
-	if GameManager.run_depth >= 4:
-		match GameManager.get_build_threat():
-			2:
-				effective_chance += 0.04
-			3:
-				effective_chance += 0.06
-	if GameManager.run_depth >= 21:
-		effective_chance += 0.10
+	if GameManager.run_depth >= 49:
+		effective_chance += 0.16
+	elif GameManager.run_depth >= 33:
+		effective_chance += 0.14
+	elif GameManager.run_depth >= 21:
+		effective_chance += 0.12
 	elif GameManager.run_depth >= 17:
-		effective_chance += 0.08
+		effective_chance += 0.09
 	elif GameManager.run_depth >= 13:
-		effective_chance += 0.06
+		effective_chance += 0.07
 	elif GameManager.run_depth >= 9:
-		effective_chance += 0.04
+		effective_chance += 0.05
 	elif GameManager.run_depth >= 5:
 		effective_chance += 0.02
-	return minf(effective_chance, 0.30)
+	return minf(effective_chance + GameManager.get_curse_armor_bonus(), 0.42)
 
 
 func get_effective_shield_chance() -> float:
 	if not has_any_run_upgrade():
 		return 0.0
+	# Faz 4: build-tabanlı kalkan cezası kaldırıldı; yalnızca derinlik ölçekler.
 	var effective_chance: float = shield_chance
-	if GameManager.run_depth >= 6:
-		match GameManager.get_build_threat():
-			2:
-				effective_chance += 0.02
-			3:
-				effective_chance += 0.03
-	if GameManager.run_depth >= 21:
-		effective_chance += 0.05
+	if GameManager.run_depth >= 49:
+		effective_chance += 0.08
+	elif GameManager.run_depth >= 33:
+		effective_chance += 0.07
+	elif GameManager.run_depth >= 21:
+		effective_chance += 0.06
 	elif GameManager.run_depth >= 17:
 		effective_chance += 0.04
 	elif GameManager.run_depth >= 13:
 		effective_chance += 0.03
 	elif GameManager.run_depth >= 9:
 		effective_chance += 0.02
-	return minf(effective_chance, 0.07)
+	return minf(effective_chance, 0.09)
 
 
 func create_continuous_row(parent, row_y, row_index):
@@ -354,7 +353,9 @@ func create_brick(
 			allow_shield and shield_bricks_created < 1
 		) else 0.0
 		var active_armored_chance = get_effective_armored_chance()
-		var active_explosive_chance: float = explosive_chance
+		var active_explosive_chance: float = minf(
+			explosive_chance + GameManager.get_sector_explosive_bonus(), 0.32
+		)
 		if special_roll < active_shield_chance:
 			make_shield = true
 			shield_bricks_created += 1

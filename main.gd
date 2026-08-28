@@ -242,6 +242,8 @@ var run_coins_collected := 0
 var run_colony_parts_bonus := 0
 var run_boss_salvage_reward := 0
 var run_salvage_earned := 0
+var run_salvage_rescued := 0
+var run_salvage_lost := 0
 var run_colony_bonus_awarded := false
 var paddle_shop: CanvasLayer
 var paddle_shop_panel: Panel
@@ -256,6 +258,8 @@ var sector_background_tween: Tween
 var menu_records_label: HBoxContainer
 var menu_records_icon: TextureRect
 var menu_records_text: Label
+var ascension_row: HBoxContainer
+var ascension_label: Label
 var reward_sfx_player: AudioStreamPlayer
 # Codex: silah kontrolcüleri ve PARÇA sayacı
 var arc_cannon_controller: Node
@@ -273,6 +277,7 @@ var boss_reward_row: HBoxContainer
 var boss_reward_buttons: Array[Button] = []
 var boss_reward_options: Array = []
 var boss_reward_active := false
+var run_victory := false
 var active_evolution_card: StringName = &"none"
 var boss_hp_tween: Tween
 var sentinel_left_indicator: Label
@@ -597,6 +602,7 @@ func _setup_main_menu_assets() -> void:
 		_apply_menu_button_texture(menu_quit, MENU_QUIT_TEXTURE)
 
 	_ensure_menu_records_label(menu_layer)
+	_ensure_ascension_selector(menu_layer)
 
 
 func _ensure_menu_records_label(menu_layer: CanvasLayer) -> void:
@@ -630,6 +636,57 @@ func _ensure_menu_records_label(menu_layer: CanvasLayer) -> void:
 	menu_records_label.add_child(menu_records_text)
 
 	refresh_menu_records_label()
+
+
+func _ensure_ascension_selector(menu_layer: CanvasLayer) -> void:
+	# Ascension yalnızca oyun en az bir kez bitirildiyse görünür.
+	if GameManager.highest_ascension_cleared < 0:
+		return
+	if is_instance_valid(ascension_row):
+		return
+	ascension_row = HBoxContainer.new()
+	ascension_row.name = "AscensionRow"
+	ascension_row.add_theme_constant_override("separation", 10)
+	ascension_row.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	ascension_row.position = Vector2(18.0, -74.0)
+	ascension_row.size = Vector2(420.0, 28.0)
+	menu_layer.add_child(ascension_row)
+
+	var tone := Color(1.0, 0.62, 0.24, 1.0)
+	var down := Button.new()
+	down.text = "\u25C0"
+	down.focus_mode = Control.FOCUS_NONE
+	down.add_theme_color_override("font_color", tone)
+	down.pressed.connect(_on_ascension_changed.bind(-1))
+	ascension_row.add_child(down)
+
+	ascension_label = Label.new()
+	ascension_label.add_theme_font_size_override("font_size", 14)
+	ascension_label.add_theme_color_override("font_color", tone)
+	ascension_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ascension_row.add_child(ascension_label)
+
+	var up := Button.new()
+	up.text = "\u25B6"
+	up.focus_mode = Control.FOCUS_NONE
+	up.add_theme_color_override("font_color", tone)
+	up.pressed.connect(_on_ascension_changed.bind(1))
+	ascension_row.add_child(up)
+
+	_refresh_ascension_label()
+
+
+func _on_ascension_changed(delta: int) -> void:
+	GameManager.set_ascension_level(GameManager.ascension_level + delta)
+	_refresh_ascension_label()
+
+
+func _refresh_ascension_label() -> void:
+	if not is_instance_valid(ascension_label):
+		return
+	ascension_label.text = "ASCENSION %d / %d" % [
+		GameManager.ascension_level, GameManager.get_max_selectable_ascension()
+	]
 
 
 func refresh_menu_records_label() -> void:
@@ -1200,19 +1257,7 @@ func on_continuous_row_spawned(row_depth: int) -> void:
 
 
 func _get_sector_for_depth(depth: int) -> int:
-	if depth <= 4:
-		return 1
-	if depth <= 8:
-		return 2
-	if depth <= 12:
-		return 3
-	if depth <= 16:
-		return 4
-	if depth <= 20:
-		return 5
-	if depth <= 24:
-		return 6
-	return 7
+	return SectorModifiers.get_sector_for_depth(depth)
 
 
 func _queue_sector_transition_for_depth(depth: int) -> void:
@@ -1239,8 +1284,23 @@ func _play_sector_transition(sector: int) -> void:
 	pending_sector_transition = 0
 	current_sector = sector
 	var roman: String = ["I", "II", "III", "IV", "V", "VI", "VII"][sector - 1]
-	sector_label.text = "SEKT\u00D6R " + roman
-	sector_threat_label.text = "TEHD\u0130T ARTIYOR"
+	sector_label.text = "SEKT\u00D6R %s \u2014 %s" % [roman, SectorModifiers.get_sector_name(sector)]
+	sector_threat_label.text = SectorModifiers.get_tagline(sector)
+	# Sektör aktifken tüm sistemler modifier'ı buradan okur.
+	GameManager.current_sector = sector
+	refresh_dynamic_build_difficulty()
+	for ball in get_tree().get_nodes_in_group("game_ball"):
+		if ball.has_method("refresh_card_modifiers"):
+			ball.refresh_card_modifiers()
+	print("SECTOR %d: %s | inis=%.2f dolum=+%.2f patlayici=+%.2f top=%.2f taret=%.2f" % [
+		sector,
+		SectorModifiers.get_sector_name(sector),
+		SectorModifiers.get_descent_scale(sector),
+		SectorModifiers.get_row_fill_bonus(sector),
+		SectorModifiers.get_explosive_bonus(sector),
+		SectorModifiers.get_ball_speed_scale(sector),
+		SectorModifiers.get_attacker_scale(sector),
+	])
 	sector_transition.visible = true
 	sector_transition.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	sector_transition.scale = Vector2.ONE * 0.35
@@ -1485,6 +1545,33 @@ func _build_boss_reward_options(boss_type: StringName) -> Array:
 		"rerolls": 2,
 		"banishes": 1,
 	})
+
+	# 4) Kasa: taşınan PARÇA'yı güvenceye al. Yalnızca riske atılacak bir şey
+	# varken görünür — boş seçenek sunmanın anlamı yok.
+	if GameManager.carried_salvage > 0:
+		options.append({
+			"id": &"bank",
+			"title": "KASAYA AL",
+			"description": "Taşınan %d PARÇA'yı\ngüvenceye al." % GameManager.carried_salvage,
+			"icon": ICON_SALVAGE,
+			"tone": Color(0.16, 0.88, 0.48, 1.0),
+			"bank": true,
+		})
+
+	# 5) Lanet: gönüllü zorluk karşılığında kalıcı kazanç çarpanı.
+	var curse_offer: StringName = Curses.pick_offer(GameManager.active_curses, GameManager.lives)
+	if curse_offer != &"none":
+		options.append({
+			"id": &"curse",
+			"curse_id": curse_offer,
+			"title": Curses.get_name(curse_offer),
+			"description": "%s\n%s" % [
+				Curses.get_description(curse_offer),
+				Curses.get_reward_text(curse_offer),
+			],
+			"icon": ICON_DEPTH,
+			"tone": Color(1.00, 0.34, 0.34, 1.0),
+		})
 	return options
 
 
@@ -1663,6 +1750,26 @@ func _on_boss_reward_selected(option_index: int) -> void:
 		pulse_lives_hud()
 	GameManager.rerolls_remaining += reroll_gain
 	GameManager.banishes_remaining += banish_gain
+
+	if bool(option.get("bank", false)):
+		var banked: int = GameManager.bank_carried_salvage()
+		_show_reward_banner(
+			"KASAYA ALINDI",
+			[{"icon": ICON_SALVAGE, "text": "+%d" % banked}],
+			Color(0.16, 0.88, 0.48, 1.0),
+			SFX_BONUS_REWARD
+		)
+
+	var curse_id: StringName = option.get("curse_id", &"none")
+	if curse_id != &"none" and GameManager.accept_curse(curse_id):
+		update_labels()
+		_show_reward_banner(
+			"LANET KABUL EDİLDİ",
+			[{"icon": ICON_DEPTH, "text": "KAZANÇ x%.2f" % GameManager.get_curse_gain_multiplier()}],
+			Color(1.00, 0.34, 0.34, 1.0),
+			SFX_NEW_RECORD
+		)
+		refresh_dynamic_build_difficulty()
 
 	print("BOSS REWARD PICKED: %s | parca=%d coin=%d can=%d reroll=%d banish=%d" % [
 		option.get("id", &"?"), salvage_gain, coin_gain, life_gain, reroll_gain, banish_gain
@@ -1863,6 +1970,9 @@ func _on_boss_defeated() -> void:
 		pending_boss_type = &"none"
 		if is_instance_valid(brick_field):
 			brick_field.resume_after_progression_boss(SEVENTH_POST_BOSS_DEPTH)
+		# Son boss: run kazanıldı. Ödül ekranı yerine zafer ekranı gelir.
+		_trigger_run_victory()
+		return
 	elif boss_pending:
 		call_deferred("_try_start_pending_boss")
 	elif is_instance_valid(brick_field):
@@ -1870,6 +1980,66 @@ func _on_boss_defeated() -> void:
 	print("BrickField resumed")
 	if defeated_progression_boss:
 		_award_boss_defeat_rewards(defeated_boss_type)
+
+# ==================================================
+# ZAFER VE ASCENSION
+# ==================================================
+
+func _trigger_run_victory() -> void:
+	if run_victory:
+		return
+	run_victory = true
+	# Taşınan PARÇA zaferle birlikte tam olarak güvenceye alınır — kayıp yok.
+	var banked: int = GameManager.bank_carried_salvage()
+	var unlocked_new_tier: bool = GameManager.register_ascension_clear()
+	print("RUN VICTORY | ascension=%d yeni_katman=%s kasaya_giren=%d" % [
+		GameManager.run_ascension, unlocked_new_tier, banked
+	])
+	_show_victory_screen(banked, unlocked_new_tier)
+
+
+func _show_victory_screen(banked_salvage: int, unlocked_new_tier: bool) -> void:
+	game_over = true
+	_award_colony_run_end_bonus_once()
+	_populate_run_summary()
+
+	choosing_card = false
+	$HUD/ComboManager.reset_combo()
+	GameManager.magnet_time_remaining = 0.0
+	update_magnet_aura_feedback(0.0)
+	card_panel.visible = false
+
+	# Game over ekranını zafer moduna çevir — ayrı sahne gerekmez.
+	var title := get_node_or_null("GameOverScreen/VBoxContainer/GameOverLabel") as Label
+	if is_instance_valid(title):
+		title.text = "RUN TAMAMLANDI"
+		title.add_theme_color_override("font_color", Color(1.0, 0.84, 0.28, 1.0))
+
+	var lines: Array[String] = [
+		"CHRONOFORM YEN\u0130LD\u0130",
+		"ASCENSION %d TEMİZLENDİ" % GameManager.run_ascension,
+		"KASAYA GİREN: %d PARÇA" % banked_salvage,
+	]
+	if unlocked_new_tier and GameManager.run_ascension < GameManager.MAX_ASCENSION:
+		lines.append("ASCENSION %d AÇILDI" % (GameManager.run_ascension + 1))
+	elif GameManager.run_ascension >= GameManager.MAX_ASCENSION:
+		lines.append("TÜM ASCENSION KATMANLARI TEMİZLENDİ")
+	_show_new_record_badge(false)
+
+	var summary := get_node_or_null("GameOverScreen/VBoxContainer/StatsLabel") as Label
+	if is_instance_valid(summary):
+		summary.text = String.chr(10).join(lines) + String.chr(10) + String.chr(10) + summary.text
+
+	game_over_screen.visible = true
+	get_tree().paused = true
+	_play_reward_sfx(SFX_NEW_RECORD)
+
+	if OS.has_feature("mobile"):
+		retry_button.focus_mode = Control.FOCUS_NONE
+		main_menu_button.focus_mode = Control.FOCUS_NONE
+	else:
+		retry_button.grab_focus()
+
 
 func _debug_add_test_coins() -> void:
 	if not OS.is_debug_build() or OS.has_feature("release"):
@@ -2420,11 +2590,17 @@ func spawn_building_part_pickup(spawn_position: Vector2) -> void:
 
 
 func _award_run_salvage(amount: int) -> void:
-	# Run icinde kazanilan tum PARCA tek noktadan gecsin ki ozet dogru olsun.
+	# Run içinde kazanılan tüm PARÇA tek noktadan geçsin ki özet doğru olsun.
+	# Faz 4: lanet çarpanı burada uygulanır ve PARÇA doğrudan depoya değil,
+	# önce "taşınan" havuzuna gider. Boss sonrası güvenceye alınabilir;
+	# alınmadan ölünürse yarısı kaybolur.
 	if amount <= 0:
 		return
-	run_salvage_earned += amount
-	GameManager.add_salvage(amount)
+	var multiplied: int = maxi(1, roundi(
+		float(amount) * GameManager.get_curse_gain_multiplier()
+	))
+	run_salvage_earned += multiplied
+	GameManager.carry_salvage(multiplied)
 
 
 func collect_building_part(_pickup_position: Vector2) -> void:
@@ -2443,8 +2619,9 @@ func _clear_exp_orb_pickups() -> void:
 			orb.queue_free()
 
 func collect_coin(_pickup_position: Vector2) -> void:
-	run_coins_collected += 1
-	GameManager.add_coins(1)
+	var gained: int = maxi(1, roundi(GameManager.get_curse_gain_multiplier()))
+	run_coins_collected += gained
+	GameManager.add_coins(gained)
 	_refresh_shop_button_text()
 
 func spawn_heart_pickup(spawn_position):
@@ -4187,8 +4364,12 @@ func _populate_run_summary() -> void:
 		"ÖLDÜRÜLEN BOSS: %d" % run_progression_boss_kills,
 		"TOPLANAN COIN: %d" % run_coins_collected,
 		"KAZANILAN PARÇA: %d" % run_salvage_earned,
+		"KASAYA GİREN: %d   (KAYIP: %d)" % [run_salvage_rescued, run_salvage_lost],
 		"RUN NO: %d" % GameManager.total_runs,
 	]
+	var curse_names: Array = GameManager.get_active_curse_names()
+	if not curse_names.is_empty():
+		stat_lines.append("LANETLER: %s" % ", ".join(curse_names))
 	run_summary_stats_label.text = String.chr(10).join(stat_lines)
 	run_summary_build_label.text = _get_final_build_summary()
 
@@ -4244,6 +4425,10 @@ func _award_colony_run_end_bonus_once() -> void:
 	run_colony_parts_bonus = GameManager.get_colony_run_end_salvage()
 	if run_colony_parts_bonus > 0:
 		_award_run_salvage(run_colony_parts_bonus)
+	# Kasaya alınmamış PARÇA'nın yarısı ölümle birlikte kaybolur.
+	var settlement: Dictionary = GameManager.settle_carried_salvage_on_death()
+	run_salvage_rescued = int(settlement.get("rescued", 0))
+	run_salvage_lost = int(settlement.get("lost", 0))
 
 func show_game_over():
 

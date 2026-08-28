@@ -38,6 +38,8 @@ func _ready() -> void:
 	if OS.has_feature("mobile"):
 		scale *= mobile_boss_scale_multiplier
 	add_to_group("game_boss")
+	# Ascension katmani boss dayanikliligini da olcekler.
+	max_hp = maxi(roundi(float(max_hp) * GameManager.get_ascension_boss_hp_scale()), 1)
 	current_hp = max_hp
 	projectile_phase = get_projectile_phase()
 	collision_shape.disabled = true
