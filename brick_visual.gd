@@ -145,7 +145,6 @@ func _process(delta):
 		spawn_fuse_spark()
 		explosive_spark_timer = randf_range(0.7, 1.0)
 
-
 func play_fuse_glint():
 
 	if not is_instance_valid(explosive_core):

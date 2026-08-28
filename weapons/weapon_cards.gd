@@ -2,54 +2,146 @@ extends RefCounted
 class_name WeaponCards
 
 # ==================================================
-# SİLAH KARTLARI — CODEX BÖLGESİ
+# SİLAH KARTLARI
 # ==================================================
-# Bu dosya silah/yuva sisteminin kart VERİSİNİ tutar.
-# CardPool bunu çalışma anında kendi havuzuyla birleştirir, yani
-# buraya kart eklemek için card_pool.gd'ye dokunmak GEREKMEZ.
+# Silah/yuva sisteminin kart VERİSİ. CardPool bunu çalışma anında kendi
+# havuzuyla birleştirir, yani buraya kart eklemek için card_pool.gd'ye
+# dokunmak gerekmez.
 #
-# Kayıt biçimi card_pool.gd'deki CARDS ile birebir aynıdır:
-#   &"railgun": {
-#       "title": "RAILGUN",
-#       "rarity": CardPool.RARITY_RARE,
-#       "max_level": 3,
-#       "roman": true,
-#       "icon": "res://assets/cards/railgun_card.png",
-#       "descriptions": ["", "Lv1 metni", "Lv2 metni", "Lv3 metni"],
-#   }
+# Silah seviyeleri GameManager.weapon_slots içinde tutulur (Codex sistemi);
+# card_levels sözlüğünde DEĞİL. Bu yüzden seviye sorguları
+# GameManager.get_weapon_level() üzerinden gider.
 #
-# Ek olarak silah kartları şunu taşır:
-#   "weapon": true      -> yuva işgal eder, CardPool.is_weapon_card() true döner
-#
-# Yuva sınırı ve ateşleme davranışı weapon_system.gd'de tanımlanır.
+# NOT: `gm` parametresi GameManager düğümüdür. Static gövdeden autoload'a
+# doğrudan erişilemez (Godot sınıfı autoload'lar kaydolmadan derleyebilir),
+# bu yüzden dışarıdan geçirilir.
 
-const CARDS := {}
+const CARDS := {
+	&"arc_cannon": {
+		"title": "ARC CANNON",
+		"rarity": &"rare",
+		"max_level": 3,
+		"roman": true,
+		"weapon": true,
+		"weapon_id": &"ARC_CANNON",
+		"icon": "res://assets/cards/plasma_card.png",
+		"descriptions": [
+			"",
+			"Vurduğu tuğladan komşularına elektrik sıçratır.",
+			"Sıçrama menzili ve hedef sayısı artar.",
+			"Zincir daha uzun sürer ve daha çok tuğlaya ulaşır.",
+		],
+	},
+	&"scatter_cannon": {
+		"title": "SCATTER CANNON",
+		"rarity": &"common",
+		"max_level": 3,
+		"roman": true,
+		"weapon": true,
+		"weapon_id": &"SCATTER_CANNON",
+		"icon": "res://assets/cards/plasma_card.png",
+		"descriptions": [
+			"",
+			"Yelpaze şeklinde küçük mermiler yollar.",
+			"Daha çok mermi, daha geniş yelpaze.",
+			"En yoğun yelpaze; yakın menzilde ezici.",
+		],
+	},
+	&"railgun": {
+		"title": "RAILGUN",
+		"rarity": &"rare",
+		"max_level": 3,
+		"roman": true,
+		"weapon": true,
+		"weapon_id": &"RAILGUN",
+		"icon": "res://assets/cards/plasma_card.png",
+		"descriptions": [
+			"",
+			"Dikey ince ışın; aynı sütundaki tuğlaları deler.",
+			"Işın daha hızlı şarj olur ve daha çok tuğla deler.",
+			"Tam sütun delme; en yüksek tek hedef hasarı.",
+		],
+	},
+	&"homing_missile": {
+		"title": "HOMING MISSILE",
+		"rarity": &"rare",
+		"max_level": 3,
+		"roman": true,
+		"weapon": true,
+		"weapon_id": &"HOMING_MISSILE",
+		"icon": "res://assets/cards/ball_card.png",
+		"descriptions": [
+			"",
+			"En yakın tuğlayı takip eden füze yollar.",
+			"Daha sık ateş eder, takip keskinleşir.",
+			"Çoklu füze; tehlike çizgisine yakın hedefleri önceler.",
+		],
+	},
+	&"pulse_laser": {
+		"title": "PULSE LASER",
+		"rarity": &"rare",
+		"max_level": 3,
+		"roman": true,
+		"weapon": true,
+		"weapon_id": &"PULSE_LASER",
+		"icon": "res://assets/cards/plasma_card.png",
+		"descriptions": [
+			"",
+			"Periyodik olarak kısa süreli sürekli ışın açar.",
+			"Işın daha uzun sürer ve daha sık gelir.",
+			"Neredeyse kesintisiz ışın; sürekli hasar yığar.",
+		],
+	},
+}
+
+
+## Bir kart kimliğinin GameManager'daki silah kimliği karşılığı.
+static func get_weapon_id(card_id: StringName) -> StringName:
+	return CARDS.get(card_id, {}).get("weapon_id", &"")
 
 
 ## Rakette kaç silah yuvası olduğunu bildirir.
-## Üçüncü yuvayı açan kart alındığında bu değer 3 dönmelidir.
-##
-## NOT: `gm` parametresi GameManager düğümüdür. Static gövdeden autoload'a
-## doğrudan erişilemez (Godot sınıfı autoload'lar kaydolmadan derleyebilir),
-## bu yüzden dışarıdan geçirilir.
 static func get_mount_capacity(gm: Node) -> int:
-	var base_capacity := 2
-	if gm != null and gm.get_card_level(&"weapon_mount_3") > 0:
-		base_capacity += 1
-	return base_capacity
+	if gm == null:
+		return 0
+	return int(gm.MAX_WEAPON_SLOTS)
 
 
 ## Şu an kaç yuvanın dolu olduğu.
 static func get_used_mounts(gm: Node) -> int:
 	if gm == null:
 		return 0
-	var used := 0
-	for card_id: StringName in CARDS.keys():
-		if gm.get_card_level(card_id) > 0:
-			used += 1
-	return used
+	return get_mount_capacity(gm) - _count_empty_slots(gm)
+
+
+static func _count_empty_slots(gm: Node) -> int:
+	var empty := 0
+	for slot in gm.weapon_slots:
+		if StringName(slot.get("weapon_id", &"")) == &"":
+			empty += 1
+	return empty
 
 
 ## Yuvalar doluysa yeni silah kartı teklif edilmez.
 static func has_free_mount(gm: Node) -> bool:
-	return get_used_mounts(gm) < get_mount_capacity(gm)
+	return gm != null and gm.has_empty_weapon_slot()
+
+
+## Kart havuzu bu silahı hâlâ teklif edebilir mi?
+static func can_offer(gm: Node, card_id: StringName) -> bool:
+	if gm == null:
+		return false
+	var weapon_id := get_weapon_id(card_id)
+	if weapon_id == &"":
+		return false
+	return gm.can_acquire_weapon(weapon_id)
+
+
+## Silahın mevcut seviyesi (yuva sisteminden okunur).
+static func get_level(gm: Node, card_id: StringName) -> int:
+	if gm == null:
+		return 0
+	var weapon_id := get_weapon_id(card_id)
+	if weapon_id == &"":
+		return 0
+	return gm.get_weapon_level(weapon_id)

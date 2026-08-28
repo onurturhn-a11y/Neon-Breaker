@@ -8,7 +8,7 @@ func _ready():
 	music_player = AudioStreamPlayer.new()
 	music_player.name = "BackgroundMusic"
 	music_player.process_mode = Node.PROCESS_MODE_ALWAYS
-	music_player.stream = preload("res://01 - Genesis - Soma Animus.wav")
+	music_player.stream = preload("res://assets/audio/music/genesis_soma_animus.wav")
 	music_player.volume_db = -8.0
 	music_player.finished.connect(_on_music_finished)
 	add_child(music_player)

@@ -5,7 +5,7 @@ extends CharacterBody2D
 @export_range(-60.0, 0.0, 1.0) var aim_angle_min = -60.0
 @export_range(0.0, 60.0, 1.0) var aim_angle_max = 60.0
 @export var aim_rotation_speed = 105.0
-@export_range(0.1, 0.9, 0.01) var mobile_aim_min_vertical = 0.35
+@export_range(0.1, 0.9, 0.01) var mobile_aim_min_vertical = 0.42
 @export var boss_separation_distance = 3.0
 @export_range(12.0, 15.0, 1.0) var minimum_boss_exit_angle = 15.0
 @export_range(45.0, 75.0, 1.0) var max_paddle_bounce_angle = 65.0
@@ -19,6 +19,7 @@ extends CharacterBody2D
 const AIM_DOT_COUNT = 10
 const AIM_LINE_LENGTH = 170.0
 const PADDLE_ATTACH_OFFSET = Vector2(0, -34)
+const MOBILE_LAUNCH_COLLISION_CLEARANCE := 2.0
 const PIERCE_SEQUENCE_RESET_DISTANCE = 150.0
 const PIERCE_EXCEPTION_CLEAR_DISTANCE = 90.0
 
@@ -486,7 +487,7 @@ func update_launch_state(delta):
 			launch_paddle.set_launch_aim_lock(true)
 
 	if is_instance_valid(launch_paddle):
-		global_position = launch_paddle.global_position + PADDLE_ATTACH_OFFSET
+		global_position = launch_paddle.global_position + _get_launch_attach_offset()
 
 	velocity = Vector2.ZERO
 	if not mobile_aim_active:
@@ -609,6 +610,27 @@ func reset_pierce_sequence():
 	pierce_sequence_active = false
 	pierce_passes_remaining = 0
 	pierce_distance_since_hit = 0.0
+
+
+## Mobilde top, raketin collision kutusuna gomulmesin (Codex).
+func _get_launch_attach_offset() -> Vector2:
+	if not OS.has_feature("mobile") or not is_instance_valid(launch_paddle):
+		return PADDLE_ATTACH_OFFSET
+
+	var ball_collision := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	var paddle_collision := launch_paddle.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if ball_collision == null or paddle_collision == null:
+		return PADDLE_ATTACH_OFFSET
+
+	var ball_circle := ball_collision.shape as CircleShape2D
+	var paddle_rectangle := paddle_collision.shape as RectangleShape2D
+	if ball_circle == null or paddle_rectangle == null:
+		return PADDLE_ATTACH_OFFSET
+
+	var ball_radius := ball_circle.radius * absf(ball_collision.global_scale.y)
+	var paddle_half_height := paddle_rectangle.size.y * 0.5 * absf(paddle_collision.global_scale.y)
+	var safe_distance := ball_radius + paddle_half_height + MOBILE_LAUNCH_COLLISION_CLEARANCE
+	return Vector2(0.0, -maxf(absf(PADDLE_ATTACH_OFFSET.y), safe_distance))
 
 
 func refresh_card_modifiers() -> void:

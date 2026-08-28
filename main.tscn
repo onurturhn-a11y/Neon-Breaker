@@ -21,8 +21,9 @@
 [ext_resource type="Script" uid="uid://dynnmdjludfka" path="res://world_shake.gd" id="3_world_shake"]
 [ext_resource type="PackedScene" uid="uid://bf0c880w50gvt" path="res://ball.tscn" id="4_1bvp3"]
 [ext_resource type="Script" uid="uid://82p61o7f4llj" path="res://music_manager.gd" id="5_7mycd"]
-[ext_resource type="Texture2D" uid="uid://c0h4es3f5qljj" path="res://plasma_card.png" id="6_272bh"]
-[ext_resource type="Texture2D" uid="uid://doxsai164uwo4" path="res://ball_card.png" id="7_5vw27"]
+[ext_resource type="Script" path="res://pause_menu.gd" id="33_pause_menu"]
+[ext_resource type="Texture2D" uid="uid://c0h4es3f5qljj" path="res://assets/cards/plasma_card.png" id="6_272bh"]
+[ext_resource type="Texture2D" uid="uid://doxsai164uwo4" path="res://assets/cards/ball_card.png" id="7_5vw27"]
 [ext_resource type="Script" uid="uid://2gbahyqtfokj" path="res://card_ui.gd" id="8_5vw27"]
 [ext_resource type="AudioStream" uid="uid://um2upirht1jk" path="res://assets/audio/sfx/ui/card_move.wav" id="9_card_move_sfx"]
 [ext_resource type="AudioStream" uid="uid://cc6n4ryaixvl0" path="res://assets/audio/sfx/ui/card_select.wav" id="10_card_select_sfx"]
@@ -31,7 +32,6 @@
 [ext_resource type="Texture2D" uid="uid://b2wlwpssa3n62" path="res://assets/background/space_nebula_bg.png" id="13_space_nebula_bg"]
 [ext_resource type="Script" uid="uid://ba2oxtcivf7dp" path="res://nebula_background_drift.gd" id="14_nebula_drift"]
 [ext_resource type="Script" uid="uid://xhx105y6023h" path="res://mobile_paddle_controls.gd" id="15_mobile_controls"]
-[ext_resource type="Script" uid="uid://hqj418qwkyji" path="res://pause_menu.gd" id="33_pause_menu"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_y0sca"]
 size = Vector2(190, 24)
@@ -253,6 +253,7 @@ border_color = Color(0.2, 0.85, 1, 0.72)
 corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
+
 [sub_resource type="AtlasTexture" id="AtlasTexture_pierce_art"]
 atlas = ExtResource("7_5vw27")
 region = Rect2(0, 0, 768, 610)
@@ -278,28 +279,29 @@ script = ExtResource("1_ig7tw")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Paddle" unique_id=332550869]
 shape = SubResource("RectangleShape2D_y0sca")
 
-[node name="MagnetAura" type="Node2D" parent="Paddle" unique_id=677484122]
+[node name="MagnetAura" type="Node2D" parent="Paddle"]
 visible = false
 z_index = -1
 
-[node name="CyanField" type="Line2D" parent="Paddle/MagnetAura" unique_id=1650373628]
+[node name="CyanField" type="Line2D" parent="Paddle/MagnetAura"]
 points = PackedVector2Array(-104, -14, -70, -23, 0, -27, 70, -23, 104, -14)
 width = 3.0
 default_color = Color(0.12, 0.84, 1, 0.42)
+closed = false
 joint_mode = 2
 begin_cap_mode = 2
 end_cap_mode = 2
 antialiased = true
 
-[node name="PurpleField" type="Line2D" parent="Paddle/MagnetAura" unique_id=102671243]
+[node name="PurpleField" type="Line2D" parent="Paddle/MagnetAura"]
 points = PackedVector2Array(-104, 14, -70, 23, 0, 27, 70, 23, 104, 14)
 width = 3.0
 default_color = Color(0.68, 0.28, 1, 0.34)
+closed = false
 joint_mode = 2
 begin_cap_mode = 2
 end_cap_mode = 2
 antialiased = true
-
 [node name="NeonEffect" type="Node2D" parent="Paddle" unique_id=1416644643]
 script = ExtResource("2_paddle_neon")
 
@@ -588,8 +590,8 @@ text = "DEPTH 1"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="CoinCounter" type="Control" parent="HUD/Layout" unique_id=1090562121]
-anchors_preset = 0
+[node name="CoinCounter" type="Control" parent="HUD/Layout"]
+layout_mode = 0
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -258.0
@@ -599,25 +601,25 @@ offset_bottom = 58.0
 grow_horizontal = 0
 mouse_filter = 2
 
-[node name="IconGlow" type="Polygon2D" parent="HUD/Layout/CoinCounter" unique_id=998515369]
-z_index = -1
+[node name="IconGlow" type="Polygon2D" parent="HUD/Layout/CoinCounter"]
 position = Vector2(18, 19)
-color = Color(1, 0.64, 0.08, 0.24)
 polygon = PackedVector2Array(0, -15, 10.5, -10.5, 15, 0, 10.5, 10.5, 0, 15, -10.5, 10.5, -15, 0, -10.5, -10.5)
+color = Color(1, 0.64, 0.08, 0.24)
+z_index = -1
 
-[node name="CoinIcon" type="Polygon2D" parent="HUD/Layout/CoinCounter" unique_id=908703231]
+[node name="CoinIcon" type="Polygon2D" parent="HUD/Layout/CoinCounter"]
 position = Vector2(18, 19)
-color = Color(1, 0.72, 0.08, 1)
 polygon = PackedVector2Array(0, -10, 7, -7, 10, 0, 7, 7, 0, 10, -7, 7, -10, 0, -7, -7)
+color = Color(1, 0.72, 0.08, 1)
 
-[node name="InnerMark" type="Line2D" parent="HUD/Layout/CoinCounter" unique_id=1394644273]
+[node name="InnerMark" type="Line2D" parent="HUD/Layout/CoinCounter"]
 position = Vector2(18, 19)
 points = PackedVector2Array(-2.5, -5, 2.5, -5, 4, -1.5, 2.5, 1, -1.5, 1, -3.5, 4, -3.5, -3.5, -1.5, -6)
 width = 1.4
 default_color = Color(1, 0.95, 0.55, 0.92)
 antialiased = true
 
-[node name="TotalLabel" type="Label" parent="HUD/Layout/CoinCounter" unique_id=1685500827]
+[node name="TotalLabel" type="Label" parent="HUD/Layout/CoinCounter"]
 layout_mode = 0
 offset_left = 36.0
 offset_top = 3.0
@@ -630,7 +632,6 @@ theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 17
 text = "0"
 vertical_alignment = 1
-
 [node name="XPPanel" type="Panel" parent="HUD/Layout" unique_id=1178165639]
 layout_mode = 0
 anchor_left = 0.5
@@ -790,60 +791,9 @@ offset_bottom = 452.0
 mouse_filter = 2
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
+columns = 1
 
-[node name="SectorTransition" type="Control" parent="HUD" unique_id=776785363]
-visible = false
-z_index = 40
-layout_mode = 3
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -210.0
-offset_top = -56.0
-offset_right = 210.0
-offset_bottom = 56.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="SectorLabel" type="Label" parent="HUD/SectorTransition" unique_id=863029768]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 70.0
-grow_horizontal = 2
-theme_override_colors/font_color = Color(0.35, 0.94, 1, 1)
-theme_override_colors/font_shadow_color = Color(0.05, 0.55, 0.72, 0.65)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 38
-text = "SEKTÖR II"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="ThreatLabel" type="Label" parent="HUD/SectorTransition" unique_id=1144743759]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_top = 66.0
-offset_bottom = 106.0
-grow_horizontal = 2
-theme_override_colors/font_color = Color(1, 0.62, 0.28, 0.92)
-theme_override_font_sizes/font_size = 18
-text = "TEHDİT ARTIYOR"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="PauseButton" type="Button" parent="HUD" unique_id=1591935675]
-visible = false
-offset_right = 48.0
-offset_bottom = 48.0
-theme_override_font_sizes/font_size = 25
-text = "⏸"
-
-[node name="BackgroundLayer" type="CanvasLayer" parent="." unique_id=1953163294]
+[node name="BackgroundLayer" type="CanvasLayer" parent="."]
 layer = -10
 
 [node name="Background" type="ColorRect" parent="BackgroundLayer" unique_id=1296324968]
@@ -1224,21 +1174,77 @@ offset_bottom = 23.0
 theme_override_font_sizes/font_size = 24
 text = "HAZIR OL!"
 
-[node name="PauseMenu" type="CanvasLayer" parent="." unique_id=248253044]
+[node name="SectorTransition" type="Control" parent="HUD"]
+visible = false
+z_index = 40
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -210.0
+offset_top = -56.0
+offset_right = 210.0
+offset_bottom = 56.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="SectorLabel" type="Label" parent="HUD/SectorTransition"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 70.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.35, 0.94, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.05, 0.55, 0.72, 0.65)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 38
+text = "SEKTÖR II"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="ThreatLabel" type="Label" parent="HUD/SectorTransition"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 66.0
+offset_bottom = 106.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.62, 0.28, 0.92)
+theme_override_font_sizes/font_size = 18
+text = "TEHDİT ARTIYOR"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="PauseButton" type="Button" parent="HUD"]
+visible = false
+offset_right = 48.0
+offset_bottom = 48.0
+mouse_filter = 0
+theme_override_font_sizes/font_size = 25
+text = "⏸"
+
+[node name="PauseMenu" type="CanvasLayer" parent="."]
 process_mode = 3
 layer = 60
 visible = false
 script = ExtResource("33_pause_menu")
 
-[node name="InputBlocker" type="ColorRect" parent="PauseMenu" unique_id=2088015500]
+[node name="InputBlocker" type="ColorRect" parent="PauseMenu"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 0
 color = Color(0.005, 0.015, 0.04, 0.82)
 
-[node name="Panel" type="Panel" parent="PauseMenu" unique_id=278061445]
+[node name="Panel" type="Panel" parent="PauseMenu"]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
@@ -1252,7 +1258,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBox_hud_panel")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PauseMenu/Panel" unique_id=1670806473]
+[node name="VBoxContainer" type="VBoxContainer" parent="PauseMenu/Panel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -1265,7 +1271,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 16
 
-[node name="Title" type="Label" parent="PauseMenu/Panel/VBoxContainer" unique_id=888603744]
+[node name="Title" type="Label" parent="PauseMenu/Panel/VBoxContainer"]
 custom_minimum_size = Vector2(0, 62)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.35, 0.94, 1, 1)
@@ -1274,13 +1280,13 @@ text = "OYUN DURAKLATILDI"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ResumeButton" type="Button" parent="PauseMenu/Panel/VBoxContainer" unique_id=1984742048]
+[node name="ResumeButton" type="Button" parent="PauseMenu/Panel/VBoxContainer"]
 custom_minimum_size = Vector2(280, 58)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "DEVAM ET"
 
-[node name="MainMenuButton" type="Button" parent="PauseMenu/Panel/VBoxContainer" unique_id=1869627573]
+[node name="MainMenuButton" type="Button" parent="PauseMenu/Panel/VBoxContainer"]
 custom_minimum_size = Vector2(280, 58)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
@@ -1319,20 +1325,19 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "YENİ OYUN"
 
-[node name="ShopButton" type="Button" parent="MainMenu/VBoxContainer" unique_id=1472569807]
+[node name="ShopButton" type="Button" parent="MainMenu/VBoxContainer"]
 custom_minimum_size = Vector2(260, 55)
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "PADDLE DÜKKÂNI"
 
-[node name="ColonyButton" type="Button" parent="MainMenu/VBoxContainer" unique_id=1649017194]
+[node name="ColonyButton" type="Button" parent="MainMenu/VBoxContainer"]
 custom_minimum_size = Vector2(260, 55)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 1, 0.95, 1)
 theme_override_font_sizes/font_size = 28
 text = "KOLONİ"
-
-[node name="MusicButton" type="Button" parent="MainMenu/VBoxContainer" unique_id=1607838507]
+[node name="MusicButton" type="Button" parent="MainMenu/VBoxContainer"]
 custom_minimum_size = Vector2(260, 55)
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
@@ -1344,7 +1349,8 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "ÇIKIŞ"
 
-[node name="VersionLabel" type="Label" parent="MainMenu" unique_id=590338261]
+
+[node name="VersionLabel" type="Label" parent="MainMenu"]
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
@@ -1360,6 +1366,7 @@ theme_override_colors/font_color = Color(0.45, 0.72, 0.8, 0.72)
 theme_override_font_sizes/font_size = 14
 text = "Version Beta 0.1"
 horizontal_alignment = 2
+mouse_filter = 2
 
 [node name="GameOverScreen" type="CanvasLayer" parent="." unique_id=607827176]
 layer = 30
@@ -1368,6 +1375,7 @@ layer = 30
 offset_right = 1152.0
 offset_bottom = 648.0
 color = Color(0.004, 0.012, 0.035, 0.86)
+mouse_filter = 0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="GameOverScreen" unique_id=370102379]
 custom_minimum_size = Vector2(460, 540)
@@ -1385,7 +1393,7 @@ theme_override_font_sizes/font_size = 36
 text = "RUN BİTTİ"
 horizontal_alignment = 1
 
-[node name="StatsLabel" type="Label" parent="GameOverScreen/VBoxContainer" unique_id=1660768722]
+[node name="StatsLabel" type="Label" parent="GameOverScreen/VBoxContainer"]
 custom_minimum_size = Vector2(420, 145)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.82, 0.94, 1, 1)
@@ -1398,14 +1406,14 @@ EN YÜKSEK COMBO RANK: -
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="FinalBuildTitle" type="Label" parent="GameOverScreen/VBoxContainer" unique_id=604679350]
+[node name="FinalBuildTitle" type="Label" parent="GameOverScreen/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.58, 0.2, 1)
 theme_override_font_sizes/font_size = 21
 text = "FINAL BUILD"
 horizontal_alignment = 1
 
-[node name="FinalBuildLabel" type="Label" parent="GameOverScreen/VBoxContainer" unique_id=1594381866]
+[node name="FinalBuildLabel" type="Label" parent="GameOverScreen/VBoxContainer"]
 custom_minimum_size = Vector2(420, 125)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 0.9, 1, 1)

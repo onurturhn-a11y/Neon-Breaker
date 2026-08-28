@@ -2,8 +2,8 @@ extends Control
 
 
 const MINI_CARD_SIZE := Vector2(64.0, 76.0)
-const PLASMA_TEXTURE := preload("res://plasma_card.png")
-const BALL_TEXTURE := preload("res://ball_card.png")
+const PLASMA_TEXTURE := preload("res://assets/cards/plasma_card.png")
+const BALL_TEXTURE := preload("res://assets/cards/ball_card.png")
 
 @onready var upgrade_list: GridContainer = $UpgradeList
 
@@ -15,7 +15,7 @@ var displayed_states: Dictionary = {}
 func refresh_from_run_state(animate_changes: bool = true) -> void:
 	var upgrades: Array[Dictionary] = [
 		_make_upgrade(
-			&"plasma", GameManager.plasma_level, PLASMA_TEXTURE, Rect2(0, 0, 768, 610),
+			&"plasma", GameManager.get_weapon_level(GameManager.WEAPON_PLASMA), PLASMA_TEXTURE, Rect2(0, 0, 768, 610),
 			"Lv.%d", _plasma_display_text(), GameManager.plasma_evolution
 		),
 		_make_upgrade(&"pierce", GameManager.pierce_level, BALL_TEXTURE, Rect2(0, 0, 768, 610)),

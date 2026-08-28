@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://bla5vq2ara3lx"
-path="res://.godot/imported/01 - Genesis - Soma Animus.wav-ea4511b7d8311790ef0620e711ddb055.sample"
+path="res://.godot/imported/genesis_soma_animus.wav-23d81588602ea443050f783f740e4607.sample"
 
 [deps]
 
-source_file="res://01 - Genesis - Soma Animus.wav"
-dest_files=["res://.godot/imported/01 - Genesis - Soma Animus.wav-ea4511b7d8311790ef0620e711ddb055.sample"]
+source_file="res://assets/audio/music/genesis_soma_animus.wav"
+dest_files=["res://.godot/imported/genesis_soma_animus.wav-23d81588602ea443050f783f740e4607.sample"]
 
 [params]
 
