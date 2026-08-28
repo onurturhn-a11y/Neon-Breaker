@@ -1,28 +1,41 @@
 # ==================================================
 # Neon Break — inceleme sahipliği
 # ==================================================
-# !!! ÖNEMLİ: Aşağıdaki kullanıcı adlarını gerçek GitHub
-# kullanıcı adlarınızla DEĞİŞTİRİN. Yanlış veya yazma yetkisi
-# olmayan bir kullanıcı adı yazarsanız CODEOWNERS sessizce
-# hiçbir şey yapmaz — hata da vermez.
+# CODEOWNERS, dosyaya dokunan PR'da otomatik olarak sahibinden
+# inceleme ister. Adı geçen kişinin depoda WRITE yetkisi olmalı;
+# yoksa satır sessizce çalışmaz.
+#
+# !!! YAPILACAK: Arkadaşının GitHub kullanıcı adını öğrenip
+# aşağıdaki @ARKADAS satırlarını doldur. O ana kadar tüm
+# dosyalar yalnızca @onurturhn-a11y'ye düşer.
 # ==================================================
 
-# Varsayılan: her ikisi de inceler
-*                            @ONUR_KULLANICI_ADI @ARKADAS_KULLANICI_ADI
+# Varsayılan sahip
+*                            @onurturhn-a11y
 
-# ---------- CODEX bölgesi ----------
-/weapons/                    @ARKADAS_KULLANICI_ADI
-/paddle.gd                   @ARKADAS_KULLANICI_ADI
-/plasma_bullet.gd            @ARKADAS_KULLANICI_ADI
-/paddle_weapon_visual.gd     @ARKADAS_KULLANICI_ADI
+# ---------- CODEX bölgesi (silahlar + mobil kontrol) ----------
+# @ARKADAS
+/arc_cannon_controller.gd    @onurturhn-a11y
+/scatter_cannon_controller.gd @onurturhn-a11y
+/scatter_projectile.gd       @onurturhn-a11y
+/railgun_controller.gd       @onurturhn-a11y
+/railgun_visual.gd           @onurturhn-a11y
+/homing_missile.gd           @onurturhn-a11y
+/homing_missile_controller.gd @onurturhn-a11y
+/pulse_laser_controller.gd   @onurturhn-a11y
+/pulse_laser_visual.gd       @onurturhn-a11y
+/weapon_targeting.gd         @onurturhn-a11y
+/paddle.gd                   @onurturhn-a11y
+/mobile_paddle_controls.gd   @onurturhn-a11y
 
-# ---------- CLAUDE bölgesi ----------
-/continuous_brick_field.gd   @ONUR_KULLANICI_ADI
-/level_generator.gd          @ONUR_KULLANICI_ADI
-/side_attacker_spawner.gd    @ONUR_KULLANICI_ADI
-/combo_manager.gd            @ONUR_KULLANICI_ADI
+# ---------- CLAUDE bölgesi (zorluk + koloni + boss) ----------
+/continuous_brick_field.gd   @onurturhn-a11y
+/level_generator.gd          @onurturhn-a11y
+/side_attacker_spawner.gd    @onurturhn-a11y
+/combo_manager.gd            @onurturhn-a11y
+/colony.gd                   @onurturhn-a11y
 
-# ---------- Kural dosyaları: ikisi de onaylamalı ----------
-/AGENTS.md                   @ONUR_KULLANICI_ADI @ARKADAS_KULLANICI_ADI
-/CLAUDE.md                   @ONUR_KULLANICI_ADI @ARKADAS_KULLANICI_ADI
-/.github/CODEOWNERS          @ONUR_KULLANICI_ADI @ARKADAS_KULLANICI_ADI
+# ---------- Kural dosyaları: her iki taraf da onaylamalı ----------
+/AGENTS.md                   @onurturhn-a11y
+/CLAUDE.md                   @onurturhn-a11y
+/.github/CODEOWNERS          @onurturhn-a11y
