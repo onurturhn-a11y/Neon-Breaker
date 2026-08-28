@@ -646,6 +646,8 @@ func _ensure_ascension_selector(menu_layer: CanvasLayer) -> void:
 		return
 	ascension_row = HBoxContainer.new()
 	ascension_row.name = "AscensionRow"
+	# Ana menu duraklatilmisken gosterilir; butonlarin girdi alabilmesi gerekir.
+	ascension_row.process_mode = Node.PROCESS_MODE_ALWAYS
 	ascension_row.add_theme_constant_override("separation", 10)
 	ascension_row.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	ascension_row.position = Vector2(18.0, -74.0)
@@ -1596,6 +1598,9 @@ func _ensure_boss_reward_screen() -> void:
 	boss_reward_screen = CanvasLayer.new()
 	boss_reward_screen.name = "BossRewardScreen"
 	boss_reward_screen.layer = 28
+	# Ekran get_tree().paused = true iken aciliyor; PROCESS_MODE_ALWAYS olmazsa
+	# butonlar girdi almaz. Kart ekrani da sahne dosyasinda ayni sekilde isaretli.
+	boss_reward_screen.process_mode = Node.PROCESS_MODE_ALWAYS
 	boss_reward_screen.visible = false
 	add_child(boss_reward_screen)
 
