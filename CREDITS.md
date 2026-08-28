@@ -2,9 +2,10 @@
 
 Neon Break'te kullanılan üçüncü taraf varlıklar ve lisans yükümlülükleri.
 
-> **Önemli:** Bu dosya yasal yükümlülüğün tamamını karşılamaz. CC BY lisanslı
-> varlıklar için atıf **oyunun kendisinde de** (ana menüde bir "Krediler"
-> ekranı) görünmelidir. Bu henüz eklenmedi — bkz. "Yapılacaklar".
+> **Önemli:** Oyunun kodu ve müziği geliştiricilere aittir. Aşağıdaki
+> ikonlar ve UI paketi ise üçüncü taraf varlıklardır ve kendi lisanslarına
+> tabidir. CC BY lisanslı varlıklar için atıf **oyunun kendisinde de**
+> (ana menüde bir "Krediler" ekranı) görünmelidir — bu henüz eklenmedi.
 
 ---
 
@@ -71,25 +72,15 @@ Copyright (c) 2014-present Godot Engine contributors.
 
 ---
 
-## Doğrulanması Gereken
+## Müzik
 
-### Müzik
-
-`01 - Genesis - Soma Animus.wav` (20.4 MB) — **kaynağı ve lisansı belirsiz.**
-
-Bu dosya lisanslı veya satın alınmış bir parçaysa:
-- Deponun **private** kalması gerekir (çoğu müzik lisansı ham dosyanın
-  yeniden dağıtımını yasaklar)
-- Lisans koşulları burada belgelenmelidir
-- Oyun içi kredilerde bestecinin adı geçmelidir
-
-Kendi üretimin ise bunu buraya yazman yeterli.
+`assets/audio/music/genesis_soma_animus.wav` — **Onur Turhan'ın kendi
+eseridir.** Üçüncü taraf lisansı yoktur; dağıtım kısıtlaması bulunmaz.
 
 ---
 
 ## Yapılacaklar
 
 - [ ] Yazarı bilinmeyen 8 ikonun yazarını game-icons.net'ten doğrula
-- [ ] Müzik dosyasının lisans durumunu netleştir
 - [ ] Oyun içi "Krediler" ekranı ekle (ana menüden erişilebilir)
 - [ ] Projeye bir `LICENSE` dosyası ekle (oyunun kendi lisansı)
