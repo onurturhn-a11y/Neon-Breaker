@@ -785,23 +785,6 @@ func _setup_pulse_laser_controller() -> void:
 	pulse_laser_controller.configure(self, paddle)
 
 
-func _debug_enable_mine_launcher_lv3() -> void:
-	# MINE LAUNCHER DEBUG - REMOVE BEFORE RELEASE
-	var previous_slot_2: Dictionary = GameManager.weapon_slots[1].duplicate(true)
-	GameManager.reset_weapon_slots()
-	for _upgrade_index in range(GameManager.MAX_WEAPON_LEVEL):
-		GameManager.acquire_or_upgrade_weapon(GameManager.WEAPON_MINE_LAUNCHER)
-	var slot_2_weapon: StringName = previous_slot_2.get("weapon_id", &"")
-	var slot_2_level: int = int(previous_slot_2.get("level", 0))
-	if slot_2_weapon != &"" and slot_2_weapon != GameManager.WEAPON_MINE_LAUNCHER:
-		for _upgrade_index in range(slot_2_level):
-			GameManager.acquire_or_upgrade_weapon(slot_2_weapon)
-	WeaponSystem.ensure_runtime_controller(self, &"mine_launcher")
-	var controller := get_node_or_null("MineLauncherController")
-	if is_instance_valid(controller) and controller.has_method("debug_deploy_immediately"):
-		controller.call("debug_deploy_immediately")
-	print("DEBUG: MINE LAUNCHER LV3 ENABLED")
-
 func _apply_menu_button_texture(button: Button, texture: Texture2D) -> void:
 	button.text = ""
 	button.icon = texture
@@ -1134,11 +1117,6 @@ func _unhandled_key_input(event):
 
 		spawn_heart_pickup(paddle.global_position + Vector2(0, -45))
 
-
-	# MINE LAUNCHER DEBUG - REMOVE BEFORE RELEASE
-	elif event.keycode == KEY_F8:
-
-		_debug_enable_mine_launcher_lv3()
 
 
 	# DEBUG / TEST: Basit THE CORE boss encounter'ini baÃƒâ€¦Ã…Â¸latÃƒâ€Ã‚Â±r.
