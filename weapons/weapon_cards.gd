@@ -109,6 +109,23 @@ const CARDS := {
 			"Yakındaki aktif mayınlar zincirleme patlar; bekleme 3,3 saniyeye iner.",
 		],
 	},
+	&"mortar": {
+		"title": "MORTAR",
+		"rarity": &"common",
+		"max_level": 3,
+		"roman": true,
+		"weapon": true,
+		"weapon_id": &"MORTAR",
+		"icon": "res://assets/cards/ball_card.png",
+		"controller_script": "res://mortar_controller.gd",
+		"controller_node": "MortarController",
+		"descriptions": [
+			"",
+			"Üstteki yoğun tuğla kümelerine 4,5 saniyede bir ağır mermi yollar.",
+			"Patlama alanı %25 büyür; yoğun kümeleri daha güçlü önceler.",
+			"3,8 saniyede bir kısa aralıklı çift bombardıman yapar.",
+		],
+	},
 }
 
 
