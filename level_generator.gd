@@ -383,7 +383,7 @@ func create_brick(
 		and elite_bricks_created < EliteBricks.MAX_PER_ROW
 	):
 		var elite_chance := EliteBricks.get_chance(
-			GameManager.run_depth, GameManager.ascension_level
+			GameManager.run_depth, GameManager.run_ascension
 		)
 		if elite_chance > 0.0 and randf() < elite_chance:
 			make_elite = true

@@ -784,7 +784,7 @@ func print_difficulty_debug(bricks_this_row):
 			level_generator.get_effective_armored_chance(),
 			level_generator.get_effective_shield_chance(),
 			level_generator.explosive_chance,
-			EliteBricks.get_chance(GameManager.run_depth, GameManager.ascension_level),
+			EliteBricks.get_chance(GameManager.run_depth, GameManager.run_ascension),
 			row_step_interval,
 			turret_interval.x,
 			turret_interval.y,
