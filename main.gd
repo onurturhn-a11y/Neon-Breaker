@@ -1178,11 +1178,6 @@ func _unhandled_key_input(event):
 		spawn_heart_pickup(paddle.global_position + Vector2(0, -45))
 
 
-	# DEBUG / TEST: Magnet pickup alÃƒâ€Ã‚Â±nmÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸ gibi 10 saniye ekler.
-	elif event.keycode == KEY_F8:
-
-		activate_magnet(10.0)
-
 
 	# DEBUG / TEST: Basit THE CORE boss encounter'ini baÃƒâ€¦Ã…Â¸latÃƒâ€Ã‚Â±r.
 	elif event.keycode == KEY_B:

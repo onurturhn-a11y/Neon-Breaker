@@ -17,6 +17,21 @@ class_name WeaponCards
 # bu yüzden dışarıdan geçirilir.
 
 const CARDS := {
+	&"plasma": {
+		"title": "PLAZMA SİLAHI",
+		"rarity": &"common",
+		"max_level": 3,
+		"roman": true,
+		"weapon": true,
+		"weapon_id": &"PLASMA",
+		"icon": "res://assets/cards/plasma_card.png",
+		"descriptions": [
+			"",
+			"Rakete otomatik plazma ateşi kazandırır. Tek namlu ateş eder.",
+			"Üç namlu paralel ateş eder.",
+			"Güçlü yaylı atış yapar; yan mermiler 1 kez seker.",
+		],
+	},
 	&"arc_cannon": {
 		"title": "ARC CANNON",
 		"rarity": &"rare",
@@ -90,6 +105,40 @@ const CARDS := {
 			"Periyodik olarak kısa süreli sürekli ışın açar.",
 			"Işın daha uzun sürer ve daha sık gelir.",
 			"Neredeyse kesintisiz ışın; sürekli hasar yığar.",
+		],
+	},
+	&"mine_launcher": {
+		"title": "MINE LAUNCHER",
+		"rarity": &"common",
+		"max_level": 3,
+		"roman": true,
+		"weapon": true,
+		"weapon_id": &"MINE_LAUNCHER",
+		"icon": "res://assets/cards/plasma_card.png",
+		"controller_script": "res://mine_launcher_controller.gd",
+		"controller_node": "MineLauncherController",
+		"descriptions": [
+			"",
+			"Orta sahaya mayın yollar. En fazla 2 mayın; 4 saniye bekleme.",
+			"En fazla 3 mayın. Patlama alanı %20 büyür; bekleme 3,6 saniyeye iner.",
+			"Yakındaki aktif mayınlar zincirleme patlar; bekleme 3,3 saniyeye iner.",
+		],
+	},
+	&"mortar": {
+		"title": "MORTAR",
+		"rarity": &"common",
+		"max_level": 3,
+		"roman": true,
+		"weapon": true,
+		"weapon_id": &"MORTAR",
+		"icon": "res://assets/cards/ball_card.png",
+		"controller_script": "res://mortar_controller.gd",
+		"controller_node": "MortarController",
+		"descriptions": [
+			"",
+			"Üstteki yoğun tuğla kümelerine 4,5 saniyede bir ağır mermi yollar.",
+			"Patlama alanı %25 büyür; yoğun kümeleri daha güçlü önceler.",
+			"3,8 saniyede bir kısa aralıklı çift bombardıman yapar.",
 		],
 	},
 }

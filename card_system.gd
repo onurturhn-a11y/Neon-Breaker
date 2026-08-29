@@ -140,19 +140,22 @@ static func roll_card_ids(count: int, state: Dictionary) -> Array:
 	var candidates := get_eligible_card_ids(state)
 	var rolled: Array = []
 	while rolled.size() < count and not candidates.is_empty():
-		var total_weight := 0.0
-		for card_id: StringName in candidates:
-			total_weight += get_rarity_weight(CardPool.get_rarity(card_id), state)
-		if total_weight <= 0.0:
-			break
-		var target := randf() * total_weight
-		var running := 0.0
-		var picked_index := candidates.size() - 1
-		for index in range(candidates.size()):
-			running += get_rarity_weight(CardPool.get_rarity(candidates[index]), state)
-			if target <= running:
-				picked_index = index
-				break
+		var picked_index := _pick_weighted_index(candidates, state)
 		rolled.append(candidates[picked_index])
 		candidates.remove_at(picked_index)
 	return rolled
+
+
+static func _pick_weighted_index(candidates: Array, state: Dictionary) -> int:
+	var total_weight := 0.0
+	for card_id: StringName in candidates:
+		total_weight += get_rarity_weight(CardPool.get_rarity(card_id), state)
+	if total_weight <= 0.0:
+		return candidates.size() - 1
+	var target := randf() * total_weight
+	var running := 0.0
+	for index in range(candidates.size()):
+		running += get_rarity_weight(CardPool.get_rarity(candidates[index]), state)
+		if target <= running:
+			return index
+	return candidates.size() - 1
