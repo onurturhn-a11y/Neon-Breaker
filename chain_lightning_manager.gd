@@ -5,6 +5,9 @@ extends Node
 
 const RANK_TARGET_COUNTS = [1, 1, 2, 2, 3, 3, 4, 5, 6]
 const CHARGE_THRESHOLDS = [3, 6, 9, 12, 15, 18, 21, 24, 27]
+## Şarj penceresinin taban süresi. ComboManager.base_combo_timeout ile AYNI
+## olmalı — ikisi tek bir sistemin iki yarısı (biri görsel, biri mekanik) ve
+## eşikleri de birebir aynı (CHARGE_THRESHOLDS = ComboManager.THRESHOLDS).
 const LEGACY_CHARGE_TIMEOUT = 0.85
 const DIRECT_BALL_SOURCES: Array[StringName] = [&"ball", &"piercing_ball", &"fireball_ball"]
 
@@ -30,8 +33,22 @@ func register_brick_kill(source: String, damage_context = null) -> void:
 			return
 		damage_context["chain_charge_fireball_hits"] = event_hits + 1
 	charge_hits += 1
-	charge_time_left = LEGACY_CHARGE_TIMEOUT
+	charge_time_left = _get_charge_timeout()
 	charge_rank_index = _get_charge_rank(charge_hits)
+
+
+## ZİNCİR BELLEĞİ kartı (combo_window) şarj penceresini de uzatır.
+##
+## HATA GEÇMİŞİ (Faz 7.1): kart yalnızca ComboManager'ın penceresini
+## uzatıyordu — yani ekrandaki rank yazısını. Hasarı veren Chain Lightning
+## şarjı sabit LEGACY_CHARGE_TIMEOUT kullanıyordu ve karttan hiç
+## etkilenmiyordu. Kart "Combo zinciri %75 daha uzun sürer" diyor; oyuncu
+## bunu zincir şimşeğinin daha uzun sürmesi diye okur, öyle değildi.
+##
+## İki sistemin ayrılma sebebi fireball vuruş sınırıydı (yukarıdaki blok),
+## süre değil. Süre artık ikisinde de aynı çarpandan geçiyor.
+func _get_charge_timeout() -> float:
+	return LEGACY_CHARGE_TIMEOUT * GameManager.get_combo_timeout_multiplier()
 
 
 func _get_charge_rank(hits: int) -> int:

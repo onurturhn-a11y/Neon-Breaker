@@ -162,24 +162,44 @@ Birleştirme yalnızca PR ile, karşı tarafın onayıyla.
 
 ## 7. Proje durumu
 
+> Son güncelleme: 2026-08-30. Faz 6 sonu, PR #2-#4 birleşti.
+
 **Tamamlanan:**
 - Faz 1 — boş level-up hatası, boss ödülü, kalıcı rekorlar, ölü kod temizliği
-- Faz 2 — 15 kartlık veri odaklı havuz, nadirlik, reroll/banish, boss ödül
-  seçim ekranı, delici evrimi
+- Faz 2 — veri odaklı kart havuzu, nadirlik, reroll/banish, boss ödül seçim
+  ekranı, delici evrimi
 - Faz 3 — boss HP ölçeklemesi, sonsuz koloni kalibrasyonu, 9 bina/6 platform,
   raket kimlikleri
-- Codex — 5 silah (Arc Cannon, Scatter Cannon, Railgun, Homing Missile,
-  Pulse Laser), 2 yuvalı silah sistemi, mobil kontrol iyileştirmeleri,
-  PARÇA HUD'u
+- Faz 4 (Claude) — build cezası kaldırıldı, sektör modifier'ları, lanet
+  sistemi, kasa, zafer ekranı, ascension
+- Faz 5 (Claude) — elit tuğla, iniş hızı doygunluğu, koloni tavanı denetimi
+- Faz 6 (Claude) — ilerleme eğrisi, ascension hasar tavanı, tehlike hattı
+  ekonomisi
+- Codex — 7 silah + plazma (Arc Cannon, Scatter Cannon, Railgun, Homing
+  Missile, Pulse Laser, Mine Launcher, Mortar), 2 yuvalı silah sistemi,
+  `ensure_runtime_controller` kancası, rastgele kart eli, mobil kontroller
 
-Kart havuzu: **20 kart** (15 temel + 5 silah).
+Kart havuzu: **22 kart** (14 pasif + 8 silah).
 
-**Sıradaki:** görev dağılımı `GOREVLER.md` dosyasındadır.
-- Codex → görsel üretim, metin/dil, kalan silahlar
-- Claude → Faz 4: zorluk dengesi, risk mekanikleri, sektör modifier'ları,
-  ascension
+**Run yapısı (ölçüldü):** depth 1 → 56, 7 boss (depth 8, 16, 24, 32, 40, 48,
+56). Tuğla inişi ~12.3 dakika, boss dövüşleri hariç. Bir run 21 kart seçimi
+veriyor; havuz kapasitesi 52.
+
+**Sıradaki:** görev dağılımı `GOREVLER.md`, mesajlaşma `ILETISIM.md`.
+- Codex → görsel açık (8 silahın 7'si aynı iki kartı kullanıyor), Krediler
+  ekranı, kalan iki silah
+- Claude → Faz 7: ölçülmemiş sistemler (kombo, koloni ekonomisi)
+
+**Oyun testi bekliyor.** Faz 6'da üç sayı ölçümle değil tahminle seçildi ve
+oyun testi olmadan doğrulanamaz:
+- Derinlik 32+ için gereken 9.2 tuğla/sn tutturulabiliyor mu
+- Ascension 10'un iniş tabanı (0.368s) oynanabilir mi
+- Elit tuğla çerçevesi diğer özel tuğlalardan ayırt ediliyor mu
 
 **Açık konular:**
-- `CREDITS.md` — 8 ikonun yazarı doğrulanmalı, müzik lisansı netleşmeli
+- `CREDITS.md` — 8 ikonun yazarı doğrulanmalı
 - Oyun içi "Krediler" ekranı yok (CC BY 3.0 gereği)
 - `assets/_archive/` (35 MB) depoya alınmadı; silinecek mi karar verilmeli
+- `RARITY_LEGENDARY` tanımlı ama `get_rarity_weight()`'te karşılığı yok
+- `xp_orb.gd` / `xp_orb.tscn` ölü kod
+- `main.gd` debug tuşları `OS.is_debug_build()` ile korunmuyor
