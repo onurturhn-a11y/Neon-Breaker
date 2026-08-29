@@ -2554,7 +2554,12 @@ func _resolve_brick_collectible_drop(spawn_position: Vector2, drop_multiplier: f
 		return
 	range_end += heart_chance
 	if drop_roll < range_end:
-		if GameManager.lives < GameManager.MAX_LIVES:
+		# Tam candayken Heart normalde bos gecer. Teknoloji Merkezi Lv2+ varsa
+		# dusmeye devam eder ve PARCA'ya donusur (bkz. collect_heart).
+		if (
+			GameManager.lives < GameManager.MAX_LIVES
+			or GameManager.get_colony_full_life_heart_salvage() > 0
+		):
 			spawn_heart_pickup(spawn_position)
 		return
 	range_end += magnet_chance
@@ -2663,16 +2668,10 @@ func activate_extra_ball_pickup() -> void:
 
 func activate_magnet(duration = 10.0):
 
-	var tech_level := clampi(
-		GameManager.get_colony_building_level(GameManager.COLONY_BUILDING_TECH_CENTER),
-		0,
-		3
-	)
-	var duration_multipliers := [1.0, 1.15, 1.30, 1.50]
 	# Koloni Teknoloji Merkezi ile Cekim Alani karti birlikte carpilir.
 	GameManager.set_magnet_time(
 		duration
-		* float(duration_multipliers[tech_level])
+		* GameManager.get_colony_magnet_duration_multiplier()
 		* GameManager.get_magnet_duration_multiplier()
 	)
 	update_magnet_aura_feedback(0.0)
@@ -2751,15 +2750,16 @@ func get_lives_hud_target_position():
 func collect_heart():
 
 	if not GameManager.add_life():
-		var tech_level := clampi(
-			GameManager.get_colony_building_level(GameManager.COLONY_BUILDING_TECH_CENTER),
-			0,
-			3
-		)
-		var full_life_salvage := [0, 0, 1, 2]
-		var salvage_bonus: int = full_life_salvage[tech_level]
+		# Maksimum candayken Heart PARCA'ya donusur (Teknoloji Merkezi Lv2+).
+		var salvage_bonus: int = GameManager.get_colony_full_life_heart_salvage()
 		if salvage_bonus > 0:
 			_award_run_salvage(salvage_bonus)
+			_show_reward_banner(
+				"HEART DONUSTURULDU",
+				[{"icon": ICON_SALVAGE, "text": "+%d" % salvage_bonus}],
+				Color(1.0, 0.42, 0.58, 1.0),
+				SFX_BONUS_REWARD
+			)
 		return
 
 	update_labels()

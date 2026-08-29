@@ -651,17 +651,9 @@ func refill_pierce_capacity(reset_chain_trigger = true):
 	reset_pierce_sequence()
 	pierce_passes_remaining = pierce_level
 	if pierce_level > 0:
-		var research_level := clampi(
-			GameManager.get_colony_building_level(GameManager.COLONY_BUILDING_PIERCING_RESEARCH),
-			0,
-			3
-		)
 		# Bina herkese temel delme verir; Delici rakette iki katina cikar.
-		var base_penetration := [0, 1, 1, 2]
-		pierce_passes_remaining += int(round(
-			float(base_penetration[research_level])
-			* GameManager.get_affinity_scale(GameManager.PADDLE_PIERCING)
-		))
+		# Dizi GameManager'da (tek kaynak) — UI ile sapmasin diye.
+		pierce_passes_remaining += GameManager.get_colony_pierce_bonus()
 	# GENIS DELIK evrimi kapasiteyi kalici olarak artirir.
 	if pierce_level > 0 and GameManager.pierce_evolution == &"breach":
 		pierce_passes_remaining += 3
