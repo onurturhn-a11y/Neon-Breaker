@@ -1167,7 +1167,8 @@ func _unhandled_key_input(event):
 
 		add_xp(
 			GameManager.xp_required
-			- GameManager.current_xp
+			- GameManager.current_xp,
+			false
 		)
 
 
@@ -3000,10 +3001,17 @@ func _on_combo_rank_changed(new_rank_index):
 			projectile.set_combo_chain_rank(new_rank_index)
 
 
-func add_xp(amount):
+## apply_depth_scale: derinlik carpanini uygula. Yalnizca debug kisayolu
+## kapatir — orada tam olarak bir level-up tetiklenmesi isteniyor.
+func add_xp(amount, apply_depth_scale := true):
 	var previous_required = GameManager.xp_required
 	# Veri Emilimi karti toplanan XP'yi artirir.
-	amount = maxi(1, roundi(float(amount) * GameManager.get_xp_gain_multiplier()))
+	var depth_scale: float = (
+		GameManager.get_depth_xp_multiplier() if apply_depth_scale else 1.0
+	)
+	amount = maxi(1, roundi(
+		float(amount) * GameManager.get_xp_gain_multiplier() * depth_scale
+	))
 	GameManager.current_xp += amount
 
 	var leveled_up = false

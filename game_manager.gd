@@ -1145,6 +1145,32 @@ func get_sector_attacker_scale() -> float:
 	return SectorModifiers.get_attacker_scale(current_sector)
 
 
+## Derinlik XP çarpanı: derin tuğla daha çok XP verir.
+##
+## NEDEN (Faz 6 ölçümü): tuğla geliri derinlik 8'den sonra SABİT (satır başına
+## 12 tuğla), XP ihtiyacı ise üstel (×1.20/seviye). Sabit gelir üstel maliyeti
+## yakalayamıyordu. Ölçüm — bir zafer run'ında boss segmenti başına level-up:
+##
+##   depth  1→8:  6      32→40: 1
+##   depth  8→16: 3      40→48: 0
+##   depth 16→24: 2      48→56: 1
+##   depth 24→32: 1
+##
+## Son çeyrek (24 derinlik, ~2300 tuğla) 2 kart seçimi veriyordu. Run'ın en
+## tehlikeli yarısı aynı zamanda en ödülsüz yarısıydı.
+##
+## Çözüm geliri derinliğe bağlamak — XP maliyet eğrisine dokunmadan. Bu,
+## Faz 4.1'in "eğriyi derinliğe taşı" ilkesiyle aynı. Erken ölen oyuncu
+## etkilenmez: derinlik 1'de çarpan 1.0.
+##
+## Ölçülen sonuç: toplam 15 → 21 level-up, son segment 0 → 2.
+const DEPTH_XP_SLOPE := 0.06
+
+
+func get_depth_xp_multiplier(depth: int = run_depth) -> float:
+	return 1.0 + DEPTH_XP_SLOPE * float(maxi(depth, 1) - 1)
+
+
 func get_late_game_descent_multiplier(depth: int = run_depth) -> float:
 	if depth <= 4:
 		return 1.00
