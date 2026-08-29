@@ -336,15 +336,37 @@ Diğer ascension etkilerinden yapısal olarak farklı: iniş hızına oyuncu
 beceriyle cevap verebiliyor, elit tuğlaya da. Boss HP'sine verebileceği
 hiçbir cevap yok.
 
-Üç yol var, seçim tasarım kararı:
+#### Karar: 2. yol — ascension hasar tavanını da açsın ✅ (yarısı yapıldı)
 
-1. Katman başına boss HP artışını düşür (%12 → daha az)
-2. Ascension hasar tavanını da açsın (3. yuva, ya da kart `max_level`+1)
-   — bu Codex'in silah sistemine dokunur, onunla konuşulmalı
-3. Kasıtlı bırak: maksimum ascension zaten bitirilemez olsun
+Onur 2. yolu seçti. İki yarısı var:
 
-**Kendi başıma değiştirmedim.** Boss HP'si oyunun en görünür zorluk kolu;
-"maksimum ascension ne kadar zor olmalı" sorusunun cevabı bende değil.
+**Yapıldı — pasif hasar kartları** (`card_system.gd`). `crit_hit`,
+`extra_ball`, `ball_speed`, `pierce`, `fireball` ascension eşiklerinde
++1 `max_level` alır:
+
+| Ascension | Hasar tavanı | Seçim arzı |
+|---|---|---|
+| 0-4 | 18 seçim | 21-23 |
+| 5-9 | 23 | 24-25 |
+| 10 | 28 | 25 |
+
+**Sayılar neden böyle — bağlayıcı kısıt tavan değil, SEÇİM ARZI.**
+Ascension kazancı +%15/katman ama XP ihtiyacı üstel (×1.20/seviye): ×2.5
+gelir ancak ~4 fazla seviye satın alıyor. İlk tasarladığım +1/3katman
+(tavan 33) boşuna olurdu — oyuncunun eline o kadar seçim geçmiyor, açılan
+tavan boş kalırdı. +2 ile sınırlandı.
+
+**Bekliyor — silah tarafı (Codex).** 3. yuva ya da silah Lv4. Seviye başına
+davranış her controller'da ayrı tanımlı; Lv4'ün ne yapacağına Codex karar
+vermeli. `ILETISIM.md`'de soruldu.
+
+#### Açığın ne kadarı kapandı — dürüst rakam
+
+Boss HP asc10'da ×2.20; hasar kapasitesi ×1.56. **Açığın yaklaşık yarısı.**
+Codex'in 3. yuvası gelse ×1.72 olur — yine tam kapanmaz.
+
+Yani 2. yol tek başına yetmiyor. Oyun testinden sonra boss HP artışının
+(%12/katman) da düşürülmesi gerekebilir — 1. yolun kısmi hâli.
 
 Ölçüm aracı: `_boss_probe.gd` (gitignore'da).
 
