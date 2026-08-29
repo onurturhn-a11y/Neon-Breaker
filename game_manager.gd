@@ -135,6 +135,13 @@ var reactor_level := 0
 var colony_hint_seen := false
 var colony_six_slot_migrated := false
 
+# Ascension: son bossu yendikten sonra açılan kalıcı zorluk katmanı.
+# Her katman hem zorluğu hem kazancı artırır.
+const MAX_ASCENSION := 10
+var ascension_level := 0
+var highest_ascension_cleared := -1
+var run_ascension := 0
+
 # Kalıcı run rekorları. Run reset'inden etkilenmez, her run sonunda güncellenir.
 var best_depth := 0
 var best_boss_kills := 0
@@ -161,6 +168,8 @@ func load_meta_progression() -> void:
 	total_runs = 0
 	lifetime_boss_kills = 0
 	lifetime_bricks_destroyed = 0
+	ascension_level = 0
+	highest_ascension_cleared = -1
 	var config := ConfigFile.new()
 	var error := config.load(META_SAVE_PATH)
 	var migrated_legacy_colony := false
@@ -190,6 +199,16 @@ func load_meta_progression() -> void:
 		lifetime_boss_kills = maxi(0, int(config.get_value("records", "lifetime_boss_kills", 0)))
 		lifetime_bricks_destroyed = maxi(
 			0, int(config.get_value("records", "lifetime_bricks_destroyed", 0))
+		)
+		highest_ascension_cleared = clampi(
+			int(config.get_value("records", "highest_ascension_cleared", -1)),
+			-1,
+			MAX_ASCENSION
+		)
+		ascension_level = clampi(
+			int(config.get_value("records", "ascension_level", 0)),
+			0,
+			get_max_selectable_ascension()
 		)
 		reactor_built = bool(config.get_value("colony", "reactor_built", false))
 		colony_hint_seen = bool(config.get_value("colony", "hint_seen", false))
@@ -247,6 +266,8 @@ func save_meta_progression() -> void:
 	config.set_value("records", "total_runs", total_runs)
 	config.set_value("records", "lifetime_boss_kills", lifetime_boss_kills)
 	config.set_value("records", "lifetime_bricks_destroyed", lifetime_bricks_destroyed)
+	config.set_value("records", "highest_ascension_cleared", highest_ascension_cleared)
+	config.set_value("records", "ascension_level", ascension_level)
 	var error := config.save(META_SAVE_PATH)
 	if error != OK:
 		push_warning("Meta progression save failed: %s" % error_string(error))
@@ -574,6 +595,12 @@ var fireball_evolution: StringName = &"none"
 var pierce_evolution: StringName = &"none"
 var magnet_time_remaining = 0.0
 var post_boss_descent_multiplier: float = 1.0
+# Faz 4: aktif sektör. Modifier'lar sector_modifiers.gd'den okunur.
+var current_sector := 1
+# Faz 4 risk sistemi: kabul edilen lanetler ve taşınan (henüz güvenceye
+# alınmamış) PARÇA. Ölürsen taşınanın yarısını kaybedersin.
+var active_curses: Dictionary = {}
+var carried_salvage := 0
 
 # Pasif kart seviyeleri: StringName -> int. Silah kartları yukarıdaki kendi alanlarını kullanır.
 var card_levels: Dictionary = {}
@@ -617,6 +644,10 @@ func reset_run():
 	pierce_evolution = &"none"
 	magnet_time_remaining = 0.0
 	post_boss_descent_multiplier = 1.0
+	current_sector = 1
+	run_ascension = ascension_level
+	active_curses = {}
+	carried_salvage = 0
 	card_levels = {}
 	banished_cards = {}
 	reset_weapon_slots()
@@ -783,10 +814,27 @@ func set_card_level(card_id: StringName, level: int) -> void:
 			card_levels[card_id] = level
 
 
+## Oyuncunun kaç saldırı seçeneği var? Yalnızca kart nadirlik ağırlığı
+## kullanır (card_system.get_rarity_weight): "iki saldırı seçeneği olana
+## kadar ÇEKİRDEK kartları öne çıkar".
+##
+## Faz 5.2 DÜZELTMESİ: eskiden [plasma_level, pierce_level, fireball_level]
+## sayılıyordu. O üçü, silah sistemi gelmeden önceki üç "silah kartı"ydı.
+## Codex plazmayı yuva sistemine taşıyıp 7 silah daha ekleyince bu sayaç
+## kör kaldı: oyuncu Railgun + Mortar ile İKİ yuvayı da doldurduğunda bile
+## 0 dönüyordu. Sonuç: ÇEKİRDEK ağırlığı (60) run boyunca hiç düşmüyor,
+## pierce ve fireball sürekli fazla teklif ediliyordu.
+##
+## Artık dolu yuvalar + monteli olmayan çekirdek kartlar sayılıyor.
+## plasma_level ayrıca sayılmaz — plazma artık bir yuva silahıdır,
+## yuva döngüsünde zaten sayılır (çift sayım olurdu).
 func get_active_weapon_count() -> int:
 	var count := 0
-	for weapon_level: int in [plasma_level, pierce_level, fireball_level]:
-		if weapon_level > 0:
+	for slot in weapon_slots:
+		if StringName(slot.get("weapon_id", &"")) != &"":
+			count += 1
+	for card_level: int in [pierce_level, fireball_level]:
+		if card_level > 0:
 			count += 1
 	return count
 
@@ -821,7 +869,10 @@ func get_paddle_width_multiplier() -> float:
 
 
 func get_xp_gain_multiplier() -> float:
-	return 1.0 + 0.20 * float(get_card_level(&"xp_gain")) + get_colony_xp_bonus()
+	return (
+		(1.0 + 0.20 * float(get_card_level(&"xp_gain")) + get_colony_xp_bonus())
+		* get_curse_gain_multiplier()
+	)
 
 
 func get_drop_rate_multiplier() -> float:
@@ -883,14 +934,11 @@ func get_build_threat() -> int:
 	return 1
 
 
+## Faz 4: build-tabanli iniş hızı cezası kaldırıldı.
+## Oyuncu güçlendiği için cezalandırılmaz; zorluk artık yalnızca derinlikten
+## gelir (bkz. get_late_game_descent_multiplier). Fonksiyon çağrı yerlerini
+## bozmamak için duruyor ve her zaman nötr döner.
 func get_build_speed_multiplier() -> float:
-	match get_build_threat():
-		1:
-			return 0.94
-		2:
-			return 0.90
-		3:
-			return 0.86
 	return 1.0
 
 
@@ -915,46 +963,249 @@ func get_power_synergy_tier() -> int:
 	return 1
 
 
-func get_power_synergy_interval_multiplier(tier: int = get_power_synergy_tier()) -> float:
-	match tier:
-		1:
-			return 0.92
-		2:
-			return 0.85
-		3:
-			return 0.78
-		4:
-			return 0.73
+## Faz 4: sinerji baskısı kaldırıldı. Mobilde iyi build kuran oyuncu
+## satırların %27'ye varan hızlanmasıyla cezalandırılıyordu.
+func get_power_synergy_interval_multiplier(_tier: int = 0) -> float:
 	return 1.0
 
 
-func get_power_synergy_row_fill_bonus(tier: int = get_power_synergy_tier()) -> float:
-	match tier:
-		1:
-			return 0.05
-		2:
-			return 0.10
-		3, 4:
-			return 0.15
+## Faz 4: sinerji satır doluluk cezası kaldırıldı.
+func get_power_synergy_row_fill_bonus(_tier: int = 0) -> float:
 	return 0.0
+
+## Zorluğun tek kaynağı: derinlik. Eğri 10 boss planına göre depth 80'e
+## kadar uzatıldı; build cezaları kaldırıldığı için biraz daha dik.
+## Sektör modifier'larına tek giriş noktası.
+# ==================================================
+# RİSK: LANETLER VE KASA
+# ==================================================
+
+# ==================================================
+# ASCENSION
+# ==================================================
+
+## Oyuncu yalnızca temizlediği katmanın bir üstünü seçebilir.
+func get_max_selectable_ascension() -> int:
+	return clampi(highest_ascension_cleared + 1, 0, MAX_ASCENSION)
+
+
+func set_ascension_level(level: int) -> bool:
+	var capped := clampi(level, 0, get_max_selectable_ascension())
+	if capped == ascension_level:
+		return false
+	ascension_level = capped
+	save_meta_progression()
+	return true
+
+
+## Son boss yenildiğinde çağrılır. Yeni katman açıldıysa true döner.
+func register_ascension_clear() -> bool:
+	if run_ascension <= highest_ascension_cleared:
+		return false
+	highest_ascension_cleared = run_ascension
+	save_meta_progression()
+	return true
+
+
+## Ascension katmanı iniş hızını sıkılaştırır (katman başına %4).
+##
+## DİKKAT — bu çarpan tek başına anlamlı DEĞİLDİR. İniş aralığı çarpımsal bir
+## yığının sonucudur (bkz. continuous_brick_field.apply_depth_settings) ve
+## `minimum_safe_step_interval` tabanına çarpar. Ölçüm (Faz 5.3):
+## ağır senaryoda taban derinlik 9'da bağlıyor; sonrasında bu çarpanın
+## değeri oyuncuya HİÇ ulaşmıyordu. Ascension 10'da ham değer 0.123s,
+## oyuncunun yaşadığı 0.450s idi.
+##
+## Çözüm: tabanın kendisi de ascension ile iner (aşağıda). Yeni iniş
+## baskısı eklenecekse bu yığına DEĞİL, doygun olmayan eksenlere
+## (satır doluluğu, zırh oranı, saldırgan sıklığı, elit oranı) eklenmeli.
+func get_ascension_descent_scale() -> float:
+	return pow(0.96, float(run_ascension))
+
+
+## Ascension'a göre inen güvenli iniş tabanı.
+##
+## Taban oynanabilirlik içindir: satırlar topun temizleyebileceğinden hızlı
+## inemez. Ama sabit bir taban, ascension katmanlarını derinlik 9'dan sonra
+## kozmetiğe çeviriyordu. Katman başına %2 ile taban da iner —
+## 10. katmanda 0.45 → 0.368 (%18 daha sıkı). Kazanç katman başına %15
+## arttığı için karşılığı var.
+##
+## Yalnızca ascension tabanı düşürür. Lanet ve sektör normal bir run'ın
+## tabanını delemez — gönüllü zorluk kalıcı ilerlemeye bağlı olmalı.
+func get_ascension_min_step_interval(base_floor: float) -> float:
+	return base_floor * pow(0.98, float(run_ascension))
+
+
+## Karşılığında tüm kazanç artar (katman başına %15).
+func get_ascension_gain_multiplier() -> float:
+	return 1.0 + 0.15 * float(run_ascension)
+
+
+## Boss dayanıklılığı da katmanla büyür.
+func get_ascension_boss_hp_scale() -> float:
+	return 1.0 + 0.12 * float(run_ascension)
+
+
+func accept_curse(curse_id: StringName) -> bool:
+	if curse_id == &"none" or active_curses.has(curse_id):
+		return false
+	if Curses.get_data(curse_id).is_empty():
+		return false
+	var life_cost := Curses.get_life_cost(curse_id)
+	if life_cost > 0:
+		if lives <= life_cost:
+			return false
+		lives -= life_cost
+	active_curses[curse_id] = true
+	print("CURSE ACCEPTED: %s | kazanc carpani x%.2f" % [
+		curse_id, Curses.get_gain_multiplier(active_curses)
+	])
+	return true
+
+
+## Run'ın toplam kazanç çarpanı. PARÇA, coin ve XP bu çarpandan geçer.
+##
+## AD YANILTICI: yalnızca laneti değil, lanet × ascension'ı döndürür.
+## Adı bilerek değiştirilmedi — ortak dosyada fonksiyon yeniden adlandırma
+## çözülmesi en zor çakışmayı üretir (bkz. CLAUDE.md bölüm 3).
+##
+## Üç çağrı yeri var ve üçü de çarpanı BİR KEZ uyguluyor (Faz 5.5'te
+## denetlendi): get_xp_gain_multiplier, main._award_run_salvage,
+## main.collect_coin. Yeni bir kazanç yolu eklersen buradan geçir,
+## ama iki kez uygulama.
+func get_curse_gain_multiplier() -> float:
+	return Curses.get_gain_multiplier(active_curses) * get_ascension_gain_multiplier()
+
+
+func get_curse_descent_scale() -> float:
+	return Curses.get_descent_scale(active_curses)
+
+
+func get_curse_armor_bonus() -> float:
+	return Curses.get_armor_bonus(active_curses)
+
+
+func get_curse_attacker_scale() -> float:
+	return Curses.get_attacker_scale(active_curses)
+
+
+func get_active_curse_names() -> Array:
+	var names: Array[String] = []
+	for curse_id: StringName in active_curses.keys():
+		names.append(Curses.get_curse_name(curse_id))
+	return names
+
+
+## Kasa: run içinde toplanan PARÇA önce "taşınan" sayılır.
+func carry_salvage(amount: int) -> void:
+	if amount <= 0:
+		return
+	carried_salvage += amount
+
+
+## Boss sonrası güvenceye alma. Taşınan PARÇA kalıcı depoya geçer.
+func bank_carried_salvage() -> int:
+	var banked := carried_salvage
+	carried_salvage = 0
+	if banked > 0:
+		add_salvage(banked)
+		print("SALVAGE BANKED: +%d" % banked)
+	return banked
+
+
+## Ölüm: taşınanın yarısı kaybolur, yarısı kurtarılır.
+func settle_carried_salvage_on_death() -> Dictionary:
+	var rescued := carried_salvage / 2
+	var lost := carried_salvage - rescued
+	carried_salvage = 0
+	if rescued > 0:
+		add_salvage(rescued)
+	print("SALVAGE ON DEATH: kurtarilan=%d kaybedilen=%d" % [rescued, lost])
+	return {"rescued": rescued, "lost": lost}
+
+
+func get_sector_descent_scale() -> float:
+	return SectorModifiers.get_descent_scale(current_sector)
+
+
+func get_sector_row_fill_bonus() -> float:
+	return SectorModifiers.get_row_fill_bonus(current_sector)
+
+
+func get_sector_explosive_bonus() -> float:
+	return SectorModifiers.get_explosive_bonus(current_sector)
+
+
+func get_sector_ball_speed_scale() -> float:
+	return SectorModifiers.get_ball_speed_scale(current_sector)
+
+
+func get_sector_attacker_scale() -> float:
+	return SectorModifiers.get_attacker_scale(current_sector)
+
+
+## Derinlik XP çarpanı: derin tuğla daha çok XP verir.
+##
+## NEDEN (Faz 6 ölçümü): tuğla geliri derinlik 8'den sonra SABİT (satır başına
+## 12 tuğla), XP ihtiyacı ise üstel (×1.20/seviye). Sabit gelir üstel maliyeti
+## yakalayamıyordu. Ölçüm — bir zafer run'ında boss segmenti başına level-up:
+##
+##   depth  1→8:  6      32→40: 1
+##   depth  8→16: 3      40→48: 0
+##   depth 16→24: 2      48→56: 1
+##   depth 24→32: 1
+##
+## Son çeyrek (24 derinlik, ~2300 tuğla) 2 kart seçimi veriyordu. Run'ın en
+## tehlikeli yarısı aynı zamanda en ödülsüz yarısıydı.
+##
+## Çözüm geliri derinliğe bağlamak — XP maliyet eğrisine dokunmadan. Bu,
+## Faz 4.1'in "eğriyi derinliğe taşı" ilkesiyle aynı. Erken ölen oyuncu
+## etkilenmez: derinlik 1'de çarpan 1.0.
+##
+## Ölçülen sonuç: toplam 15 → 21 level-up, son segment 0 → 2.
+const DEPTH_XP_SLOPE := 0.06
+
+
+func get_depth_xp_multiplier(depth: int = run_depth) -> float:
+	return 1.0 + DEPTH_XP_SLOPE * float(maxi(depth, 1) - 1)
+
 
 func get_late_game_descent_multiplier(depth: int = run_depth) -> float:
 	if depth <= 4:
 		return 1.00
 	if depth <= 8:
-		return 0.94
+		return 0.93
 	if depth <= 12:
-		return 0.87
+		return 0.85
 	if depth <= 16:
-		return 0.79
+		return 0.77
 	if depth <= 20:
-		return 0.71
+		return 0.69
 	if depth <= 24:
-		return 0.64
-	return 0.58
+		return 0.62
+	if depth <= 32:
+		return 0.56
+	if depth <= 40:
+		return 0.51
+	if depth <= 48:
+		return 0.47
+	if depth <= 56:
+		return 0.43
+	if depth <= 64:
+		return 0.40
+	if depth <= 72:
+		return 0.37
+	return 0.34
 
 
 func get_late_game_side_attacker_multiplier(depth: int = run_depth) -> float:
+	if depth >= 57:
+		return 0.44
+	if depth >= 41:
+		return 0.50
+	if depth >= 29:
+		return 0.55
 	if depth >= 21:
 		return 0.60
 	if depth >= 17:

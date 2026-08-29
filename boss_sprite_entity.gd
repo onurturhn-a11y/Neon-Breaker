@@ -168,7 +168,9 @@ func _ready() -> void:
 	var extra := _get_extra_group()
 	if extra != &"":
 		add_to_group(extra)
-	max_hp = maxi(_get_base_hp(), 1)
+	max_hp = maxi(roundi(
+		float(_get_base_hp()) * GameManager.get_ascension_boss_hp_scale()
+	), 1)
 	current_hp = max_hp
 	collision_shape.disabled = true
 	previous_x = global_position.x

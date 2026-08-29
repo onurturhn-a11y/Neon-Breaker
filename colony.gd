@@ -26,27 +26,27 @@ const BUILDINGS := {
 	},
 	"fire_reactor": {
 		"name": "ATEŞ REAKTÖRÜ",
-		"build_cost": 12,
+		"build_cost": 20,
 		"upgrade_costs": {1: 24, 2: 40},
 	},
 	"piercing_research": {
 		"name": "DELİCİ ARAŞTIRMA MERKEZİ",
-		"build_cost": 12,
+		"build_cost": 20,
 		"upgrade_costs": {1: 24, 2: 40},
 	},
 	"part_factory": {
 		"name": "PARÇA ÜRETİM TESİSİ",
-		"build_cost": 15,
+		"build_cost": 55,
 		"upgrade_costs": {1: 30, 2: 50},
 	},
 	"coin_refinery": {
 		"name": "COIN RAFİNERİSİ",
-		"build_cost": 18,
+		"build_cost": 35,
 		"upgrade_costs": {1: 35, 2: 60},
 	},
 	"tech_center": {
 		"name": "TEKNOLOJİ MERKEZİ",
-		"build_cost": 20,
+		"build_cost": 25,
 		"upgrade_costs": {1: 40, 2: 65},
 	},
 	"shield_generator": {
@@ -187,6 +187,7 @@ var back_button: Button
 var title: Label
 var parts: Label
 var build_panel: Panel
+var popup_dim: ColorRect
 var status: Label
 var panel_title: Label
 var panel_level: Label
@@ -266,6 +267,16 @@ func _setup_hud() -> void:
 	hud.add_child(parts)
 
 func _setup_popup() -> void:
+	# Panelin arkasındaki karartma; dışına dokununca popup kapanır.
+	popup_dim = ColorRect.new()
+	popup_dim.name = "PopupDim"
+	popup_dim.color = Color(0.004, 0.012, 0.035, 0.55)
+	popup_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	popup_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	popup_dim.visible = false
+	popup.add_child(popup_dim)
+	popup.gui_input.connect(_popup_dim_input)
+
 	build_panel = Panel.new()
 	build_panel.visible = false
 	build_panel.z_index = 40
@@ -999,6 +1010,69 @@ func _format_coin_chance_tr(chance: float) -> String:
 	return ("%.2f" % (chance * 100.0)).replace(".", ",")
 
 
+## Codex'in inşa seçeneği render'ı. Buradaki asıl kazanç: yetersiz PARÇA
+## durumunda buton kapanıyor ve sebebini yazıyor — eskiden basıp
+## "YETERSİZ PARÇA" hatası almak gerekiyordu.
+func _configure_build_option(button: Button, building_id: String) -> void:
+	var display_name := _building_display_name(building_id)
+	var cost := int(BUILDINGS[building_id]["build_cost"])
+	var installed := GameManager.get_colony_building_level(building_id) > 0
+	var affordable := GameManager.total_salvage >= cost
+	var tone := _building_theme_color(building_id)
+
+	button.visible = true
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.add_theme_font_size_override("font_size", 14 if OS.has_feature("mobile") else 15)
+	button.add_theme_color_override("font_color", Color(0.88, 0.97, 1.0))
+	button.add_theme_color_override("font_disabled_color", Color(0.58, 0.61, 0.66))
+	button.add_theme_stylebox_override("normal", _build_entry_style(Color(tone.r, tone.g, tone.b, 0.72)))
+	button.add_theme_stylebox_override("hover", _build_entry_style(Color(tone.r, tone.g, tone.b, 0.96)))
+	button.add_theme_stylebox_override("pressed", _build_entry_style(Color(1.0, 0.72, 0.20, 0.92)))
+	button.add_theme_stylebox_override("disabled", _build_entry_style(Color(0.22, 0.28, 0.34, 0.46)))
+
+	var state := "KURULDU"
+	if not installed:
+		state = "KUR — %d PARÇA" % cost if affordable else "YETERSİZ PARÇA (%d)" % cost
+	button.text = "%s\n%s\n%s" % [display_name, _building_effect_text(building_id, 1), state]
+	button.disabled = installed or not affordable
+
+
+func _build_entry_style(border_color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.015, 0.06, 0.10, 0.92)
+	style.border_color = border_color
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 12.0
+	style.content_margin_right = 12.0
+	style.content_margin_top = 8.0
+	style.content_margin_bottom = 8.0
+	return style
+
+
+## Panelin dışına dokunmak popup'ı kapatır (Codex'ten).
+func _popup_dim_input(event: InputEvent) -> void:
+	if pending_slot == &"none" or not build_panel.visible:
+		return
+	# Tip cikarimi InputEvent tabanindan yapilamaz; alt tipler acikca ayrilir.
+	var point := Vector2.ZERO
+	if event is InputEventMouseButton:
+		var mouse_event := event as InputEventMouseButton
+		if not mouse_event.pressed or mouse_event.button_index != MOUSE_BUTTON_LEFT:
+			return
+		point = mouse_event.position
+	elif event is InputEventScreenTouch:
+		var touch_event := event as InputEventScreenTouch
+		if not touch_event.pressed:
+			return
+		point = touch_event.position
+	else:
+		return
+	if not build_panel.get_global_rect().has_point(point):
+		_close_popup()
+
+
 func _building_display_name(building_id: String) -> String:
 	return String(BUILDINGS.get(building_id, {}).get("name", building_id.to_upper()))
 
@@ -1072,17 +1146,7 @@ func _slot_pressed(id: StringName) -> void:
 		calibrate_button.visible = false
 		build_button_scroll.visible = true
 		for building_id: String in GameManager.COLONY_BUILDING_IDS:
-			var button: Button = build_buttons[building_id]
-			var display_name := _building_display_name(building_id)
-			var already_built := GameManager.get_colony_building_level(building_id) > 0
-			button.visible = true
-			button.disabled = already_built
-			if already_built:
-				button.text = "%s — KURULDU" % display_name
-			else:
-				button.text = "%s\nİNŞA ET — %d" % [
-					display_name, int(BUILDINGS[building_id]["build_cost"])
-				]
+			_configure_build_option(build_buttons[building_id], building_id)
 		_show_build_panel()
 		return
 
@@ -1147,6 +1211,8 @@ func _on_calibrate_pressed() -> void:
 
 func _show_build_panel() -> void:
 	popup.mouse_filter = Control.MOUSE_FILTER_STOP
+	if is_instance_valid(popup_dim):
+		popup_dim.visible = true
 	build_panel.visible = true
 	build_panel.modulate.a = 0.0
 	var tween := create_tween()
@@ -1209,6 +1275,8 @@ func _building_action(requested_building_id: String = "") -> void:
 
 func _close_popup() -> void:
 	build_panel.visible = false
+	if is_instance_valid(popup_dim):
+		popup_dim.visible = false
 	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_clear_selection_visual()
 	pending_slot = &"none"
