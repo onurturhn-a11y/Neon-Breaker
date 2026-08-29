@@ -31,6 +31,10 @@ static func apply(game: Node, card_id: StringName, _level: int) -> void:
 	var new_level: int = game.get_node("/root/GameManager").acquire_or_upgrade_weapon(weapon_id)
 	if new_level > 0:
 		ensure_runtime_controller(game, card_id)
+		if weapon_id == &"PLASMA":
+			var paddle := game.get_node_or_null("Paddle")
+			if is_instance_valid(paddle) and paddle.has_method("apply_plasma_level"):
+				paddle.call("apply_plasma_level", new_level, true)
 	print("WEAPON ACQUIRED: %s -> Lv%d" % [weapon_id, new_level])
 
 

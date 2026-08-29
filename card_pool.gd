@@ -17,12 +17,14 @@ const RARITY_CORE: StringName = &"core"
 const RARITY_COMMON: StringName = &"common"
 const RARITY_RARE: StringName = &"rare"
 const RARITY_EPIC: StringName = &"epic"
+const RARITY_LEGENDARY: StringName = &"legendary"
 
 const RARITY_COLORS := {
 	RARITY_CORE: Color(0.00, 0.90, 1.00, 1.0),
 	RARITY_COMMON: Color(0.54, 0.63, 0.72, 1.0),
 	RARITY_RARE: Color(0.72, 0.30, 1.00, 1.0),
 	RARITY_EPIC: Color(1.00, 0.48, 0.18, 1.0),
+	RARITY_LEGENDARY: Color(1.00, 0.76, 0.12, 1.0),
 }
 
 const RARITY_LABELS := {
@@ -30,6 +32,7 @@ const RARITY_LABELS := {
 	RARITY_COMMON: "YAYGIN",
 	RARITY_RARE: "NADİR",
 	RARITY_EPIC: "EFSANE",
+	RARITY_LEGENDARY: "LEGENDARY",
 }
 
 # Silah kartları GameManager'da kendi alanlarında tutulur; pasifler card_levels sözlüğünde.
@@ -37,19 +40,6 @@ const WEAPON_CARDS: Array[StringName] = [&"plasma", &"pierce", &"fireball"]
 
 const CARDS := {
 	# ---------- ÇEKİRDEK SİLAHLAR ----------
-	&"plasma": {
-		"title": "PLAZMA SİLAHI",
-		"rarity": RARITY_CORE,
-		"max_level": 3,
-		"roman": true,
-		"icon": "res://plasma_card.png",
-		"descriptions": [
-			"",
-			"Rakete otomatik plazma ateşi kazandırır.\nTek namlu otomatik ateş eder.",
-			"Rakete otomatik plazma ateşi kazandırır.\nÜç namlu paralel ateş eder.",
-			"Rakete otomatik plazma ateşi kazandırır.\nGüçlü yaylı atış yapar; yan mermiler 1 kez seker.",
-		],
-	},
 	&"pierce": {
 		"title": "DELİCİ TOP",
 		"rarity": RARITY_CORE,

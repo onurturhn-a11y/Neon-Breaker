@@ -1,8 +1,6 @@
 extends RefCounted
 class_name CardSystem
 
-const EARLY_MOUNTED_WEAPON_MAX_DEPTH := 3
-
 # ==================================================
 # KART KURALLARI
 # ==================================================
@@ -92,20 +90,6 @@ static func get_rarity_weight(rarity: StringName, state: Dictionary) -> float:
 static func roll_card_ids(count: int, state: Dictionary) -> Array:
 	var candidates := get_eligible_card_ids(state)
 	var rolled: Array = []
-	var gm: Node = state.get("gm")
-	var depth := int(state.get("depth", 1))
-	# İlk derinliklerde yeni monte edilen silahların eski çekirdek kartların
-	# ağırlığı altında kaybolmasını engelle: boş yuva varken elde bir tane göster.
-	if count > 0 and depth <= EARLY_MOUNTED_WEAPON_MAX_DEPTH and gm != null and gm.has_empty_weapon_slot():
-		var mounted_candidates: Array = []
-		for card_id: StringName in candidates:
-			if CardPool.is_mounted_weapon(card_id):
-				mounted_candidates.append(card_id)
-		if not mounted_candidates.is_empty():
-			var early_index := _pick_weighted_index(mounted_candidates, state)
-			var early_card: StringName = mounted_candidates[early_index]
-			rolled.append(early_card)
-			candidates.erase(early_card)
 	while rolled.size() < count and not candidates.is_empty():
 		var picked_index := _pick_weighted_index(candidates, state)
 		rolled.append(candidates[picked_index])

@@ -17,6 +17,21 @@ class_name WeaponCards
 # bu yüzden dışarıdan geçirilir.
 
 const CARDS := {
+	&"plasma": {
+		"title": "PLAZMA SİLAHI",
+		"rarity": &"common",
+		"max_level": 3,
+		"roman": true,
+		"weapon": true,
+		"weapon_id": &"PLASMA",
+		"icon": "res://assets/cards/plasma_card.png",
+		"descriptions": [
+			"",
+			"Rakete otomatik plazma ateşi kazandırır. Tek namlu ateş eder.",
+			"Üç namlu paralel ateş eder.",
+			"Güçlü yaylı atış yapar; yan mermiler 1 kez seker.",
+		],
+	},
 	&"arc_cannon": {
 		"title": "ARC CANNON",
 		"rarity": &"rare",
