@@ -293,8 +293,61 @@ süre değil.
 
 ### Sıradaki — henüz ölçülmedi
 
-- **6.2 Boss HP ↔ oyuncu DPS.** 7 boss depth 8-56 arasında. Oyuncu build'i
-  boss HP'sini geçiyor mu, geriden mi geliyor? Hiç ölçülmedi.
+### 6.2 Boss HP ↔ oyuncu güç tavanı — ✅ ÖLÇÜLDÜ, karar bekliyor
+
+`feat/integration-phase5` dalında ölçüldü (8 silah gerekiyordu).
+
+**Boss HP:** 180 → 500, boss 1'den 7'ye ×2.78.
+
+| Boss | Derinlik | asc0 | asc10 |
+|---|---|---|---|
+| CORE | 8 | 180 | 396 |
+| SENTINEL | 16 | 180 | 396 |
+| CELESTIAL | 24 | 200 | 440 |
+| VOID | 32 | 260 | 572 |
+| SOVEREIGN | 40 | 330 | 726 |
+| ARCHITECT | 48 | 410 | 902 |
+| CHRONOFORM | 56 | 500 | **1100** |
+
+**Oyuncunun hasar kaynaklarının HEPSİ tavanlı:**
+
+- 2 yuva × Lv3 = 6 seçim
+- crit_hit(2) + extra_ball(2) + ball_speed(2) + pierce(3) + fireball(3) = 12 seçim
+- **Tavan: 18 seçim.** Sonrasında hasar büyümez.
+
+Run 21 seçim veriyor, yani hasar tavanına **5. bossta (depth 40)** ulaşılıyor.
+O noktadan sonra oyuncu hasarı sabit, boss HP'si +%52 artıyor (330 → 500).
+
+#### Bulgu 1 — tasarım tercihi, sorun olmayabilir
+
+Son iki boss oyuncunun build ile cevap veremediği bir duvar. Final boss'un
+duvar olması makul; burada bir karar var, hata yok.
+
+#### Bulgu 2 — `[KARAR GEREKLİ]` ascension tek taraflı
+
+**Ascension boss HP'sini katman başına %12 artırıyor ama oyuncunun hasar
+tavanını hiç artırmıyor** — kartların `max_level`'ı sabit.
+
+Chronoform: asc0'da 500 HP, asc10'da **1100 HP** — ve karşısında **birebir
+aynı** maksimum build var. Ascension'ın verdiği tek şey +%15 kazanç, yani
+aynı tavana daha erken ulaşmak.
+
+Diğer ascension etkilerinden yapısal olarak farklı: iniş hızına oyuncu
+beceriyle cevap verebiliyor, elit tuğlaya da. Boss HP'sine verebileceği
+hiçbir cevap yok.
+
+Üç yol var, seçim tasarım kararı:
+
+1. Katman başına boss HP artışını düşür (%12 → daha az)
+2. Ascension hasar tavanını da açsın (3. yuva, ya da kart `max_level`+1)
+   — bu Codex'in silah sistemine dokunur, onunla konuşulmalı
+3. Kasıtlı bırak: maksimum ascension zaten bitirilemez olsun
+
+**Kendi başıma değiştirmedim.** Boss HP'si oyunun en görünür zorluk kolu;
+"maksimum ascension ne kadar zor olmalı" sorusunun cevabı bende değil.
+
+Ölçüm aracı: `_boss_probe.gd` (gitignore'da).
+
 - **6.3 Yan saldırgan eğrisi** depth 56'ya kadar. Faz 4'te derinlik 25'e
   kadar bakılmıştı.
 - **6.4 Tehlike hattı ekonomisi.** Kaç tuğla hattı geçiyor, can kaybı ne
