@@ -486,6 +486,37 @@ Denetlenen ve doğru bulunan kartlar:
 kullanımı vardı ve yine de bozuktu. Getter'ın çağrıldığını görmek yetmez,
 **doğru** tüketim noktasında çağrıldığını görmek gerekir.
 
+### 7.3 Koloni bina etkileri: tek kaynak — ✅ DÜZELTİLDİ
+
+Aynı diziler **üç yere kopyalanmıştı** (`colony.gd` UI metni, `ball.gd`,
+`main.gd`) ve birbirinden sapmışlardı. Oyuncuya gösterilen sayı ile oyunun
+uyguladığı sayı tutmuyordu:
+
+| Bina | Seviye | UI diyordu | Oyun veriyordu |
+|---|---|---|---|
+| Ateş Reaktörü | 3 | 3 ek tuğla | **4** |
+| Delici Araştırma | 2 | 3 ek tuğla | **2** |
+
+Diziler `game_manager.gd`'ye taşındı, hem oyun hem UI oradan okuyor.
+
+**Ölü özellik:** Teknoloji Merkezi Lv2+ "maksimum candayken Heart +1/+2 PARÇA"
+vaat ediyordu. Kod `collect_heart()` içinde **yazılmıştı** ama hiç
+çalışmıyordu — önünde iki kapı vardı:
+
+1. `_resolve_brick_collectible_drop` tam canda heart'ı hiç spawn etmiyordu
+2. `heart_pickup._on_body_entered` tam canda `queue_free()` edip dönüyordu
+
+İkisi de açıldı. Dönüşüm artık ödül banner'ı da gösteriyor.
+
+**Kendi hatam:** önce "dört binanın seviye etkisi yok" sonucuna varmıştım.
+Yanlıştı — `game_manager.gd`'deki getter'lara bakıp erken karar vermişim.
+Seviye etkileri tüketen dosyalara dağılmış. Hepsinin etkisi vardı; sorun
+kopyaların sapmasıydı.
+
+**Ders:** bir sistemin bozuk olduğuna karar vermeden önce **tüm** tüketim
+noktalarını ara. `grep get_colony_building_level` ilk bakışta görmediğim
+altı çağrı yeri gösterdi.
+
 ## CODEX'E BİLDİRİM — bölge dışı bulgu, dokunmadım
 
 CLAUDE.md bölüm 2 gereği düzeltmedim, bildiriyorum. Onay verirsen ben de
