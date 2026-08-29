@@ -10,6 +10,12 @@ var armored = false
 @export var explosive = false
 @export var is_shield_brick = false
 
+# ELIT TUGLA: yuksek can + kehribar cerceve + degerli dusurme.
+# Oran level_generator tarafindan derinlige gore rulet edilir (elite_bricks.gd).
+var is_elite = false
+var elite_panel: Panel
+var elite_pulse_tween: Tween
+
 var grid_row = -1
 var grid_column = -1
 var shield_sources: Array[Node] = []
@@ -154,6 +160,97 @@ func create_armor_border():
 
 
 # --------------------------------------------------
+# ELİT TUĞLA
+# --------------------------------------------------
+
+## Üretim sırasında çağrılır — tuğla sahneye eklendikten SONRA, yani
+## `_ready` çalıştıktan sonra. Bayrak, can ve görsel kurulumun tek giriş noktası.
+func mark_as_elite(elite_health: int) -> void:
+	if is_elite:
+		return
+	is_elite = true
+	set_meta("is_elite_brick", true)
+	set_health(elite_health)
+	_setup_elite_visual()
+
+
+## Kehribar çerçeve + nabız. Zırh panelinden ayrı bir Panel kullanır ki
+## zırh mantığı (ilk vuruşta kaybolan çerçeve) elite'i etkilemesin.
+func _setup_elite_visual() -> void:
+	add_to_group("elite_brick")
+
+	elite_panel = Panel.new()
+	add_child(elite_panel)
+	elite_panel.position = color_rect.position
+	elite_panel.size = color_rect.size
+	elite_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Zırh panelinin (z_index 10) bir üstünde dursun.
+	elite_panel.z_index = 11
+
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(
+		EliteBricks.ELITE_GLOW_COLOR.r,
+		EliteBricks.ELITE_GLOW_COLOR.g,
+		EliteBricks.ELITE_GLOW_COLOR.b,
+		0.16
+	)
+	style.border_color = EliteBricks.ELITE_BORDER_COLOR
+	style.border_width_left = 4
+	style.border_width_right = 4
+	style.border_width_top = 4
+	style.border_width_bottom = 4
+	style.corner_radius_top_left = 3
+	style.corner_radius_top_right = 3
+	style.corner_radius_bottom_left = 3
+	style.corner_radius_bottom_right = 3
+	elite_panel.add_theme_stylebox_override("panel", style)
+
+	# Zırhlı tuğlanın beyaz çerçevesi elite'in kehribarıyla yarışmasın.
+	if armor_panel:
+		armor_panel.visible = false
+
+	_start_elite_pulse()
+
+
+func _start_elite_pulse() -> void:
+	if not is_instance_valid(elite_panel):
+		return
+	if is_instance_valid(elite_pulse_tween):
+		elite_pulse_tween.kill()
+	elite_pulse_tween = create_tween()
+	elite_pulse_tween.set_loops()
+	elite_pulse_tween.tween_property(
+		elite_panel, "modulate:a", 0.55, EliteBricks.PULSE_PERIOD * 0.5
+	).set_trans(Tween.TRANS_SINE)
+	elite_pulse_tween.tween_property(
+		elite_panel, "modulate:a", 1.0, EliteBricks.PULSE_PERIOD * 0.5
+	).set_trans(Tween.TRANS_SINE)
+
+
+## Can azaldıkça çerçeve incelir — oyuncu kaç vuruş kaldığını görsel okusun.
+func _refresh_elite_damage_state() -> void:
+	if not is_instance_valid(elite_panel):
+		return
+	var style := elite_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	if style == null:
+		return
+	var ratio: float = float(health) / float(maxi(max_health, 1))
+	var width: int = maxi(1, roundi(4.0 * ratio))
+	style.border_width_left = width
+	style.border_width_right = width
+	style.border_width_top = width
+	style.border_width_bottom = width
+	style.bg_color.a = 0.16 * ratio
+
+
+func _stop_elite_pulse() -> void:
+	if is_instance_valid(elite_pulse_tween):
+		elite_pulse_tween.kill()
+	if is_instance_valid(elite_panel):
+		elite_panel.visible = false
+
+
+# --------------------------------------------------
 # TUĞLA CANINI AYARLA
 # --------------------------------------------------
 
@@ -210,6 +307,11 @@ func hit(source = "ball", damage_context = null):
 			armor_panel.visible = false
 
 
+		# Elit çerçevesi kırılana kadar durur; kalan cana göre incelir.
+		if is_elite:
+			_refresh_elite_damage_state()
+
+
 		brick_visual.update_health(health, max_health)
 
 
@@ -246,6 +348,11 @@ func hit(source = "ball", damage_context = null):
 	if armor_panel:
 
 		armor_panel.visible = false
+
+
+	# Elit nabzını durdur ve çerçeveyi kaldır.
+	if is_elite:
+		_stop_elite_pulse()
 
 
 	await brick_visual.play_break_effect(brick_color, source)

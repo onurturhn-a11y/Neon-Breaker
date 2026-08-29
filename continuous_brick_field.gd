@@ -407,6 +407,16 @@ func _get_active_step_interval() -> float:
 	return row_step_interval
 
 
+## Etkin iniş tabanı. `minimum_safe_step_interval` tasarımcının ayarladığı
+## temel değer; ascension katmanları bunu aşağı çeker.
+##
+## Neden (Faz 5.3 ölçümü): sabit tabanla ağır senaryoda taban derinlik 9'da
+## bağlıyordu ve sonrasında sektör/lanet/ascension farkı oyuncuya hiç
+## ulaşmıyordu. Ascension 10 ile ascension 0 aynı hızda iniyordu.
+func _get_effective_min_step_interval() -> float:
+	return GameManager.get_ascension_min_step_interval(minimum_safe_step_interval)
+
+
 func start_row_step():
 
 	step_tween = create_tween()
@@ -710,9 +720,12 @@ func apply_depth_settings():
 		* GameManager.get_build_speed_multiplier()
 		* GameManager.get_late_game_descent_multiplier()
 		/ GameManager.get_card_descent_multiplier()
+		* GameManager.get_sector_descent_scale()
+		* GameManager.get_curse_descent_scale()
+		* GameManager.get_ascension_descent_scale()
 		* (mobile_descent_multiplier if OS.has_feature("mobile") else 1.0)
 	)
-	interval_before_power_synergy = maxf(calculated_interval, minimum_safe_step_interval)
+	interval_before_power_synergy = maxf(calculated_interval, _get_effective_min_step_interval())
 	_refresh_mobile_power_synergy_pressure()
 	if is_instance_valid(game):
 		var side_spawner := game.get_node_or_null("SideAttackerSpawner")
@@ -723,7 +736,7 @@ func apply_depth_settings():
 func _refresh_mobile_power_synergy_pressure() -> void:
 	if not OS.has_feature("mobile"):
 		level_generator.set_mobile_power_synergy(0, 0.0)
-		row_step_interval = maxf(interval_before_power_synergy, minimum_safe_step_interval)
+		row_step_interval = maxf(interval_before_power_synergy, _get_effective_min_step_interval())
 		return
 	var tier := GameManager.get_power_synergy_tier()
 	if tier != last_power_synergy_tier:
@@ -739,7 +752,7 @@ func _refresh_mobile_power_synergy_pressure() -> void:
 	var adaptive_multiplier := lerpf(1.0, synergy_multiplier, pressure_scale)
 	row_step_interval = maxf(
 		interval_before_power_synergy * adaptive_multiplier,
-		minimum_safe_step_interval
+		_get_effective_min_step_interval()
 	)
 
 
@@ -764,13 +777,14 @@ func print_difficulty_debug(bricks_this_row):
 		if is_instance_valid(side_spawner) and side_spawner.has_method("get_interval_for_depth"):
 			turret_interval = side_spawner.get_interval_for_depth(GameManager.run_depth)
 	print(
-		"DEPTH: %d | FILL: %.2f | ARMOR: %.2f | SHIELD: %.2f | EXPLOSIVE: %.2f | STEP_INTERVAL: %.2f | TURRET: %.2f-%.2f | BRICKS_THIS_ROW: %d"
+		"DEPTH: %d | FILL: %.2f | ARMOR: %.2f | SHIELD: %.2f | EXPLOSIVE: %.2f | ELITE: %.3f | STEP_INTERVAL: %.2f | TURRET: %.2f-%.2f | BRICKS_THIS_ROW: %d"
 		% [
 			GameManager.run_depth,
 			level_generator.get_effective_continuous_row_fill(),
 			level_generator.get_effective_armored_chance(),
 			level_generator.get_effective_shield_chance(),
 			level_generator.explosive_chance,
+			EliteBricks.get_chance(GameManager.run_depth, GameManager.run_ascension),
 			row_step_interval,
 			turret_interval.x,
 			turret_interval.y,

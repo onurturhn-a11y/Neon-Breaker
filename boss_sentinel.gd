@@ -60,6 +60,8 @@ func _ready() -> void:
 		scale *= mobile_scale_multiplier
 	add_to_group("game_boss")
 	add_to_group("sentinel_boss")
+	# Ascension katmani boss dayanikliligini da olcekler.
+	max_hp = maxi(roundi(float(max_hp) * GameManager.get_ascension_boss_hp_scale()), 1)
 	current_hp = max_hp
 	left_generator_hp = generator_max_hp
 	right_generator_hp = generator_max_hp

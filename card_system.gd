@@ -31,6 +31,52 @@ static func make_state(
 	}
 
 
+## ASCENSION HASAR TAVANI (Faz 6.2)
+##
+## Ascension boss HP'sini katman başına %12 artırıyordu ama oyuncunun hasar
+## tavanını hiç artırmıyordu — kartların max_level'ı sabit. Chronoform asc0'da
+## 500 HP, asc10'da 1100 HP; karşısında birebir aynı maksimum build.
+##
+## Bu kartlar ascension eşiklerinde +1 max_level alır. Silahlar DEĞİL:
+## silah seviyesi başına davranış her controller'da ayrı tanımlı (Codex
+## bölgesi), Lv4'ün ne yapacağına o karar vermeli.
+const ASCENSION_SCALED_CARDS: Array[StringName] = [
+	&"crit_hit", &"extra_ball", &"ball_speed", &"pierce", &"fireball",
+]
+
+## Kaç ascension katmanında +1 tavan, ve en fazla kaç.
+##
+## NEDEN BU SAYILAR (ölçüldü): bağlayıcı kısıt tavan değil, SEÇİM ARZI.
+## Ascension kazancı +%15/katman ama XP ihtiyacı üstel (×1.20/seviye), yani
+## ×2.5 gelir ancak ~4 fazla seviye satın alıyor:
+##
+##   asc0  -> 21 seçim     asc5  -> 24 seçim     asc10 -> 25 seçim
+##
+## Tavanı 33'e çıkarmak boşuna olurdu, oyuncunun eline o kadar seçim geçmiyor
+## — açılan tavan boş kalırdı. Bu yüzden +2 ile sınırlı:
+##
+##   asc 0-4  -> tavan 18 seçim (arz 21-23)
+##   asc 5-9  -> tavan 23       (arz 24-25)
+##   asc 10   -> tavan 28       (arz 25)
+##
+## Yüksek ascension'da tavan artık bağlayıcı değil; oyuncu tercih yapıyor.
+const ASCENSION_LEVEL_BONUS_PER := 5
+const ASCENSION_LEVEL_BONUS_MAX := 2
+
+
+## Bu kart ascension sayesinde kaç ek seviye kazanıyor?
+static func get_ascension_level_bonus(card_id: StringName, state: Dictionary) -> int:
+	if card_id not in ASCENSION_SCALED_CARDS:
+		return 0
+	var gm: Node = state.get("gm")
+	if gm == null:
+		return 0
+	return mini(
+		int(gm.run_ascension) / ASCENSION_LEVEL_BONUS_PER,
+		ASCENSION_LEVEL_BONUS_MAX
+	)
+
+
 ## Silah kartlarının seviye tavanı boss milestone'larıyla açılır.
 static func get_weapon_level_cap(state: Dictionary) -> int:
 	if bool(state.get("second_boss", false)):
@@ -41,9 +87,12 @@ static func get_weapon_level_cap(state: Dictionary) -> int:
 
 
 static func get_card_level_cap(card_id: StringName, state: Dictionary) -> int:
-	var pool_cap := CardPool.get_max_level(card_id)
+	# pierce/fireball hem WEAPON_CARDS'ta hem ascension listesinde: bonus her
+	# iki tavana da eklenir, yoksa boss milestone tavani bonusu yutar.
+	var bonus := get_ascension_level_bonus(card_id, state)
+	var pool_cap: int = CardPool.get_max_level(card_id) + bonus
 	if CardPool.is_weapon(card_id):
-		return mini(pool_cap, get_weapon_level_cap(state))
+		return mini(pool_cap, get_weapon_level_cap(state) + bonus)
 	return pool_cap
 
 

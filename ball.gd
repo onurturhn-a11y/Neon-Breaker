@@ -637,7 +637,11 @@ func refresh_card_modifiers() -> void:
 	# Asiri Ivme karti topu hizlandirir; mevcut hiz orani korunur.
 	var previous_max := maxf(max_speed, 1.0)
 	var speed_ratio := clampf(speed / previous_max, 0.0, 1.0)
-	var multiplier := GameManager.get_ball_speed_multiplier()
+	# Kart çarpanı ve sektör modifier'ı birlikte uygulanır.
+	var multiplier := (
+		GameManager.get_ball_speed_multiplier()
+		* GameManager.get_sector_ball_speed_scale()
+	)
 	max_speed = base_max_speed * multiplier
 	speed = maxf(base_speed * multiplier, speed_ratio * max_speed)
 
