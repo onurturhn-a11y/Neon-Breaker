@@ -7,11 +7,7 @@ const SLOT_POSITIONS := {
 	&"bottom_left": Vector2(0.340, 0.746), &"bottom_right": Vector2(0.653, 0.746),
 }
 const SLOT_SIZE := Vector2(0.145, 0.145)
-const FIRE_REACTOR_EXTRA_BRICKS := [1, 2, 2, 3]
-const PIERCING_RESEARCH_EXTRA_BRICKS := [1, 2, 3, 4]
 const PART_FACTORY_RUN_REWARDS := [0, 2, 4, 7]
-const TECH_CENTER_MAGNET_BONUS_PERCENT := [0, 15, 30, 50]
-const TECH_CENTER_FULL_HEART_SALVAGE := [0, 0, 1, 2]
 const SHIELD_GENERATOR_CHARGES := [0, 1, 1, 2]
 const SIM_CHAMBER_REROLLS := [0, 1, 2, 3]
 const DATA_ARCHIVE_XP_PERCENT := [0, 8, 16, 25]
@@ -1081,18 +1077,23 @@ func _building_effect_text(building_id: String, level: int) -> String:
 	var capped := clampi(level, 0, BUILDING_MAX_LEVEL)
 	match building_id:
 		GameManager.COLONY_BUILDING_FIRE_REACTOR:
-			return "Alev Raketi, Alev Topu ile %d ek tuğlayı etkileyebilir." % int(FIRE_REACTOR_EXTRA_BRICKS[capped])
+			# Sayilar GameManager'dan okunur; oyunun uyguladigi degerin aynisi.
+			return "Alev Raketi, Alev Topu ile %d ek tuğlayı etkileyebilir." % _fire_extra_targets(capped)
 		GameManager.COLONY_BUILDING_PIERCING_RESEARCH:
-			return "Delici Raketi, Delici Top ile %d ek tuğla deler." % int(PIERCING_RESEARCH_EXTRA_BRICKS[capped])
+			return "Delici Raketi, Delici Top ile %d ek tuğla deler." % _pierce_bonus(capped)
 		GameManager.COLONY_BUILDING_PART_FACTORY:
 			return "Her run sonunda +%d PARÇA." % GameManager.get_colony_run_end_salvage()
 		GameManager.COLONY_BUILDING_COIN_REFINERY:
 			var chance := GameManager.get_effective_coin_drop_chance(GameManager.COIN_BASE_DROP_CHANCE)
 			return "Coin düşme ihtimali: %%%s" % _format_coin_chance_tr(chance)
 		GameManager.COLONY_BUILDING_TECH_CENTER:
-			var heart_bonus := int(TECH_CENTER_FULL_HEART_SALVAGE[capped])
-			return "Mıknatıs süresi %%%d daha uzun.\nMaksimum candayken Heart: %s" % [
-				int(TECH_CENTER_MAGNET_BONUS_PERCENT[capped]),
+			var heart_bonus := int(GameManager.TECH_CENTER_FULL_LIFE_HEART_SALVAGE[capped])
+			var magnet_percent := int(round(
+				(float(GameManager.TECH_CENTER_MAGNET_MULTIPLIERS[capped]) - 1.0) * 100.0
+			))
+			return "Mıknatıs süresi %%%d daha uzun.
+Maksimum candayken Heart: %s" % [
+				magnet_percent,
 				"+%d PARÇA." % heart_bonus if heart_bonus > 0 else "ek bonus yok."
 			]
 		GameManager.COLONY_BUILDING_SHIELD_GENERATOR:
@@ -1102,6 +1103,16 @@ func _building_effect_text(building_id: String, level: int) -> String:
 		GameManager.COLONY_BUILDING_DATA_ARCHIVE:
 			return "Toplanan XP %%%d daha fazla." % int(round(GameManager.get_colony_xp_bonus() * 100.0))
 	return "Plazma Raketinin bonusunu güçlendirir."
+
+
+## UI metni raket kimligini varsayar ("Delici Raketi ile"), yani afinite
+## carpani dahildir. Oyunun uyguladigi degerle AYNI diziden okunur.
+func _pierce_bonus(level: int) -> int:
+	return int(GameManager.PIERCING_RESEARCH_BASE_PENETRATION[clampi(level, 0, 3)]) * 2
+
+
+func _fire_extra_targets(level: int) -> int:
+	return int(GameManager.FIRE_REACTOR_BASE_EXTRA_TARGETS[clampi(level, 0, 3)]) * 2
 
 
 func _calibration_effect_text(building_id: String) -> String:

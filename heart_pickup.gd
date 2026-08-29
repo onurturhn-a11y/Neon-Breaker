@@ -50,7 +50,13 @@ func _on_body_entered(body):
 	if collected or not body.is_in_group("game_paddle"):
 		return
 
-	if GameManager.lives >= GameManager.MAX_LIVES:
+	# Tam candayken: Teknoloji Merkezi Lv2+ varsa Heart PARCA'ya donusur.
+	# Karari main.collect_heart veriyor; burada erken elenirse o kod hic
+	# calismiyordu (Faz 7.3'te bulundu).
+	if (
+		GameManager.lives >= GameManager.MAX_LIVES
+		and GameManager.get_colony_full_life_heart_salvage() <= 0
+	):
 		queue_free()
 		return
 

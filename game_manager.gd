@@ -127,6 +127,22 @@ const COLONY_BUILDING_IDS: Array[String] = [
 # Lv3'ten sonra her bina tekrarlanabilir kalibrasyon alir; maliyet ustel buyur.
 const CALIBRATION_BASE_COST := 40
 const CALIBRATION_COST_GROWTH := 1.35
+## KOLONI BINA ETKILERI — TEK KAYNAK
+##
+## Faz 7.3 denetimi: bu diziler uc yere kopyalanmisti (colony.gd'nin UI
+## metni, ball.gd, main.gd) ve birbirinden sapmislardi. Oyuncuya gosterilen
+## sayi ile oyunun uyguladigi sayi tutmuyordu:
+##
+##   Alev Reaktoru Lv3  -> UI "3 ek tugla", kod 4 veriyordu
+##   Delici Arastirma Lv2 -> UI "3 ek tugla", kod 2 veriyordu
+##
+## Artik hem oyun hem UI buradan okuyor; bir daha sapamazlar.
+## Diziler seviyeye gore indekslenir (0 = kurulmamis).
+const PIERCING_RESEARCH_BASE_PENETRATION := [0, 1, 1, 2]
+const FIRE_REACTOR_BASE_EXTRA_TARGETS := [0, 1, 1, 2]
+const TECH_CENTER_MAGNET_MULTIPLIERS := [1.0, 1.15, 1.30, 1.50]
+const TECH_CENTER_FULL_LIFE_HEART_SALVAGE := [0, 0, 1, 2]
+
 const SHIELD_GENERATOR_CHARGES := [0, 1, 1, 2]
 const SIM_CHAMBER_REROLLS := [0, 1, 2, 3]
 const DATA_ARCHIVE_XP_BONUS := [0.0, 0.08, 0.16, 0.25]
@@ -417,6 +433,38 @@ func get_colony_fire_radius_scale() -> float:
 func get_colony_bonus_pierce() -> int:
 	# Her 4 kalibrasyonda +1 delme.
 	return int(get_colony_building_calibration(COLONY_BUILDING_PIERCING_RESEARCH) / 4)
+
+
+## Delici Arastirma'nin verdigi ek delme. Delici rakette iki katina cikar.
+func get_colony_pierce_bonus(apply_affinity: bool = true) -> int:
+	var level := clampi(get_colony_building_level(COLONY_BUILDING_PIERCING_RESEARCH), 0, 3)
+	var base: int = int(PIERCING_RESEARCH_BASE_PENETRATION[level])
+	if base <= 0:
+		return 0
+	var scale := get_affinity_scale(PADDLE_PIERCING) if apply_affinity else 1.0
+	return int(round(float(base) * scale))
+
+
+## Ates Reaktorunun verdigi ek hedef. Alev rakette iki katina cikar.
+func get_colony_fire_extra_targets(apply_affinity: bool = true) -> int:
+	var level := clampi(get_colony_building_level(COLONY_BUILDING_FIRE_REACTOR), 0, 3)
+	var base: int = int(FIRE_REACTOR_BASE_EXTRA_TARGETS[level])
+	if base <= 0:
+		return 0
+	var scale := get_affinity_scale(PADDLE_FIRE) if apply_affinity else 1.0
+	return int(round(float(base) * scale))
+
+
+## Teknoloji Merkezinin miknatis sure carpani (seviye tabanli).
+func get_colony_magnet_duration_multiplier() -> float:
+	var level := clampi(get_colony_building_level(COLONY_BUILDING_TECH_CENTER), 0, 3)
+	return float(TECH_CENTER_MAGNET_MULTIPLIERS[level])
+
+
+## Maksimum candayken toplanan Heart kac PARCA verir.
+func get_colony_full_life_heart_salvage() -> int:
+	var level := clampi(get_colony_building_level(COLONY_BUILDING_TECH_CENTER), 0, 3)
+	return int(TECH_CENTER_FULL_LIFE_HEART_SALVAGE[level])
 
 
 func get_colony_magnet_scale() -> float:
