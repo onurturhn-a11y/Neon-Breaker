@@ -429,6 +429,63 @@ ikinci yarıya baskı eklenecekse doğru yer tuğla talebi ya da elit oranı.
 `_ascension_probe.gd`, `_balance_probe.gd`, `_weapon_probe.gd` (hepsi
 gitignore'da).
 
+## CLAUDE — Faz 7: Kart doğruluğu ve ölçülmemiş sistemler
+
+### 7.1 ZİNCİR BELLEĞİ kartı hasara etki etmiyordu — ✅ DÜZELTİLDİ
+
+Kombo sistemi iki yarıya bölünmüş:
+
+| Yarı | Dosya | Ne yapar |
+|---|---|---|
+| Görsel | `combo_manager.gd` | Rank yazısı, ekran sarsıntısı |
+| Mekanik | `chain_lightning_manager.gd` | Hasar veren zincir şimşeği |
+
+Eşikleri birebir aynı (`[3,6,9,…,27]`), taban süreleri de aynı (0.85s).
+Ama `combo_window` kartının çarpanını **yalnızca görsel yarı** uyguluyordu.
+Zincir şimşeği kendi `LEGACY_CHARGE_TIMEOUT` sabitini kullanıyor, karttan
+hiç etkilenmiyordu.
+
+Kart "Combo zinciri %75 daha uzun sürer" diyor. Oyuncu bunu zincir şimşeğinin
+daha uzun sürmesi diye okur — öyle değildi. Bir seçim harcayıp ekrandaki
+yazının daha uzun kalmasını alıyordun.
+
+Süre artık ikisinde de aynı çarpandan geçiyor. Lv3'te 0.85s → 1.49s, ikisi
+de eşit.
+
+**Bu bir buff.** Zincir şimşeği rank 8'de 6 hedefe vuruyor; pencerenin %75
+uzaması ciddi verim artışı. Faz 6.4'te çıkardığım kaba temizleme hızı
+sınırında zincir şimşeğini hesaba katmamıştım — oyun testinde ayrıca izlensin.
+
+### 7.2 Kart denetimi: 22 kartın hepsi — ✅ TEMİZ (biri hariç)
+
+7.1 bir soruyu doğurdu: başka kaç kart vaat ettiğini yapmıyor? Hepsini
+tek tek izledim — kart kimliğinden getter'a, getter'dan tüketim noktasına.
+
+**Sonuç: yalnızca `combo_window` bozuktu.** Diğer 21 kart doğru bağlı.
+
+Yöntem (tekrar edilebilir): `game_manager.gd` içinde `get_card_level(&"…")`
+okuyan tüm fonksiyonlar çıkarılır, her birinin gerçekten çağrıldığı
+doğrulanır. Getter'ı olmayan üç kart (`revive`, `pierce`, `fireball`) elle
+izlenir.
+
+Denetlenen ve doğru bulunan kartlar:
+
+| Kart | Tüketim noktası |
+|---|---|
+| `paddle_speed` / `paddle_width` | `paddle.gd` |
+| `xp_gain` | `main.add_xp` |
+| `drop_rate` / `salvage_find` | `main._resolve_brick_collectible_drop` |
+| `magnet_duration` | `main.gd` mıknatıs süresi |
+| `extra_ball` | `main._refresh_persistent_extra_balls` |
+| `crit_hit` / `ball_speed` | `ball.gd` |
+| `slow_descent` | `continuous_brick_field.apply_depth_settings` |
+| `revive` | `main.gd` — son can gidince `lives = 2` |
+| `pierce` / `fireball` | `ball.gd` kendi seviye değişkenlerine |
+
+**Uyarı:** kullanım sayısı doğruluk kanıtı değil. `combo_window`'un da iki
+kullanımı vardı ve yine de bozuktu. Getter'ın çağrıldığını görmek yetmez,
+**doğru** tüketim noktasında çağrıldığını görmek gerekir.
+
 ## CODEX'E BİLDİRİM — bölge dışı bulgu, dokunmadım
 
 CLAUDE.md bölüm 2 gereği düzeltmedim, bildiriyorum. Onay verirsen ben de
