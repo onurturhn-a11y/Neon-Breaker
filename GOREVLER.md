@@ -6,19 +6,66 @@ aittir — çakışma olmasın diye. Bitirdiğini işaretle ve PR aç.
 **Codex** → görsel üretim, metin/dil, silah davranışları
 **Claude** → sistem mimarisi, denge matematiği, test altyapısı, meta ilerleme
 
+> Son güncelleme: 2026-08-29 — Faz 4 ve Codex silah turu sonrası yeniden bölündü.
+
 ---
 
-## CODEX — Öncelik 1: Görsel açıklar
+## 0. ÖNCE BU — dal birleştirme sırası
 
-Bunlar oyunun şu an en görünür eksikleri.
+Şu an **üç dal** var ve hiçbiri `main`'e girmedi. `main` iki taraftan da geride.
+Yeni işe başlamadan önce bu temizlenmeli, yoksa fark her gün büyür.
 
-### 1.1 Silah kartı görselleri — ACİL
+| Dal | Sahip | İçerik | Durum |
+|---|---|---|---|
+| `feat/phase4-difficulty` | Claude | Faz 4: zorluk, sektör modifier, lanet, kasa, ascension | Hazır, doğrulandı |
+| `feat/codex-art` | Codex | Mine Launcher, Mortar, kart eli rastgeleliği, Plazma yuva birleşimi | Hazır |
 
-Beş silahın **hiçbirinin kendi kart görseli yok.** Şu an dördü
-`plasma_card.png`, biri `ball_card.png` kullanıyor — yani kart ekranında
-dört silah birbirinin aynı görünüyor.
+**Deneme birleştirme yapıldı: çakışma YOK.** Ortak dosyalarda temas noktaları:
 
-Gerekli: `assets/cards/` altına 5 PNG (mevcut kart görselleriyle aynı boyut/stil)
+- `game_manager.gd` — Codex 2 sabit ekledi, Claude ~238 satır. Farklı bölgeler.
+- `main.gd` — Codex F8 debug kısayolunu sildi, Claude ~230 satır ekledi. Farklı bölgeler.
+- `card_pool.gd` / `card_system.gd` — yalnızca Codex dokundu.
+
+**Önerilen sıra:** önce `feat/phase4-difficulty` → `main`, sonra
+`feat/codex-art` → `main`. İkinci PR rebase ister ama çakışmasız geçer.
+
+Her iki dal da `main`'e girmeden aşağıdaki yeni görevlere başlanmamalı.
+
+---
+
+## Tamamlananlar (bu turda kapandı)
+
+**Claude — Faz 4**
+- 4.1 Zorluk cezası kaldırıldı, eğri derinliğe taşındı
+- 4.2 Lanet sistemi (`curses.gd` — haste/armor/hunted/frail) ve kasa
+  mekaniği (`bank_carried_salvage`) eklendi
+- 4.3 Sektör modifier'ları (`sector_modifiers.gd` — 7 sektör, isim + tagline +
+  iniş/doluluk/patlayıcı/top hızı/saldırgan çarpanları)
+- 4.4 Zafer ekranı (`_trigger_run_victory`) ve Ascension katmanları
+
+**Codex — silahlar**
+- Mine Launcher Lv1–3 (`mine_launcher_controller.gd`, `mine_launcher_mine.gd/tscn`)
+- Mortar Lv1–3 (`mortar_controller.gd`, `mortar_shell.gd/tscn`)
+- `weapon_system.ensure_runtime_controller()` — yeni silahlar artık `main.gd`'ye
+  dokunmadan kuruluyor. **Bu iyi bir kanca; kalan silahlar bunu kullanmalı.**
+- Kart eli tamamen rastgele; Plazma `card_pool.gd`'den `weapon_cards.gd`'ye taşındı
+- `RARITY_LEGENDARY` nadirlik katmanı eklendi
+
+Kart havuzu: **22 kart** (14 pasif + 8 silah).
+
+---
+
+## CODEX — Öncelik 1: Görsel açıklar (hâlâ açık, ACİL)
+
+Bu blok geçen turda da 1. öncelikti ve hiç el değmedi. Silah sayısı 5'ten
+8'e çıktığı için açık **büyüdü**.
+
+### 1.1 Silah kartı görselleri — 8 silah, 2 görsel
+
+`weapons/weapon_cards.gd` içinde sekiz silahın yedisi `plasma_card.png` veya
+`ball_card.png` kullanıyor. Kart ekranında ayırt edilemiyorlar.
+
+Gerekli: `assets/cards/` altına 7 PNG (mevcut kart görselleriyle aynı boyut/stil)
 
 | Dosya adı | Konu |
 |---|---|
@@ -27,13 +74,16 @@ Gerekli: `assets/cards/` altına 5 PNG (mevcut kart görselleriyle aynı boyut/s
 | `railgun_card.png` | Dikey ince ışın huzmesi, mavi-beyaz |
 | `homing_missile_card.png` | İz bırakan güdümlü füze |
 | `pulse_laser_card.png` | Sürekli ışın demeti, turuncu-sarı |
+| `mine_launcher_card.png` | Sahada duran nabız atan mayın |
+| `mortar_card.png` | Yay çizen havan mermisi, tepede patlama |
 
-Sonra `weapons/weapon_cards.gd` içindeki `"icon"` yollarını güncelle.
+Sonra `weapons/weapon_cards.gd` içindeki `"icon"` yollarını güncelle ve import
+çalıştır: `godot --headless --import --path .`
 
 ### 1.2 Pasif kart görselleri — 11 kart
 
-Bu kartlar şu an tek renk SVG ikonla görünüyor; silah kartlarının yanında
-sönük kalıyor. `card_pool.gd` içindeki `"icon"` yolları güncellenmeli.
+Tek renk SVG ikonla görünüyorlar, silah kartlarının yanında sönük kalıyorlar.
+`card_pool.gd` içindeki `"icon"` yolları güncellenmeli.
 
 `paddle_width` · `xp_gain` · `drop_rate` · `magnet_duration` ·
 `combo_window` · `extra_ball` · `crit_hit` · `salvage_find` · `ball_speed` ·
@@ -41,9 +91,8 @@ sönük kalıyor. `card_pool.gd` içindeki `"icon"` yolları güncellenmeli.
 
 ### 1.3 Koloni bina görselleri — 3 bina
 
-Faz 3'te eklenen üç bina şu an **prosedürel yer tutucu** (neon kenarlıklı
-panel + nabız atan çekirdek). Diğer altı binanın canlı sahnesi var, bunların
-yok.
+`colony/buildings/` altında altı `*_live.tscn` var, üçü eksik — o üçü
+prosedürel yer tutucu olarak çiziliyor.
 
 | Bina | Konu | Tema rengi |
 |---|---|---|
@@ -57,17 +106,17 @@ Mevcut binaların yapısını örnek al: `colony/buildings/*_live.tscn`
 
 ## CODEX — Öncelik 2: Metin ve dil
 
-### 2.1 Silah kart açıklamalarını düzelt
+### 2.1 Silah kart açıklamalarını düzelt — 8 silah
 
-`weapons/weapon_cards.gd` içindeki Lv1/Lv2/Lv3 açıklamalarını **ben tahminle
-yazdım** — kontrolcü kodundan silahların seviye başına tam olarak ne yaptığını
-çıkaramadım. Gerçek davranışa göre düzelt.
+`weapons/weapon_cards.gd` içindeki Lv1/Lv2/Lv3 açıklamaları kontrolcü kodundan
+değil tahminden yazıldı. Gerçek davranışa göre düzelt. Mine Launcher ve Mortar
+dahil — onları sen yazdın, açıklamaları da senden.
 
-### 2.2 Oyun içi Krediler ekranı
+### 2.2 Oyun içi Krediler ekranı — yasal zorunluluk
 
-Şu an yok, ama **yasal zorunluluk**: game-icons.net ikonları CC BY 3.0 ve atıf
-istiyor. Ana menüye erişilebilir bir "Krediler" ekranı gerekiyor.
-İçerik `CREDITS.md`'de hazır.
+game-icons.net ikonları CC BY 3.0, atıf istiyor. Ana menüye erişilebilir bir
+"Krediler" ekranı gerekiyor. İçerik `CREDITS.md`'de hazır.
+**`main.tscn`'e düğüm ekleme — koddan üret.**
 
 ### 2.3 CREDITS.md'yi tamamla
 
@@ -75,19 +124,20 @@ istiyor. Ana menüye erişilebilir bir "Krediler" ekranı gerekiyor.
 `microchip` · `time-trap` · `token` · `two-coins`
 game-icons.net'ten tek tek doğrula.
 
-### 2.4 Sektör isimleri ve atmosfer metni
+### 2.4 Sektör atmosfer metni — kapsam daraldı
 
-Yedi sektörün adı yok, sadece numara. Sektör geçiş ekranı hazır ve metin
-bekliyor (`main.gd` → `_play_sector_transition`).
+Yedi sektörün **adı ve tagline'ı artık var** (`sector_modifiers.gd` içinde,
+Faz 4'te eklendi). Sana kalan: geçiş ekranındaki sunum ve daha uzun atmosfer
+metni (`main.gd` → `_play_sector_transition`).
+**Not:** `sector_modifiers.gd` Claude bölgesi. İsimleri beğenmezsen değiştirme,
+söyle — birlikte karar verelim.
 
 ---
 
-## CODEX — Öncelik 3: Kalan silahlar
+## CODEX — Öncelik 3: Kalan iki silah
 
-Artifact'teki Kademe B ve C. Mevcut beş silahın deseni takip edilerek.
+Mine Launcher ve Mortar'da kurduğun `ensure_runtime_controller` kancasını kullan.
 
-- **Mine Launcher** — sahanın ortasına sabit mayın, tuğla değince patlar
-- **Mortar** — mermi tepeye çıkar, en üst satırda patlar
 - **Drone Bay** — raketin yanında 1–2 mini drone, bağımsız ateş
 - **Orbital Marker** — tuğla işaretlenir, telegraf sonrası dikey ışın
 
@@ -96,45 +146,50 @@ Her biri: `<isim>_controller.gd` + gerekiyorsa `<isim>_visual.gd`, sonra
 
 ---
 
-## CLAUDE — Faz 4: Sistem ve denge
+## CLAUDE — Faz 5: Denge doğrulama ve eksik kalanlar
 
-### 4.1 Zorluk cezasını kaldır (F4)
+### 5.1 Elit tuğla — Faz 4'ten kalan tek madde
 
-Dört sistem oyuncuyu güçlendiği için cezalandırıyor: iniş hızı, satır
-doluluğu, zırh/kalkan oranı, yan saldırgan sıklığı. Build-tabanlı cezayı
-kaldır, eğriyi derinliğe taşı.
+4.2'nin üç ayağından ikisi (lanet, kasa) bitti, **elit tuğla yapılmadı.**
+Yüksek HP + belirgin görsel + değerli düşürme. `continuous_brick_field.gd`
+içinde, sektör derinliğine göre oranı artan bir tuğla sınıfı.
 
-### 4.2 Risk mekanikleri (F8)
+### 5.2 8 silahlı denge geçişi
 
-Kasa mekaniği (boss sonrası "koloniye dön ve garantiye al"), lanet sistemi
-(gönüllü zorluk ↔ ödül çarpanı), elit tuğla.
+Silah sayısı 5'ten 8'e çıktı ve kart eli artık tamamen rastgele. İki sonuç:
+- İki yuvaya sekiz adaydan seçim — silah bulma olasılığı düştü
+- Rastgele el, nadirlik ağırlığını zayıflattı
 
-### 4.3 Sektör modifier'ları (F9)
+Ölçülecek: yuva doldurma süresi, silah başına ortalama DPS, Mine/Mortar'ın
+diğer altısına göre yeri. `weapon_slots` mantığı GameManager'da, sayılar orada.
 
-Yedi sektör şu an sadece arka plan rengi. Her sektöre mekanik imza:
-düşük yerçekimi, sis, manyetik sapma, ikiz saldırgan.
+### 5.3 Ascension × sektör modifier etkileşimi
 
-### 4.4 Zafer ve Ascension (F10)
+`get_ascension_descent_scale()` ile `sector_modifiers` içindeki `descent_scale`
+çarpımsal biniyor. Ascension 3'te Sektör 3 + `haste` laneti üst üste gelirse
+iniş hızı kontrolden çıkabilir. Tavan (clamp) gerekiyor mu, hesapla.
 
-Chronoform sonrası "RUN TAMAMLANDI" ekranı, ardından Ascension katmanları.
-Bu aynı zamanda koloni tavanı sorununu da kapatır.
+### 5.4 Test altyapısı
 
-### 4.5 Sürekli
+Headless denge koşusu: verilen bir build + ascension + sektör için beklenen
+tuğla/saniye ve ölüm derinliğini basan `_balance_probe.gd`.
+`_` önekli, `.gitignore`'da — depoya girmez.
 
-Test altyapısı, birleştirme denetimi, denge matematiği.
+### 5.5 Koloni tavanı sonrası
+
+Ascension katmanları koloni tavanını açtı. Geç oyunda PARÇA fazlası nereye
+gidiyor — bina seviyeleri ascension ile mi ölçekleniyor, kontrol et.
 
 ---
 
-## Ortak — ikisi de dokunabilir, önce haber ver
+## Bölge hatırlatması
 
-- `assets/_archive/` (35 MB) depoya alınmadı. Silinecek mi karar verilmeli.
-- Müzik dosyasının lisansı netleşmeli (public repo kararını etkiliyor).
-- Silahların oyunda gerçekten ateş ettiği **henüz test edilmedi.**
+`CLAUDE.md` / `AGENTS.md` bölüm 1'deki tablo geçerli. Yeni dosyalar:
 
----
+| Dosya | Sahip |
+|---|---|
+| `curses.gd`, `sector_modifiers.gd` | CLAUDE |
+| `mine_launcher_*.gd/tscn`, `mortar_*.gd/tscn` | CODEX |
+| `weapons/weapon_system.gd`, `weapons/weapon_cards.gd` | CODEX (ortak dosya, silah bölgesi) |
 
-## Çakışma kuralı
-
-`main.gd` ve `game_manager.gd` ortak dosya. Genişletme noktaları sayesinde
-çoğu iş bunlara dokunmadan yapılabilir — bkz. `AGENTS.md` madde 3.
-Dokunman gerekiyorsa önce `git fetch` yap, sonra karşı tarafa haber ver.
+Bölge dışında hata görürsen: **düzeltme, bildir, onay bekle.**
