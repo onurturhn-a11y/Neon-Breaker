@@ -247,6 +247,61 @@ Railgun + Mortar → sayaç 2, ÇEKİRDEK ağırlığı 60 → 26.
 
 Ölçüm aracı: `_weapon_probe.gd` (gitignore'da).
 
+## CLAUDE — Faz 6: İlerleme eğrisi
+
+### 6.1 Run'ın ikinci yarısı ilerleme vermiyordu — ✅ BİTTİ
+
+Bir zafer run'ı depth 1 → 56 (7 boss). Boss segmenti başına level-up:
+
+| Segment | Önce | Sonra |
+|---|---|---|
+| depth 1→8 | 6 | 7 |
+| 8→16 | 3 | 4 |
+| 16→24 | 2 | 3 |
+| 24→32 | 1 | 2 |
+| 32→40 | 1 | 2 |
+| 40→48 | **0** | 1 |
+| 48→56 | 1 | 2 |
+| **toplam** | **15** | **21** |
+
+Son çeyrek — 24 derinlik, ~2300 tuğla — 2 kart seçimi veriyordu, bir segment
+sıfır. Run'ın en tehlikeli yarısı en ödülsüz yarısıydı.
+
+Sebep: tuğla geliri derinlik 8'den sonra **sabit** (satır başına 12), XP
+ihtiyacı **üstel** (×1.20/seviye). Sabit gelir üstel maliyeti yakalayamıyor.
+
+Dört aday ölçüldü. Seçilen: **geliri derinliğe bağla, maliyet eğrisine
+dokunma.** Orb XP'si `10 × (1 + 0.06 × (derinlik−1))` — d1=1.00, d56=4.30.
+
+Maliyet eğrisini değiştirmek erken oyunu da şişiriyordu; gelir çarpanı erken
+ölen oyuncuyu hiç etkilemiyor. Faz 4.1'in "eğriyi derinliğe taşı" ilkesiyle
+aynı.
+
+Havuz kapasitesi 52 seçim, yani 21 seçim hâlâ tercih bırakıyor — run her şeyi
+maksimuma çıkarmıyor.
+
+### Yan ölçüm: zafer run'ı ~12 dakika
+
+Tuğla inişi 12.3 dakika (ascension 0), 9.1 dakika (ascension 10). Boss
+dövüşleri hariç. Derinlik 56'da temizlenmesi gereken hız saniyede 9.2 tuğla.
+
+**Modelleme hatası notu:** ilk hesabımda satırın her adımda doğduğunu
+varsaymıştım, sonuç 4.2 dakika çıkmıştı. Yanlış — alan adımda 10px iniyor,
+yeni satır ancak `gap_y` (29px) birikince doğuyor, yani satır başına ~2.9
+adım. Düzeltildi. **6.1'in sonucunu etkilemiyor**: o hesap tuğla sayıyor,
+süre değil.
+
+### Sıradaki — henüz ölçülmedi
+
+- **6.2 Boss HP ↔ oyuncu DPS.** 7 boss depth 8-56 arasında. Oyuncu build'i
+  boss HP'sini geçiyor mu, geriden mi geliyor? Hiç ölçülmedi.
+- **6.3 Yan saldırgan eğrisi** depth 56'ya kadar. Faz 4'te derinlik 25'e
+  kadar bakılmıştı.
+- **6.4 Tehlike hattı ekonomisi.** Kaç tuğla hattı geçiyor, can kaybı ne
+  sıklıkta? Zafer run'ının mümkün olup olmadığı buna bağlı.
+
+Ölçüm aracı: `_progression_probe.gd` (gitignore'da).
+
 ## CODEX'E BİLDİRİM — bölge dışı bulgu, dokunmadım
 
 CLAUDE.md bölüm 2 gereği düzeltmedim, bildiriyorum. Onay verirsen ben de
