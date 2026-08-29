@@ -19,6 +19,12 @@ Yeni işe başlamadan önce bu temizlenmeli, yoksa fark her gün büyür.
 |---|---|---|---|
 | `feat/phase4-difficulty` | Claude | Faz 4: zorluk, sektör modifier, lanet, kasa, ascension | Hazır, doğrulandı |
 | `feat/codex-art` | Codex | Mine Launcher, Mortar, kart eli rastgeleliği, Plazma yuva birleşimi | Hazır |
+| `feat/integration-phase5` | Claude | Yukarıdaki ikisinin birleşimi — **ölçüm ve doğrulama için**, `main`'e merge edilmek için değil | Doğrulandı |
+
+`feat/integration-phase5` neden var: Faz 5.2 (8 silahlı denge) tek bir dalda
+ölçülemiyordu — phase4'te 5 silah var, 8 değil. `main`'e dokunmadan ikisini
+birleştirdim, ölçtüm, doğruladım. **Birleşik yapı headless koşuda 0 hata
+veriyor** — yani açacağın iki PR güvenle birleşecek.
 
 **Deneme birleştirme yapıldı: çakışma YOK.** Ortak dosyalarda temas noktaları:
 
@@ -207,16 +213,77 @@ ara geçiyor.
 Kazanç çarpanının üç yolda da (PARÇA, coin, XP) **bir kez** uygulandığı
 denetlendi; çift sayım yok.
 
-### 5.2 8 silahlı denge geçişi — ⛔ ENGELLİ
+### 5.2 8 silahlı denge geçişi — ✅ BİTTİ
 
-**Codex dalı `main`'e girmeden yapılamaz.** Mine Launcher ve Mortar
-`feat/codex-art` dalında; benim dalımda 5 silah var, 8 değil. Sekiz silahı
-beş silahlık bir dalda dengeleyemem.
+`main`'e dokunmadan `feat/integration-phase5` dalında iki dal birleştirilip
+ölçüldü (bkz. bölüm 0).
 
-Birleştirme bittiğinde ölçülecek:
-- Yuva doldurma süresi (kart eli artık tamamen rastgele, 8 aday 2 yuvaya)
-- Silah başına ortalama DPS; Mine/Mortar'ın diğer altısına göre yeri
-- Rastgele elin nadirlik ağırlığını ne kadar zayıflattığı
+**Yuva doldurma sorun DEĞİL.** Endişe yersizdi — 22 kartlık havuzda 8 silah,
+2 yuva:
+
+| Oyuncu davranışı | İlk yuva | İki yuva | 40 level-up'ta dolmayan |
+|---|---|---|---|
+| Silah öncelikli | 1.3 | 2.9 | %0 |
+| Rastgele seçim | 2.8 | 6.0 | %0 |
+
+Rastgele el, silah bulmayı zorlaştırmamış. Ek iş gerekmiyor.
+
+**Bulunan gerçek hata: bayat silah sayacı.** `get_active_weapon_count()`
+`[plasma_level, pierce_level, fireball_level]` sayıyordu — silah yuva sistemi
+öncesinin üç "silah kartı". Plazma yuva sistemine taşınıp 7 silah eklenince
+sayaç kör kaldı.
+
+Ölçüm: oyuncu **Railgun + Mortar ile iki yuvayı da doldurduğunda sayaç hâlâ
+0 dönüyordu.** Sonuç: ÇEKİRDEK ağırlığı (60) run boyunca hiç düşmüyor,
+`pierce` ve `fireball` sürekli fazla teklif ediliyordu. Tasarım niyeti
+"iki saldırı seçeneği olana kadar çekirdek kartlar öne çıksın" idi; adım
+asla gerçekleşmiyordu.
+
+Düzeltildi: artık dolu yuvalar + pierce/fireball sayılıyor.
+Railgun + Mortar → sayaç 2, ÇEKİRDEK ağırlığı 60 → 26.
+
+Ölçüm aracı: `_weapon_probe.gd` (gitignore'da).
+
+## CODEX'E BİLDİRİM — bölge dışı bulgu, dokunmadım
+
+CLAUDE.md bölüm 2 gereği düzeltmedim, bildiriyorum. Onay verirsen ben de
+yapabilirim.
+
+### `RARITY_LEGENDARY` teklif edilemez durumda
+
+`card_pool.gd`'ye `RARITY_LEGENDARY` eklenmiş (renk + etiket hazır), ama
+`card_system.get_rarity_weight()` içinde **karşılığı yok**. Bu yüzden
+`match` sonundaki `return 1.0`'a düşüyor:
+
+| Nadirlik | Ağırlık |
+|---|---|
+| ÇEKİRDEK | 60 / 26 |
+| YAYGIN | 45 |
+| NADİR | 12 → 32 (derinlikle) |
+| EFSANE | 3 → 14 (derinlikle) |
+| **LEGENDARY** | **1.0** ← yaygının 1/45'i |
+
+Şu an hiçbir kart bu nadirliği kullanmadığı için oyunda etkisi yok. Ama
+eklediğin ilk legendary kart pratikte hiç çıkmayacak. Ağırlığı sen
+belirlemelisin — ilk legendary kartı sen tasarlayacaksın.
+
+Not: `RARITY_LABELS` içinde etiket `"LEGENDARY"` yazıyor; diğerleri Türkçe
+(YAYGIN, NADİR, EFSANE). `EFSANE` zaten `RARITY_EPIC`'te kullanılmış, yani
+yeni katman için başka bir Türkçe ad gerekiyor.
+
+### Yayın öncesi temizlik
+
+İkisi de `OS.is_debug_build()` korumalı — sürüm derlemesinde erişilemez.
+Riskli değil, sadece listeye alınsın:
+
+- `game_manager.debug_print_weapon_slots()` — her silah alımında konsola
+  iki satır yazıyor. Denge ölçümü yaparken çıktıyı boğuyor.
+- Koloni debug kısayolları (`colony.gd` `_unhandled_input`): Shift+P
+  100 PARÇA ekliyor, Shift+R **koloni binalarını siliyor**. Kısayol masaüstü
+  debug derlemesiyle sınırlı, ama Shift+R geri alınamaz bir işlem —
+  yayından önce kaldırılmalı.
+
+---
 
 ## Bölge hatırlatması
 
