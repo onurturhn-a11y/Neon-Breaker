@@ -53,6 +53,12 @@ Her iki dal da `main`'e girmeden aşağıdaki yeni görevlere başlanmamalı.
 
 Kart havuzu: **22 kart** (14 pasif + 8 silah).
 
+**Claude — Faz 5 (bu tur)**
+- 5.1 Elit tuğla — Faz 4'ün son eksik maddesi kapandı
+- 5.3 İniş hızı doygunluğu ölçüldü ve düzeltildi; ascension artık hissediliyor
+- 5.4 `_balance_probe.gd` denge ölçüm aracı
+- 5.5 Koloni tavanı denetlendi — kapalı, iş gerekmiyor
+
 ---
 
 ## CODEX — Öncelik 1: Görsel açıklar (hâlâ açık, ACİL)
@@ -146,41 +152,71 @@ Her biri: `<isim>_controller.gd` + gerekiyorsa `<isim>_visual.gd`, sonra
 
 ---
 
-## CLAUDE — Faz 5: Denge doğrulama ve eksik kalanlar
+## CLAUDE — Faz 5: Denge doğrulama
 
-### 5.1 Elit tuğla — Faz 4'ten kalan tek madde
+### 5.1 Elit tuğla — ✅ BİTTİ
 
-4.2'nin üç ayağından ikisi (lanet, kasa) bitti, **elit tuğla yapılmadı.**
-Yüksek HP + belirgin görsel + değerli düşürme. `continuous_brick_field.gd`
-içinde, sektör derinliğine göre oranı artan bir tuğla sınıfı.
+Faz 4'ten kalan tek maddeydi. Yüksek can (3/4/5, derinliğe göre) + kehribar
+nabızlı çerçeve + 3x düşürme çarpanı. `elite_bricks.gd`.
 
-### 5.2 8 silahlı denge geçişi
+Kalibrasyon notu: oran **tuğla başınadır** ve satır boyunca birikir. İlk
+deneme derinlik 25'te satırların %81'ini elitli yapıyordu. Satır bazlı
+yeniden ölçüldü — şimdi derinlik 4'te satırların ~%12'si, derinlik 20+'da
+~%45'i. Satır başına en fazla 1 elit.
 
-Silah sayısı 5'ten 8'e çıktı ve kart eli artık tamamen rastgele. İki sonuç:
-- İki yuvaya sekiz adaydan seçim — silah bulma olasılığı düştü
-- Rastgele el, nadirlik ağırlığını zayıflattı
+### 5.3 Ascension × sektör modifier etkileşimi — ✅ BİTTİ
 
-Ölçülecek: yuva doldurma süresi, silah başına ortalama DPS, Mine/Mortar'ın
-diğer altısına göre yeri. `weapon_slots` mantığı GameManager'da, sayılar orada.
+Ölçüm, endişenin **tersini** gösterdi: iniş hızı kontrolden çıkmıyor, taban
+zaten yakalıyor. Sorun tabanın **çok erken** bağlamasıydı.
 
-### 5.3 Ascension × sektör modifier etkileşimi
+- Taban ağır senaryoda derinlik 9'da bağlıyordu
+- Ascension 10'da ham değer 0.123s, oyuncunun yaşadığı 0.450s
+- Yani ascension, iniş hızı açısından **kozmetikti** (+%15/katman kazanç
+  veriyordu, karşılığında hiçbir baskı getirmiyordu)
 
-`get_ascension_descent_scale()` ile `sector_modifiers` içindeki `descent_scale`
-çarpımsal biniyor. Ascension 3'te Sektör 3 + `haste` laneti üst üste gelirse
-iniş hızı kontrolden çıkabilir. Tavan (clamp) gerekiyor mu, hesapla.
+İki düzeltme:
+1. Taban da ascension ile iniyor (katman başına %2): asc0 → 0.450,
+   asc10 → 0.368. Yalnızca ascension tabanı deler; lanet ve sektör delemez.
+2. Sektör 6 ve 7'nin `descent_scale`'i **ölü sayıydı** (depth 21/25'te
+   başlıyorlar, taban depth 9-13'te bağlıyor). Baskı doygun olmayan
+   eksenlere taşındı: satır doluluğu ve saldırgan sıklığı.
 
-### 5.4 Test altyapısı
+**Yeni sektör/lanet eklerken:** derinlik 9'un ötesinde `descent_scale` ile
+baskı kurmaya çalışma, taban yutar. Doygun olmayan eksenleri kullan.
 
-Headless denge koşusu: verilen bir build + ascension + sektör için beklenen
-tuğla/saniye ve ölüm derinliğini basan `_balance_probe.gd`.
-`_` önekli, `.gitignore`'da — depoya girmez.
+### 5.4 Test altyapısı — ✅ BİTTİ
 
-### 5.5 Koloni tavanı sonrası
+`_balance_probe.gd` — `_` önekli, `.gitignore`'da, depoya girmez.
+Ölçtüğü: iniş aralığı çarpımsal yığını, tabanın bağlama derinliği,
+sektör `descent_scale`'lerinin gerçekten etkili olup olmadığı, elit oran
+eğrisi, koloni PARÇA gideri.
 
-Ascension katmanları koloni tavanını açtı. Geç oyunda PARÇA fazlası nereye
-gidiyor — bina seviyeleri ascension ile mi ölçekleniyor, kontrol et.
+```bash
+godot --headless --path . --script _balance_probe.gd
+```
 
----
+Kendinde yok — yerel araç. Denge sayısına dokunacaksan önce bunu yaz.
+
+### 5.5 Koloni tavanı — ✅ İŞ GEREKMİYOR (denetlendi)
+
+Tavan zaten kapalı: kalibrasyon üstel bir gider (40 × 1.35^n), ascension
+kazancı doğrusal (+%15/katman, tavan 2.5x). Ölçüm: kalibrasyon 20'ye
+ulaşmak maksimum ascension'da ~530 run. Üstel gider doğrusal geliri uzak
+ara geçiyor.
+
+Kazanç çarpanının üç yolda da (PARÇA, coin, XP) **bir kez** uygulandığı
+denetlendi; çift sayım yok.
+
+### 5.2 8 silahlı denge geçişi — ⛔ ENGELLİ
+
+**Codex dalı `main`'e girmeden yapılamaz.** Mine Launcher ve Mortar
+`feat/codex-art` dalında; benim dalımda 5 silah var, 8 değil. Sekiz silahı
+beş silahlık bir dalda dengeleyemem.
+
+Birleştirme bittiğinde ölçülecek:
+- Yuva doldurma süresi (kart eli artık tamamen rastgele, 8 aday 2 yuvaya)
+- Silah başına ortalama DPS; Mine/Mortar'ın diğer altısına göre yeri
+- Rastgele elin nadirlik ağırlığını ne kadar zayıflattığı
 
 ## Bölge hatırlatması
 
@@ -188,7 +224,7 @@ gidiyor — bina seviyeleri ascension ile mi ölçekleniyor, kontrol et.
 
 | Dosya | Sahip |
 |---|---|
-| `curses.gd`, `sector_modifiers.gd` | CLAUDE |
+| `curses.gd`, `sector_modifiers.gd`, `elite_bricks.gd` | CLAUDE |
 | `mine_launcher_*.gd/tscn`, `mortar_*.gd/tscn` | CODEX |
 | `weapons/weapon_system.gd`, `weapons/weapon_cards.gd` | CODEX (ortak dosya, silah bölgesi) |
 

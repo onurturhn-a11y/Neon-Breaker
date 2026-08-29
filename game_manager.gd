@@ -1047,7 +1047,16 @@ func accept_curse(curse_id: StringName) -> bool:
 	return true
 
 
-## Lanetlerin kazanca etkisi. PARÇA, coin ve XP bu çarpandan geçer.
+## Run'ın toplam kazanç çarpanı. PARÇA, coin ve XP bu çarpandan geçer.
+##
+## AD YANILTICI: yalnızca laneti değil, lanet × ascension'ı döndürür.
+## Adı bilerek değiştirilmedi — ortak dosyada fonksiyon yeniden adlandırma
+## çözülmesi en zor çakışmayı üretir (bkz. CLAUDE.md bölüm 3).
+##
+## Üç çağrı yeri var ve üçü de çarpanı BİR KEZ uyguluyor (Faz 5.5'te
+## denetlendi): get_xp_gain_multiplier, main._award_run_salvage,
+## main.collect_coin. Yeni bir kazanç yolu eklersen buradan geçir,
+## ama iki kez uygulama.
 func get_curse_gain_multiplier() -> float:
 	return Curses.get_gain_multiplier(active_curses) * get_ascension_gain_multiplier()
 
