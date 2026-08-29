@@ -6,7 +6,10 @@ aittir — çakışma olmasın diye. Bitirdiğini işaretle ve PR aç.
 **Codex** → görsel üretim, metin/dil, silah davranışları
 **Claude** → sistem mimarisi, denge matematiği, test altyapısı, meta ilerleme
 
-> Son güncelleme: 2026-08-29 — Faz 4 ve Codex silah turu sonrası yeniden bölündü.
+> Son güncelleme: 2026-08-29 — Faz 5 sonrası.
+>
+> **Bu dosya İŞ listesidir.** Karşı tarafa MESAJIN varsa `ILETISIM.md`'ye yaz —
+> birleştirme talimatı, bulduğun hata, cevap bekleyen soru oraya gider.
 
 ---
 

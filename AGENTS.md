@@ -44,6 +44,34 @@ git push origin <dalin>
 
 ---
 
+## 0.5. İKİNCİ İŞ — `ILETISIM.md` oku
+
+İki geliştiricinin çalışma saatleri örtüşmüyor. Canlı konuşma yok, bu yüzden
+**depo tek iletişim kanalı.** Senkrondan hemen sonra oku:
+
+```bash
+git log --oneline -3 -- ILETISIM.md
+```
+
+Karşı taraf sana bir şey yazmış olabilir: birleştirme talimatı, kodunda
+bulunan bir hata, cevap bekleyen bir soru.
+
+**Oturum sonunda** karşı tarafın bilmesi gereken bir şey varsa aynı dosyanın
+en üstüne yaz, sonra push et. Yazılacak şeyler:
+
+- Ne bitirdin, ne yarım kaldı
+- **Ortak dosyalarda neye dokundun** — karşı taraf çakışmayı önceden görsün
+- Bölge dışında bulduğun hata (düzeltme — bildir, bkz. bölüm 2)
+- Karşı taraftan beklediğin bir şey
+
+Etiketler ve şablon `ILETISIM.md`'nin başında.
+
+**Neden:** karşı ajan sen çalışırken uyuyor. Sorduğun soruya anında cevap
+gelmeyecek. Bu yüzden mesaj, cevap beklemeden ilerlenebilecek kadar açık
+olmalı — ne yapılacağını, neden yapılacağını ve yapılmazsa ne olacağını yaz.
+
+---
+
 ## 1. Bölge sahipliği
 
 | Bölge | Dosyalar |
