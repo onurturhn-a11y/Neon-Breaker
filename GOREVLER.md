@@ -370,12 +370,64 @@ Yani 2. yol tek başına yetmiyor. Oyun testinden sonra boss HP artışının
 
 Ölçüm aracı: `_boss_probe.gd` (gitignore'da).
 
-- **6.3 Yan saldırgan eğrisi** depth 56'ya kadar. Faz 4'te derinlik 25'e
-  kadar bakılmıştı.
-- **6.4 Tehlike hattı ekonomisi.** Kaç tuğla hattı geçiyor, can kaybı ne
-  sıklıkta? Zafer run'ının mümkün olup olmadığı buna bağlı.
+### 6.3 Yan saldırgan eğrisi — ✅ ÖLÇÜLDÜ, sorun yok
 
-Ölçüm aracı: `_progression_probe.gd` (gitignore'da).
+`get_late_game_side_attacker_multiplier` depth 57'ye kadar ölçekleniyor.
+Aralık kabaca yarıya iniyor:
+
+| Derinlik | Çarpan | Aralık |
+|---|---|---|
+| 1-8 | 1.00 | 6-10s |
+| 21-28 | 0.60 | 3.6-6.0s |
+| 57+ | 0.44 | 2.6-4.4s |
+
+**Düzleşmiyor.** Run'ın ikinci yarısında baskıyı sürdüren eksenlerden biri.
+Değişiklik gerekmiyor.
+
+### 6.4 Tehlike hattı ekonomisi — ✅ ÖLÇÜLDÜ
+
+**Gereken temizleme hızı derinlik 24'te platoya çıkıyor:**
+
+| Derinlik | Gereken tuğla/sn (asc0) | asc10 |
+|---|---|---|
+| 8 | 5.9 | 8.9 |
+| 16 | 6.8 | 10.2 |
+| 24 | 8.9 | 11.3 |
+| 32-56 | **9.2** | **11.3** |
+
+Depth 24'ten 56'ya kadar talep **sabit** — çünkü iniş tabanı onu sınırlıyor.
+
+**Tampon:** ekranda ~15 satır sığıyor, yani derinlik 56'da ~20 saniye geri
+kalma payı var. Cömert; kötü bir seri hemen öldürmüyor.
+
+**Tampon bitince af yok:** tehlike hasarı 0.85s aralıklı, 3 canla sürekli
+tuğla geçerse 2.5 saniyede ölüm. Yani zafer run'ı yukarıdaki hızı
+**sürdürülebilir** tutturmayı gerektiriyor.
+
+**Ulaşılabilir mi?** Kaba sınır: plazma Lv3 (0.70s aralık, yaylı atış) +
+bir silah (arc 1.5s / scatter 1.2s, çoklu vuruş) + 3-5 top + patlayıcı
+zincir ≈ 10-11 tuğla/sn. Gerekenin biraz üstünde. **Ama bu tahmin, ölçüm
+değil** — gerçek cevap oyun testinden gelir, tablodan değil.
+
+### Run'ın ikinci yarısı: toplu görünüm
+
+Üç ölçüm birleşince tablo şu:
+
+| Eksen | Depth 24-56 arası |
+|---|---|
+| Boss HP | büyüyor (200 → 500) |
+| Yan saldırgan sıklığı | büyüyor (0.60 → 0.44) |
+| XP ilerleme | 6.1 öncesi düzdü, **düzeltildi** |
+| Tuğla temizleme talebi | **sabit** (9.2/sn) |
+| Oyuncu hasar tavanı | **5. bossta doluyor** (6.2 kısmen açtı) |
+| Elit tuğla oranı | **depth 20'de tavana vuruyor** |
+
+İki eksen büyüyor, üçü düz. Kriz değil ama bilinçli bir denge olmalı —
+ikinci yarıya baskı eklenecekse doğru yer tuğla talebi ya da elit oranı.
+
+Ölçüm araçları: `_progression_probe.gd`, `_boss_probe.gd`, `_danger_probe.gd`,
+`_ascension_probe.gd`, `_balance_probe.gd`, `_weapon_probe.gd` (hepsi
+gitignore'da).
 
 ## CODEX'E BİLDİRİM — bölge dışı bulgu, dokunmadım
 
