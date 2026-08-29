@@ -991,8 +991,33 @@ func register_ascension_clear() -> bool:
 
 
 ## Ascension katmanı iniş hızını sıkılaştırır (katman başına %4).
+##
+## DİKKAT — bu çarpan tek başına anlamlı DEĞİLDİR. İniş aralığı çarpımsal bir
+## yığının sonucudur (bkz. continuous_brick_field.apply_depth_settings) ve
+## `minimum_safe_step_interval` tabanına çarpar. Ölçüm (Faz 5.3):
+## ağır senaryoda taban derinlik 9'da bağlıyor; sonrasında bu çarpanın
+## değeri oyuncuya HİÇ ulaşmıyordu. Ascension 10'da ham değer 0.123s,
+## oyuncunun yaşadığı 0.450s idi.
+##
+## Çözüm: tabanın kendisi de ascension ile iner (aşağıda). Yeni iniş
+## baskısı eklenecekse bu yığına DEĞİL, doygun olmayan eksenlere
+## (satır doluluğu, zırh oranı, saldırgan sıklığı, elit oranı) eklenmeli.
 func get_ascension_descent_scale() -> float:
 	return pow(0.96, float(run_ascension))
+
+
+## Ascension'a göre inen güvenli iniş tabanı.
+##
+## Taban oynanabilirlik içindir: satırlar topun temizleyebileceğinden hızlı
+## inemez. Ama sabit bir taban, ascension katmanlarını derinlik 9'dan sonra
+## kozmetiğe çeviriyordu. Katman başına %2 ile taban da iner —
+## 10. katmanda 0.45 → 0.368 (%18 daha sıkı). Kazanç katman başına %15
+## arttığı için karşılığı var.
+##
+## Yalnızca ascension tabanı düşürür. Lanet ve sektör normal bir run'ın
+## tabanını delemez — gönüllü zorluk kalıcı ilerlemeye bağlı olmalı.
+func get_ascension_min_step_interval(base_floor: float) -> float:
+	return base_floor * pow(0.98, float(run_ascension))
 
 
 ## Karşılığında tüm kazanç artar (katman başına %15).

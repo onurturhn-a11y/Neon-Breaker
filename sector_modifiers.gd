@@ -70,22 +70,38 @@ const MODIFIERS := {
 	6: {
 		"name": "ÇÖKÜŞ HATTI",
 		"tagline": "Her şey hızlanıyor.",
-		"descent_scale": 0.90,
-		"row_fill_bonus": 0.02,
+		# descent_scale burada NÖTR bırakıldı — bkz. aşağıdaki not.
+		# Baskı, doygun olmayan eksenlere taşındı.
+		"descent_scale": 1.0,
+		"row_fill_bonus": 0.05,
 		"explosive_bonus": 0.02,
 		"ball_speed_scale": 1.05,
-		"attacker_scale": 0.85,
+		"attacker_scale": 0.78,
 	},
 	7: {
 		"name": "BOŞLUĞUN DİBİ",
 		"tagline": "Buradan sonrası kayıt dışı.",
-		"descent_scale": 0.86,
-		"row_fill_bonus": 0.03,
+		"descent_scale": 1.0,
+		"row_fill_bonus": 0.08,
 		"explosive_bonus": 0.04,
 		"ball_speed_scale": 1.08,
-		"attacker_scale": 0.75,
+		"attacker_scale": 0.66,
 	},
 }
+
+## NOT — SEKTÖR 6 VE 7'DE NEDEN descent_scale YOK (Faz 5.3 ölçümü)
+##
+## Bu iki sektörün eski değerleri 0.90 ve 0.86 idi. Ölçünce görüldü ki
+## ikisi de ÖLÜ SAYIYDI: sektör 6 depth 21'de, sektör 7 depth 25'te
+## başlıyor; iniş tabanı (`minimum_safe_step_interval`) ise ağır senaryoda
+## depth 9'da bağlıyor. Yani bu çarpanlar hiçbir zaman oyuncuya ulaşmadı.
+##
+## Sayıyı büyütmek çözüm değil — taban yine yutar. Baskı doygun olmayan
+## eksenlere taşındı: satır doluluğu, saldırgan sıklığı, top hızı.
+## Bu üçünün tavanı yok, farkları oyuncuya doğrudan ulaşır.
+##
+## Yeni sektör eklerken: derinlik 9'un ötesinde descent_scale ile baskı
+## kurmaya çalışma, işe yaramaz.
 
 
 static func get_sector_for_depth(depth: int) -> int:
