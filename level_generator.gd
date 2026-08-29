@@ -53,6 +53,9 @@ var continuous_row_fill = 0.45
 var special_bricks_created = 0
 var special_brick_cap_count = 999
 var shield_bricks_created = 0
+# Satir basina en fazla EliteBricks.MAX_PER_ROW elit. Dort elitli satir
+# oynanabilir degil; bu sayac onu engeller.
+var elite_bricks_created = 0
 var next_continuous_row_id = 0
 var portrait_mobile_layout := false
 const MOBILE_ROW_FILL_BONUS := 0.10
@@ -248,6 +251,7 @@ func create_continuous_row(parent, row_y, row_index):
 	)
 	special_bricks_created = 0
 	shield_bricks_created = 0
+	elite_bricks_created = 0
 	special_brick_cap_count = maxi(
 		1,
 		floori(target_brick_count * special_brick_row_cap)
@@ -304,6 +308,7 @@ func create_side_wave_group(
 		return created_bricks
 	special_bricks_created = 0
 	shield_bricks_created = 0
+	elite_bricks_created = 0
 	special_brick_cap_count = maxi(
 		1,
 		floori(spawn_positions.size() * special_brick_row_cap)
@@ -367,6 +372,23 @@ func create_brick(
 		if make_explosive or make_armored or make_shield:
 			special_bricks_created += 1
 
+	# ELIT RULETI — ozel tuglalarla karsilikli dislayici.
+	# Bir tugla ayni anda hem elit hem patlayici/zirhli/kalkanli olamaz:
+	# ust uste binerlerse hem gorsel okunaksiz olur hem denge kacar.
+	# Yalnizca ana satirlarda (allow_shield) cikar; yan dalgalar temiz kalir.
+	var make_elite = false
+	if (
+		allow_shield
+		and not (make_explosive or make_armored or make_shield)
+		and elite_bricks_created < EliteBricks.MAX_PER_ROW
+	):
+		var elite_chance := EliteBricks.get_chance(
+			GameManager.run_depth, GameManager.ascension_level
+		)
+		if elite_chance > 0.0 and randf() < elite_chance:
+			make_elite = true
+			elite_bricks_created += 1
+
 	brick.explosive = make_explosive
 	brick.is_shield_brick = make_shield
 	brick.set_grid_cell(row_id, column_id)
@@ -414,6 +436,19 @@ func create_brick(
 			brick.set_health(
 				2
 			)
+
+
+	# --------------------------------------------------
+	# ELİT
+	# --------------------------------------------------
+
+	# mark_as_elite sahneye eklendikten SONRA cagrilmali: gorsel kurulum
+	# @onready dugumlere (color_rect) dokunuyor.
+	if make_elite and brick.has_method("mark_as_elite"):
+
+		brick.mark_as_elite(
+			EliteBricks.get_health(GameManager.run_depth)
+		)
 
 
 	# --------------------------------------------------

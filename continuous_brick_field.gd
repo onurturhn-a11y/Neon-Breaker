@@ -767,13 +767,14 @@ func print_difficulty_debug(bricks_this_row):
 		if is_instance_valid(side_spawner) and side_spawner.has_method("get_interval_for_depth"):
 			turret_interval = side_spawner.get_interval_for_depth(GameManager.run_depth)
 	print(
-		"DEPTH: %d | FILL: %.2f | ARMOR: %.2f | SHIELD: %.2f | EXPLOSIVE: %.2f | STEP_INTERVAL: %.2f | TURRET: %.2f-%.2f | BRICKS_THIS_ROW: %d"
+		"DEPTH: %d | FILL: %.2f | ARMOR: %.2f | SHIELD: %.2f | EXPLOSIVE: %.2f | ELITE: %.3f | STEP_INTERVAL: %.2f | TURRET: %.2f-%.2f | BRICKS_THIS_ROW: %d"
 		% [
 			GameManager.run_depth,
 			level_generator.get_effective_continuous_row_fill(),
 			level_generator.get_effective_armored_chance(),
 			level_generator.get_effective_shield_chance(),
 			level_generator.explosive_chance,
+			EliteBricks.get_chance(GameManager.run_depth, GameManager.ascension_level),
 			row_step_interval,
 			turret_interval.x,
 			turret_interval.y,

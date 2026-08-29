@@ -2394,6 +2394,10 @@ func brick_destroyed(brick_position, brick_color, source = "ball", damage_contex
 	var destroyed_brick := instance_from_id(brick_instance_id) as Node
 	if is_instance_valid(destroyed_brick) and bool(destroyed_brick.get_meta("is_side_wave_brick", false)):
 		drop_chance_multiplier = SIDE_WAVE_DROP_MULTIPLIER
+	# Elit tugla: yuksek can karsiliginda degerli dusurme. Elit hicbir zaman
+	# yan dalgada cikmadigi icin iki carpan cakismaz.
+	if is_instance_valid(destroyed_brick) and bool(destroyed_brick.get_meta("is_elite_brick", false)):
+		drop_chance_multiplier = EliteBricks.DROP_MULTIPLIER
 	if unique_destroy:
 		_resolve_brick_collectible_drop(brick_position, drop_chance_multiplier)
 	$HUD/FrameGlow.flash(brick_color)
