@@ -60,7 +60,7 @@ Her iki dal da `main`'e girmeden aşağıdaki yeni görevlere başlanmamalı.
 - Kart eli tamamen rastgele; Plazma `card_pool.gd`'den `weapon_cards.gd`'ye taşındı
 - `RARITY_LEGENDARY` nadirlik katmanı eklendi
 
-Kart havuzu: **22 kart** (14 pasif + 8 silah).
+Kart havuzu: **18 kart** (10 pasif + 8 silah).
 
 **Claude — Faz 5 (bu tur)**
 - 5.1 Elit tuğla — Faz 4'ün son eksik maddesi kapandı
@@ -277,7 +277,7 @@ Maliyet eğrisini değiştirmek erken oyunu da şişiriyordu; gelir çarpanı er
 ölen oyuncuyu hiç etkilemiyor. Faz 4.1'in "eğriyi derinliğe taşı" ilkesiyle
 aynı.
 
-Havuz kapasitesi 58 seçim, yani 21 seçim hâlâ tercih bırakıyor — run her şeyi
+Havuz kapasitesi 48 seçim, yani 21 seçim hâlâ tercih bırakıyor — run her şeyi
 maksimuma çıkarmıyor.
 
 ### Yan ölçüm: zafer run'ı ~12 dakika

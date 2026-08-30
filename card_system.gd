@@ -41,7 +41,7 @@ static func make_state(
 ## silah seviyesi başına davranış her controller'da ayrı tanımlı (Codex
 ## bölgesi), Lv4'ün ne yapacağına o karar vermeli.
 const ASCENSION_SCALED_CARDS: Array[StringName] = [
-	&"crit_hit", &"extra_ball", &"ball_speed", &"pierce", &"fireball",
+	&"crit_hit", &"pierce", &"fireball",
 ]
 
 ## Kaç ascension katmanında +1 tavan, ve en fazla kaç.

@@ -3796,17 +3796,8 @@ func _apply_card_selection(card_id: StringName) -> void:
 			for ball in get_tree().get_nodes_in_group("game_ball"):
 				if ball.has_method("set_fireball_level"):
 					ball.set_fireball_level(next_level)
-		&"paddle_speed", &"paddle_width":
-			if paddle.has_method("refresh_card_modifiers"):
-				paddle.refresh_card_modifiers()
-		&"ball_speed":
-			for ball in get_tree().get_nodes_in_group("game_ball"):
-				if ball.has_method("refresh_card_modifiers"):
-					ball.refresh_card_modifiers()
 		&"combo_window":
 			$HUD/ComboManager.refresh_card_modifiers()
-		&"extra_ball":
-			_refresh_persistent_extra_balls()
 		&"revive":
 			GameManager.revive_available = true
 

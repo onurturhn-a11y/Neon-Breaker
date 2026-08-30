@@ -110,11 +110,12 @@ func test_yalnizca_hasar_kartlari_etkilenir() -> void:
 	gm.run_ascension = 10
 	var state := CardSystem.make_state(gm, true, true)
 	# Hasar kartlari acilir.
-	for card_id in [&"crit_hit", &"extra_ball", &"ball_speed", &"pierce", &"fireball"]:
+	# extra_ball ve ball_speed kart olarak kaldirildi (kart dengesi turu).
+	for card_id in [&"crit_hit", &"pierce", &"fireball"]:
 		assert_int(CardSystem.get_ascension_level_bonus(card_id, state)) \
 			.override_failure_message("'%s' hasar karti, acilmali" % card_id).is_equal(2)
 	# Yardimci kartlar ACILMAZ.
-	for card_id in [&"paddle_width", &"revive", &"drop_rate", &"xp_gain"]:
+	for card_id in [&"revive", &"drop_rate", &"xp_gain", &"magnet_duration"]:
 		assert_int(CardSystem.get_ascension_level_bonus(card_id, state)) \
 			.override_failure_message("'%s' hasar karti degil, acilmamali" % card_id).is_equal(0)
 	gm.run_ascension = 0

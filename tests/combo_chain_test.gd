@@ -60,8 +60,8 @@ func test_gorsel_ve_mekanik_yari_ayni_sureyi_kullanir() -> void:
 
 
 func test_kart_vaadi_sayilarla_tutuyor() -> void:
-	# Kart metni: %25 / %50 / %75 daha uzun.
-	var beklenen := {1: 1.25, 2: 1.50, 3: 1.75}
+	# Kart metni: %5 / %10 / %15 daha uzun (kart dengesi turunde dusuruldu).
+	var beklenen := {1: 1.05, 2: 1.10, 3: 1.15}
 	for level: int in beklenen.keys():
 		gm.set_card_level(&"combo_window", level)
 		assert_float(gm.get_combo_timeout_multiplier()).override_failure_message(
