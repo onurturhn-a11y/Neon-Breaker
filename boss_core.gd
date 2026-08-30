@@ -18,6 +18,10 @@ signal defeated
 
 const PROJECTILE_SCENE = preload("res://boss_projectile.tscn")
 
+## Ayni anda ucusta olabilecek en fazla mermi. Ates araligi 1.8-2.4s ve
+## mermi ekrani gecmesi daha uzun surdugu icin ust uste birikebiliyordu.
+const MAX_ACTIVE_PROJECTILES := 2
+
 var current_hp: int = 100
 var accepting_damage := true
 var phase_one_active := false
@@ -106,7 +110,21 @@ func _fire_loop() -> void:
 		await get_tree().create_timer(randf_range(fire_interval_min, fire_interval_max)).timeout
 		if not phase_one_active or not accepting_damage:
 			return
+		# Ucusta zaten sinir kadar mermi varsa bu turu atla; bir sonraki
+		# aralikta tekrar denenir. Boylece oyuncu her zaman en fazla
+		# MAX_ACTIVE_PROJECTILES mermiyle ugrasir.
+		if _active_projectile_count() >= MAX_ACTIVE_PROJECTILES:
+			continue
 		await _telegraph_and_fire()
+
+
+## Sahnede ucusta olan boss mermisi sayisi.
+func _active_projectile_count() -> int:
+	var count := 0
+	for projectile in get_tree().get_nodes_in_group("boss_projectile"):
+		if is_instance_valid(projectile) and not projectile.is_queued_for_deletion():
+			count += 1
+	return count
 
 
 func _telegraph_and_fire() -> void:
@@ -173,6 +191,10 @@ func get_projectile_phase() -> int:
 	return 3
 
 
+## KULLANILMIYOR. Faz basina 1/2/3 mermilik bir desen tanimliyor ama
+## _spawn_projectile_pattern her zaman tek mermi atiyor. Baglanirsa boss 1
+## belirgin sekilde zorlasir; MAX_ACTIVE_PROJECTILES ile birlikte
+## degerlendirilmeli. Silmedim cunku tasarim niyeti tasiyor.
 func get_projectile_angles() -> Array[float]:
 	match get_projectile_phase():
 		1:

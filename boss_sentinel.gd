@@ -6,10 +6,15 @@ signal status_feedback(message: String, tone: StringName)
 signal defeated
 
 @export var max_hp: int = 145
-@export var generator_max_hp: int = 14
+## 14'ten 8'e dusuruldu. Cekirdegi acmak icin iki jeneratoru de kirmak
+## gerekiyor (2 x can) ve her acilma sonrasi ikisi de TAM dolu geri geliyor.
+## 28 hasar/tur cok yuksekti; 16 daha makul.
+@export var generator_max_hp: int = 8
 @export var entry_duration: float = 1.0
-@export var exposure_window: float = 10.0
-@export var enraged_exposure_window: float = 8.0
+## 10'dan 14'e cikarildi. Cekirdek 145 HP ve pencere disinda hicbir hasar
+## almiyor; 10 saniye tur basina cok az ilerleme veriyordu.
+@export var exposure_window: float = 14.0
+@export var enraged_exposure_window: float = 11.0
 @export var generator_regeneration_duration: float = 0.8
 @export var move_speed_phase_1: float = 65.0
 @export var move_speed_phase_2: float = 82.0
@@ -26,12 +31,19 @@ const DIRECT_BALL_SOURCES: Array[StringName] = [&"ball", &"piercing_ball", &"fir
 const LEFT_GENERATOR_X := -86.0
 const RIGHT_GENERATOR_X := 86.0
 const GENERATOR_HIT_HALF_WIDTH := 43.0
+
+## Her kalkan yenilenmesinde jenerator cani bu oranla azalir.
+## 8 -> 6 -> 5 -> 3 (taban). Dovus ilerledikce turlar kisalir.
+const GENERATOR_REGEN_FALLOFF := 0.75
+const GENERATOR_MIN_REGEN_HP := 3
 const BODY_HALF_WIDTH := 126.0
 
 var current_hp := 145
 var left_generator_hp := 14
 var right_generator_hp := 14
 var core_shielded := true
+## Kacinci kez kalkan yenilendi. Jenerator canini azaltmak icin kullanilir.
+var regeneration_count := 0
 var accepting_damage := true
 var combat_active := false
 var exposure_token := 0
@@ -65,6 +77,7 @@ func _ready() -> void:
 	current_hp = max_hp
 	left_generator_hp = generator_max_hp
 	right_generator_hp = generator_max_hp
+	regeneration_count = 0
 	collision_shape.disabled = true
 	health_changed.emit(current_hp, max_hp)
 	generator_state_changed.emit(true, true, true)
@@ -301,6 +314,11 @@ func _expose_core() -> void:
 	if token == exposure_token and accepting_damage and current_hp > 0 and not core_shielded:
 		await _regenerate_generators()
 
+## Jeneratorler TAM dolu degil, %75 ile geri gelir.
+##
+## Eski davranista her acilma sonrasi ikisi de tam dolu donuyordu, yani
+## oyuncunun onceki turda verdigi jenerator hasari tamamen bosa gidiyordu.
+## Ilerlemenin bir kismi tasinsin: her tur bir oncekinden biraz kisa.
 func _regenerate_generators() -> void:
 	core_shielded = true
 	exposure_end_msec = 0
@@ -331,8 +349,16 @@ func _regenerate_generators() -> void:
 	await regen.finished
 	if not accepting_damage:
 		return
-	left_generator_hp = generator_max_hp
-	right_generator_hp = generator_max_hp
+	# Tam dolu DEGIL: her yenilenme bir oncekinden zayif. Boylece oyuncunun
+	# onceki turda verdigi jenerator hasari tamamen bosa gitmez ve dovus
+	# her turda biraz kisalir.
+	regeneration_count += 1
+	var regenerated_hp: int = maxi(
+		roundi(float(generator_max_hp) * pow(GENERATOR_REGEN_FALLOFF, float(regeneration_count))),
+		GENERATOR_MIN_REGEN_HP
+	)
+	left_generator_hp = regenerated_hp
+	right_generator_hp = regenerated_hp
 	generator_state_changed.emit(true, true, true)
 	status_feedback.emit("KALKAN YENİLENDİ", &"shield")
 	print("THE SENTINEL GENERATORS REACTIVATED")

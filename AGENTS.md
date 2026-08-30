@@ -178,10 +178,42 @@ godot --headless --quit-after 300 --path .
 Çıktıda `SCRIPT ERROR` veya `Parse Error` **olmamalı.**
 Çıkıştaki "ObjectDB instance leaked" uyarısı normaldir (zorla kapatma).
 
+### Testler — gdUnit4
+
+Test çerçevesi kurulu: `addons/gdUnit4` (v6.2.1). Testler `tests/` altında.
+
+```bash
+godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests/ --ignoreHeadlessMode
+```
+
+`--ignoreHeadlessMode` gerekli: gdUnit4 headless modda UI girdisi
+çalışmadığı için uyarı verip duruyor. Denge testleri girdi kullanmadığı
+için bu uyarı bizi ilgilendirmiyor.
+
+> **Birleştirme sonrası `GdUnitTestCIRunner` bulunamadı hatası alırsan**
+> sınıf önbelleği bayatlamıştır. `addons/` değişen her birleştirmeden
+> sonra olabilir:
+>
+> ```bash
+> rm .godot/global_script_class_cache.cfg
+> godot --headless --import --path .
+> ```
+
+**Eklenti `project.godot`'ta etkinleştirilmedi** — CLI koşucusu buna
+ihtiyaç duymuyor ve `project.godot`'a dokunmamak çakışma yüzeyini dar
+tutuyor. Editör içi test denetçisini istersen kendin etkinleştir; o
+değişikliği commit etme.
+
+Üretilen `reports/` klasörü `.gitignore`'da.
+
+**Ne test edilir:** denge sayıları. Faz 4-7'de birçok sabit ölçümle
+seçildi; test onların sessizce bozulmasını engeller. Geçici sondalar
+hâlâ `_` önekiyle yazılır ve depoya girmez — kalıcı olması gereken ölçüm
+`tests/` altına test olarak yazılır.
+
 **Eklenti kurarken:** her eklentinin Godot sürüm uyumunu ayrı kontrol et.
-Örnek: gdUnit4 (test çerçevesi) 4.5–4.7.1 destekliyor. Kurduğun eklentiyi
-`ILETISIM.md`'ye yaz — `addons/` klasörü iki ajan için yeni bir çakışma
-yüzeyidir.
+Kurduğun eklentiyi `ILETISIM.md`'ye yaz — `addons/` klasörü iki ajan için
+yeni bir çakışma yüzeyidir.
 
 Geçici test scriptleri `_` ile başlamalı (`_my_test.gd`) — `.gitignore`'da,
 depoya girmez.
@@ -216,16 +248,24 @@ Birleştirme yalnızca PR ile, karşı tarafın onayıyla.
   Missile, Pulse Laser, Mine Launcher, Mortar), 2 yuvalı silah sistemi,
   `ensure_runtime_controller` kancası, rastgele kart eli, mobil kontroller
 
-Kart havuzu: **22 kart** (14 pasif + 8 silah).
+Kart havuzu: **18 kart** (10 pasif + 8 silah).
 
 **Run yapısı (ölçüldü):** depth 1 → 56, 7 boss (depth 8, 16, 24, 32, 40, 48,
 56). Tuğla inişi ~12.3 dakika, boss dövüşleri hariç. Bir run 21 kart seçimi
-veriyor; havuz kapasitesi 52.
+veriyor; havuz kapasitesi 48.
 
 **Sıradaki:** görev dağılımı `GOREVLER.md`, mesajlaşma `ILETISIM.md`.
-- Codex → görsel açık (8 silahın 7'si aynı iki kartı kullanıyor), Krediler
-  ekranı, kalan iki silah
-- Claude → Faz 7: ölçülmemiş sistemler (kombo, koloni ekonomisi)
+
+- **Codex** → görsel açık (8 silahın 7'si aynı iki kartı kullanıyor),
+  Krediler ekranı, kalan iki silah
+- **Claude** → Faz 7 bitti. Şeridi **oyun testine kadar kapalı.**
+
+Faz 4-7'de ölçülebilir olan ölçüldü ve 54 testle korumaya alındı. Kalan
+yedi soru tabloyla değil oynanışla cevaplanıyor (`GOREVLER.md` → "25F
+için"). Bir sonraki Claude işi o cevaplar geldikten sonra başlar:
+**Faz 8 = oyun testi sonrası kalibrasyon.**
+
+Yeni sistem tasarlanmıyor — 25F feature freeze.
 
 **Oyun testi bekliyor.** Faz 6'da üç sayı ölçümle değil tahminle seçildi ve
 oyun testi olmadan doğrulanamaz:
@@ -233,10 +273,19 @@ oyun testi olmadan doğrulanamaz:
 - Ascension 10'un iniş tabanı (0.368s) oynanabilir mi
 - Elit tuğla çerçevesi diğer özel tuğlalardan ayırt ediliyor mu
 
-**Açık konular:**
+**Açık konular** (hepsi Codex'te ya da karar bekliyor —
+`ILETISIM.md` açık maddeler tablosunda takip ediliyor):
+
 - `CREDITS.md` — 8 ikonun yazarı doğrulanmalı
-- Oyun içi "Krediler" ekranı yok (CC BY 3.0 gereği)
-- `assets/_archive/` (35 MB) depoya alınmadı; silinecek mi karar verilmeli
+- Oyun içi "Krediler" ekranı yok (CC BY 3.0 gereği, tek hukuki kalem)
 - `RARITY_LEGENDARY` tanımlı ama `get_rarity_weight()`'te karşılığı yok
-- `xp_orb.gd` / `xp_orb.tscn` ölü kod
+  → teklif ağırlığı 1.0'a düşüyor, yaygının 1/45'i
+- `xp_orb.gd` / `xp_orb.tscn` ölü kod — `main.gd` `exp_orb.tscn` yüklüyor
+  ama değişken adı `xp_orb_scene`, okuyanı yanıltıyor
 - `main.gd` debug tuşları `OS.is_debug_build()` ile korunmuyor
+- Faz 6.2 kararı yarım: ascension hasar tavanı açıldı (pasif kartlar),
+  silah tarafı (3. yuva) Codex'in cevabını bekliyor
+
+> `assets/_archive/` maddesi kaldırıldı: bu makinede de depoda da yok,
+> `.gitignore`'da da geçmiyor. Karşı tarafın diskinde duruyorsa orada
+> karar verilir; bu deponun sorunu değil.

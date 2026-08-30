@@ -68,32 +68,6 @@ const CARDS := {
 	},
 
 	# ---------- YAYGIN PASİFLER ----------
-	&"paddle_speed": {
-		"title": "SERVO HIZLANDIRICI",
-		"rarity": RARITY_COMMON,
-		"max_level": 3,
-		"roman": true,
-		"icon": "res://assets/cards/paddle_speed_card.png",
-		"descriptions": [
-			"",
-			"Raket hareket hızı %12 artar.",
-			"Raket hareket hızı toplam %24 artar.",
-			"Raket hareket hızı toplam %36 artar.",
-		],
-	},
-	&"paddle_width": {
-		"title": "ALAN GENİŞLETİCİ",
-		"rarity": RARITY_COMMON,
-		"max_level": 3,
-		"roman": true,
-		"icon": "res://assets/items/icons/horizontal-flip.svg",
-		"descriptions": [
-			"",
-			"Raket genişliği %8 artar.",
-			"Raket genişliği toplam %16 artar.",
-			"Raket genişliği toplam %24 artar.",
-		],
-	},
 	&"xp_gain": {
 		"title": "VERİ EMİLİMİ",
 		"rarity": RARITY_COMMON,
@@ -102,9 +76,9 @@ const CARDS := {
 		"icon": "res://assets/items/icons/circuitry.svg",
 		"descriptions": [
 			"",
-			"Toplanan XP %20 artar.",
-			"Toplanan XP toplam %40 artar.",
-			"Toplanan XP toplam %60 artar.",
+			"Toplanan XP %5 artar.",
+			"Toplanan XP toplam %10 artar.",
+			"Toplanan XP toplam %15 artar.",
 		],
 	},
 	&"drop_rate": {
@@ -115,9 +89,9 @@ const CARDS := {
 		"icon": "res://assets/items/icons/metal-bar.svg",
 		"descriptions": [
 			"",
-			"Tuğlaların eşya düşürme şansı %25 artar.",
-			"Tuğlaların eşya düşürme şansı toplam %50 artar.",
-			"Tuğlaların eşya düşürme şansı toplam %75 artar.",
+			"Tuğlaların eşya düşürme şansı %5 artar.",
+			"Tuğlaların eşya düşürme şansı toplam %10 artar.",
+			"Tuğlaların eşya düşürme şansı toplam %15 artar.",
 		],
 	},
 	&"magnet_duration": {
@@ -128,9 +102,9 @@ const CARDS := {
 		"icon": "res://assets/items/icons/gears.svg",
 		"descriptions": [
 			"",
-			"Mıknatıs süresi %30 uzar.",
-			"Mıknatıs süresi toplam %60 uzar.",
-			"Mıknatıs süresi toplam %90 uzar.",
+			"Mıknatıs süresi %5 uzar.",
+			"Mıknatıs süresi toplam %10 uzar.",
+			"Mıknatıs süresi toplam %15 uzar.",
 		],
 	},
 	&"combo_window": {
@@ -141,25 +115,13 @@ const CARDS := {
 		"icon": "res://assets/items/icons/microchip.svg",
 		"descriptions": [
 			"",
-			"Combo zinciri %25 daha uzun sürer.",
-			"Combo zinciri toplam %50 daha uzun sürer.",
-			"Combo zinciri toplam %75 daha uzun sürer.",
+			"Combo zinciri %5 daha uzun sürer.",
+			"Combo zinciri toplam %10 daha uzun sürer.",
+			"Combo zinciri toplam %15 daha uzun sürer.",
 		],
 	},
 
 	# ---------- NADİR PASİFLER ----------
-	&"extra_ball": {
-		"title": "İKİZ ÇEKİRDEK",
-		"rarity": RARITY_RARE,
-		"max_level": 2,
-		"roman": true,
-		"icon": "res://assets/items/icons/striking-balls.svg",
-		"descriptions": [
-			"",
-			"Sahada kalıcı olarak bir top daha bulunur.",
-			"Sahada kalıcı olarak iki top daha bulunur.",
-		],
-	},
 	&"crit_hit": {
 		"title": "KRİTİK REZONANS",
 		"rarity": RARITY_RARE,
@@ -168,8 +130,8 @@ const CARDS := {
 		"icon": "res://assets/items/icons/token.svg",
 		"descriptions": [
 			"",
-			"Top vuruşlarının %14'ü çift hasar verir.",
-			"Top vuruşlarının %28'i çift hasar verir.",
+			"Top vuruşlarının %5'i çift hasar verir.",
+			"Top vuruşlarının %10'u çift hasar verir.",
 		],
 	},
 	&"salvage_find": {
@@ -180,20 +142,8 @@ const CARDS := {
 		"icon": "res://assets/items/icons/cog.svg",
 		"descriptions": [
 			"",
-			"PARÇA düşme şansı iki katına çıkar.",
-			"PARÇA düşme şansı üç katına çıkar.",
-		],
-	},
-	&"ball_speed": {
-		"title": "AŞIRI İVME",
-		"rarity": RARITY_RARE,
-		"max_level": 2,
-		"roman": true,
-		"icon": "res://assets/items/icons/bottom-right-3d-arrow.svg",
-		"descriptions": [
-			"",
-			"Top %10 hızlanır. Daha çok tuğla, daha az tepki süresi.",
-			"Top toplam %20 hızlanır. Daha çok tuğla, daha az tepki süresi.",
+			"PARÇA düşme şansı %3 artar.",
+			"PARÇA düşme şansı toplam %6 artar.",
 		],
 	},
 
@@ -217,7 +167,7 @@ const CARDS := {
 		"icon": "res://assets/items/icons/time-trap.svg",
 		"descriptions": [
 			"",
-			"Tuğla satırlarının iniş hızı kalıcı olarak %15 yavaşlar.",
+			"Tuğla satırlarının iniş hızı kalıcı olarak %5 yavaşlar.",
 		],
 	},
 }

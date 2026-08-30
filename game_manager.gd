@@ -944,54 +944,63 @@ func get_affinity_scale(paddle_id: StringName) -> float:
 
 
 func get_paddle_speed_multiplier() -> float:
-	return (1.0 + 0.12 * float(get_card_level(&"paddle_speed"))) * get_paddle_speed_scale()
+	# Servo Hizlandirici karti kaldirildi (islevsizdi). Raket kimligi olcegi kaldi.
+	return get_paddle_speed_scale()
 
 
 func get_paddle_width_multiplier() -> float:
-	return (1.0 + 0.08 * float(get_card_level(&"paddle_width"))) * get_paddle_width_scale()
+	# Alan Genisletici KART olarak kaldirildi; gecici guclendirme olarak duruyor
+	# (activate_wide_paddle_pickup -> paddle.apply_wide_level).
+	return get_paddle_width_scale()
 
 
 func get_xp_gain_multiplier() -> float:
 	return (
-		(1.0 + 0.20 * float(get_card_level(&"xp_gain")) + get_colony_xp_bonus())
+		(1.0 + 0.05 * float(get_card_level(&"xp_gain")) + get_colony_xp_bonus())
 		* get_curse_gain_multiplier()
 	)
 
 
 func get_drop_rate_multiplier() -> float:
-	return 1.0 + 0.25 * float(get_card_level(&"drop_rate"))
+	return 1.0 + 0.05 * float(get_card_level(&"drop_rate"))
 
 
 func get_magnet_duration_multiplier() -> float:
 	return (
-		(1.0 + 0.30 * float(get_card_level(&"magnet_duration")))
+		(1.0 + 0.05 * float(get_card_level(&"magnet_duration")))
 		* get_colony_magnet_scale()
 	)
 
 
 func get_combo_timeout_multiplier() -> float:
-	return 1.0 + 0.25 * float(get_card_level(&"combo_window"))
+	return 1.0 + 0.05 * float(get_card_level(&"combo_window"))
 
 
 func get_ball_speed_multiplier() -> float:
-	return 1.0 + 0.10 * float(get_card_level(&"ball_speed"))
+	# Asiri Ivme karti kaldirildi: top zaten derinlikle ve tugla kirdikca
+	# hizlaniyor (bkz. ball.increase_speed, get_ball_acceleration_scale).
+	return 1.0
 
 
 func get_crit_chance() -> float:
-	return 0.14 * float(get_card_level(&"crit_hit"))
+	return 0.05 * float(get_card_level(&"crit_hit"))
 
 
 func get_salvage_drop_multiplier() -> float:
 	# Lv1 iki kat, Lv2 üç kat.
-	return 1.0 + float(get_card_level(&"salvage_find"))
+	return 1.0 + 0.03 * float(get_card_level(&"salvage_find"))
 
 
+## Ikiz Cekirdek KART olarak kaldirildi; gecici guclendirme olarak duruyor
+## (activate_extra_ball_pickup). Kalici ek top artik yok.
 func get_bonus_ball_count() -> int:
-	return get_card_level(&"extra_ball")
+	return 0
 
 
 func get_card_descent_multiplier() -> float:
-	return 0.85 if get_card_level(&"slow_descent") > 0 else 1.0
+	# Ikili degil seviye basina: %5. Bolen olarak kullanildigi icin kucuk deger
+	# = daha yavas inis (bkz. continuous_brick_field.apply_depth_settings).
+	return 1.0 - 0.05 * float(get_card_level(&"slow_descent"))
 
 
 func get_build_threat() -> int:

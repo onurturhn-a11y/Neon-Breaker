@@ -60,7 +60,7 @@ Her iki dal da `main`'e girmeden aşağıdaki yeni görevlere başlanmamalı.
 - Kart eli tamamen rastgele; Plazma `card_pool.gd`'den `weapon_cards.gd`'ye taşındı
 - `RARITY_LEGENDARY` nadirlik katmanı eklendi
 
-Kart havuzu: **22 kart** (14 pasif + 8 silah).
+Kart havuzu: **18 kart** (10 pasif + 8 silah).
 
 **Claude — Faz 5 (bu tur)**
 - 5.1 Elit tuğla — Faz 4'ün son eksik maddesi kapandı
@@ -277,7 +277,7 @@ Maliyet eğrisini değiştirmek erken oyunu da şişiriyordu; gelir çarpanı er
 ölen oyuncuyu hiç etkilemiyor. Faz 4.1'in "eğriyi derinliğe taşı" ilkesiyle
 aynı.
 
-Havuz kapasitesi 52 seçim, yani 21 seçim hâlâ tercih bırakıyor — run her şeyi
+Havuz kapasitesi 48 seçim, yani 21 seçim hâlâ tercih bırakıyor — run her şeyi
 maksimuma çıkarmıyor.
 
 ### Yan ölçüm: zafer run'ı ~12 dakika
@@ -297,17 +297,28 @@ süre değil.
 
 `feat/integration-phase5` dalında ölçüldü (8 silah gerekiyordu).
 
-**Boss HP:** 180 → 500, boss 1'den 7'ye ×2.78.
+**Boss HP:** 100 → 500, boss 1'den 7'ye ×5.0.
 
-| Boss | Derinlik | asc0 | asc10 |
-|---|---|---|---|
-| CORE | 8 | 180 | 396 |
-| SENTINEL | 16 | 180 | 396 |
-| CELESTIAL | 24 | 200 | 440 |
-| VOID | 32 | 260 | 572 |
-| SOVEREIGN | 40 | 330 | 726 |
-| ARCHITECT | 48 | 410 | 902 |
-| CHRONOFORM | 56 | 500 | **1100** |
+| Boss | Derinlik | asc0 | asc10 | Bir öncekine göre |
+|---|---|---|---|---|
+| CORE | 8 | 100 | 220 | — |
+| SENTINEL | 16 | 145 | 319 | ×1.45 |
+| CELESTIAL | 24 | 200 | 440 | ×1.38 |
+| VOID | 32 | 260 | 572 | ×1.30 |
+| SOVEREIGN | 40 | 330 | 726 | ×1.27 |
+| ARCHITECT | 48 | 410 | 902 | ×1.24 |
+| CHRONOFORM | 56 | 500 | **1100** | ×1.22 |
+
+> **DÜZELTME (Faz 7.4):** bu tablonun ilk iki satırı önce yanlış yazılmıştı
+> (ikisi de 180, toplam ×2.78). Sebep: `boss_sprite_entity.gd`'deki
+> `_get_base_hp()` varsayılanını (180) okumuştum, ama **CORE ve SENTINEL o
+> sınıfı hiç kullanmıyor** — `StaticBody2D`'den türüyorlar ve kendi
+> `@export var max_hp` alanları var (100 ve 145).
+>
+> Gerçek eğri düşündüğümden **daha iyi**: ×1.45'ten ×1.22'ye yavaşlayan
+> düzgün bir rampa. İlk iki boss bilinçli olarak daha kolay.
+> Sonuç değişmiyor — hasar tavanı yine 5. bossta doluyor ve sonrasında
+> boss HP'si %52 artıyor.
 
 **Oyuncunun hasar kaynaklarının HEPSİ tavanlı:**
 
@@ -516,6 +527,177 @@ kopyaların sapmasıydı.
 **Ders:** bir sistemin bozuk olduğuna karar vermeden önce **tüm** tüketim
 noktalarını ara. `grep get_colony_building_level` ilk bakışta görmediğim
 altı çağrı yeri gösterdi.
+
+### 7.4 Boss denetimi — ✅ KOD TEMİZ, RAPOR HATALIYDI
+
+Kart ve koloni tarafında üç hata bulan yöntemi bosslara uyguladım:
+vaat edilen ile yapılanı karşılaştır.
+
+**Sonuç: boss sisteminde hata yok.** Ölü kanca yok, her ezilen kanca
+gerçekten çağrılıyor, ascension HP ölçeklemesi üç mimaride de uygulanıyor.
+
+**İki mimari bir arada:**
+
+| Boss | Türediği sınıf | Ezdiği kanca |
+|---|---|---|
+| CORE, SENTINEL | `StaticBody2D` | 1 tane |
+| Diğer beşi | `boss_sprite_entity.gd` | 13-15 tane |
+
+İlk ikisi, taban sınıf yazılmadan önceki mimariden kalma. Bu bir hata
+değil ama bilinmesi gereken bir ayrım: taban sınıfa eklenen her yeni
+davranış ilk iki bossa **kendiliğinden gelmez.** Ascension HP ölçeklemesi
+onlarda ayrı ayrı yazılmış ve doğru — ama bir sonraki eklemede bu
+hatırlanmalı.
+
+**Bulunan tek hata benimdi.** Faz 6.2'deki boss HP tablosunun ilk iki
+satırı yanlıştı; düzeltildi (yukarıda).
+
+**Yöntem notu:** ilk taramamda `_get_phase_message` "ölü kanca" olarak
+çıktı. Yanlıştı — grep desenim `_get_phase_message()` arıyordu ama çağrı
+argümanlı (`_get_phase_message(current_phase)`). Desen düzeltilince ölü
+kanca kalmadı. Otomatik tarama sonucunu doğrulamadan raporlamamalı.
+
+### 7.5 Kendi Faz 4 sistemlerimin denetimi — ✅ TEMİZ, ama bir keşif
+
+Herkesin kodunu denetledim, kendiminkini denetlemedim. Yaptım.
+
+**Lanet ve sektörün on ekseni de tüketiliyor** — hiçbiri ölü değil:
+
+| Sistem | Eksen | Tüketildiği yer |
+|---|---|---|
+| Lanet | kazanç | `game_manager.gd` |
+| Lanet | iniş | `continuous_brick_field.gd` |
+| Lanet | zırh | `level_generator.gd` |
+| Lanet | saldırgan | `side_attacker_spawner.gd` |
+| Sektör | iniş, doluluk, patlayıcı, top hızı, saldırgan | beş ayrı dosya |
+
+Kasa, zafer ekranı ve ascension açma akışı da bağlı ve ulaşılabilir.
+
+#### `[ÖNEMLİ]` Ascension'ı test etmenin tek yolu Shift+G, sonra K
+
+Ascension **son boss (CHRONOFORM, depth 56) yenilene kadar tamamen
+görünmez.** Akış doğru çalışıyor:
+
+`_trigger_run_victory()` → `register_ascension_clear()` →
+`highest_ascension_cleared` −1'den 0'a çıkar → menüde seçici belirir.
+
+Ama bunun anlamı şu: **Faz 4 ascension, 5.3 iniş tabanı ve 6.2 hasar
+tavanı — hepsi kimsenin görmediği bir kapının arkasında.** Ascension 5-10
+için ayarladığım dengeler hiç oynanmadı.
+
+Debug tuşuyla açma yolu var ama **hiç belli değil**:
+
+| Tuş | Sonuç |
+|---|---|
+| `G` | Chronoform başlar ama **progression boss DEĞİL** — yenmek zafer getirmez |
+| **`Shift+G`** | Chronoform **progression boss olarak** başlar |
+| `K` | Aktif bossu anında öldürür |
+
+Yani **Shift+G → K** ascension'ı saniyeler içinde açar. Düz `G` açmaz.
+
+Sebep: `start_boss_encounter(event.shift_pressed, &"chronoform")` —
+ilk parametre `is_progression_boss` ve `shift_pressed`'e bağlı. Aynı şey
+diğer altı boss tuşu için de geçerli (B, N, M, V, J, H).
+
+Bu bir hata değil, ama bilinmeden ascension test edilemez. 25F öncesi
+ascension'a bakılacaksa bu kombinasyon gerekli.
+
+### Faz 8 — oyun testi sonrası kalibrasyon (BAŞLAMADI, bloke)
+
+Claude şeridinde ölçülebilir iş kalmadı. Faz 4-7'de ölçülen her şey
+54 testle korunuyor; kalan yedi soru (aşağıda) oynanışla cevaplanıyor.
+
+**Faz 8 şu üçü geldiğinde başlar:**
+
+1. **Oyun testi çıktısı** — aşağıdaki yedi sorudan hangilerinin gerçek
+   olduğu. Tahminle sabit çevirmek, Faz 5-7'de iki kez yanlış çıktı.
+2. **Codex'in 3. yuva cevabı** (`ILETISIM.md` A4) — Faz 6.2'nin yarısı
+   ona bağlı. Boss HP'sini düşürmek gerekip gerekmediği o cevaba göre
+   belli olur.
+3. **25F kapsamı** — feature freeze sonrası neyin değişebileceği.
+
+**Faz 8'de yapılacak iş türü:** yeni sistem değil, mevcut sabitleri
+gözlemlenen davranışa göre çekmek. Her değişiklik ilgili testi de
+güncellemeli — test kırılırsa belge de kırılıyor demektir.
+
+**Şu an yapılmaması gereken:** yedi sorunun cevabını tahmin edip sabit
+çevirmek. Faz 6.4'te "9.2 tuğla/sn tutturulabilir" diye kaba bir sınır
+çıkardım ve bunu tahmin olarak işaretledim; hâlâ öyle. Faz 7.1'de zincir
+şimşeğini buff'ladıktan sonra o sınır zaten değişti ama yeniden
+hesaplamadım — çünkü hesaplamanın kendisi tahmine dayanıyor.
+
+### 25F için: oyun testi olmadan cevaplanamayan yedi soru
+
+Faz 4-7 boyunca yedi yerde "bu tahmin, gerçek cevap testten gelir" dedim.
+Dağınık kaldılar; 25F kararı için tek yerde toplanmaları lazım.
+
+**Hepsi tek bir run'da gözlenebilir** — biri hariç (ascension, ayrı gerekiyor).
+
+| # | Soru | Nereden geldi | Yanlışsa geri alması |
+|---|---|---|---|
+| 1 | **Derinlik 32+ yetişilebiliyor mu?** Gereken hız 9.2 tuğla/sn ve depth 56'ya kadar sabit. Kaba sınırım 10-11 dedi — ama bu tahmin. | Faz 6.4 | Kolay — tek sabit (`minimum_safe_step_interval`) |
+| 2 | **Ascension 10'un iniş tabanı (0.368s) oynanabilir mi?** | Faz 5.3 | Kolay — tek sabit |
+| 3 | **Elit tuğla çerçevesi ayırt ediliyor mu?** Zırhlı beyaz, kalkanlı, patlayıcı ve elit kehribar aynı ekranda. | Faz 5.1 | Kolay — görsel |
+| 4 | **Son iki boss duvar mı, tıkanma mı?** Hasar tavanı 5. bossta doluyor, sonra boss HP %52 artıyor. | Faz 6.2 | Orta — boss HP eğrisi |
+| 5 | **Sektör 6-7 baskı hissettiriyor mu?** `descent_scale` ölüydü, baskı satır doluluğu ve saldırgan sıklığına taşındı. Fark hissediliyor mu, yoksa gürültü mü? | Faz 5.3 | Kolay — iki sayı |
+| 6 | **İkinci yarı artık ödüllendirici mi?** Önce depth 40-48 arası sıfır level-up veriyordu. | Faz 6.1 | Kolay — tek eğri |
+| 7 | **Zincir şimşeği ne kadar katkı veriyor?** Faz 7.1'de kart ona bağlandı ve bu bir buff. Temizleme hızı sınırımda hesaba katılmamıştı. | Faz 7.1 | Orta |
+
+#### Bunlardan hangisi 25F'i gerçekten değiştirir
+
+**1 ve 2 kritik.** İkisi de "oyun oynanabilir mi" sorusu. Yanlışsalar tek
+sabit değişikliğiyle düzelir ama bilinmeden dondurulamaz.
+
+**4 ve 7 birbirine bağlı.** Zincir şimşeği beklediğimden çok katkı
+veriyorsa, boss duvarı sorun olmayabilir. İkisini ayrı ayrı değerlendirmek
+yanıltır.
+
+**3, 5, 6 his sorusu.** Tek run yeterli, ve cevap "evet/hayır"dan çok
+"fark ettim mi" olur.
+
+#### Ascension ayrı bir oturum istiyor
+
+Yukarıdaki 2. madde ve Faz 6.2'nin tamamı ascension'a bağlı, ve
+**ascension normal oynanışta görünmüyor** (bkz. 7.5). Test etmek için
+`Shift+G` → `K` ile zafer tetiklenmeli, sonra menüden ascension seçilmeli.
+
+Bu, "bir run oyna" isteğinin kapsamı dışında. Ascension dengesine
+bakılacaksa ikinci bir oturum gerekiyor.
+
+### Test kapsamı — neyin korunduğu
+
+gdUnit4 kuruldu (`addons/gdUnit4`, v6.2.1). **54 test, hepsi geçiyor.**
+
+```bash
+godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests/ --ignoreHeadlessMode
+```
+
+| Paket | Test | Korunan ölçüm |
+|---|---|---|
+| `elite_bricks_test` | 7 | Faz 5.1 elit oran ve can eğrisi |
+| `sector_modifiers_test` | 6 | Faz 4.3 + 5.3 sektör modifier'ları |
+| `curses_test` | 5 | Faz 4.2 lanet bedel/ödül dengesi |
+| `progression_test` | 10 | Faz 5.2, 5.3, 6.1, 6.2 hata düzeltmeleri |
+| `boss_scaling_test` | 6 | Faz 6.2 + 7.4 boss HP ölçeklemesi |
+| `combo_chain_test` | 5 | Faz 7.1 kombo kartı → zincir şimşeği bağı |
+| `colony_effects_test` | 5 | Faz 7.3 koloni tek kaynak |
+| `documented_numbers_test` | 4 | Belgelerdeki sayılar koda karşı doğrulanır |
+| `throughput_test` | 6 | Faz 6.4 türetilmiş değerler (9.2 tuğla/sn, 12.3 dk) |
+
+**Henüz korunmayan:**
+
+- Faz 6.1'in XP eğrisi tam olarak değil, yalnızca derinlik çarpanı
+- Silah davranışları (Codex bölgesi)
+
+**Türetilmiş değerler artık korunuyor.** `throughput_test` "9.2 tuğla/sn"
+ve "~12.3 dakika" gibi *hesaplanan* sayıları canlı sabitlerden yeniden
+kuruyor. 25F sırasında `minimum_safe_step_interval` ya da iniş eğrisi
+değişirse test kırılıyor ve **yeni değeri söylüyor**. Doğrulandı: tabanı
+0.45'ten 0.30'a çekince test "kod şimdi 9.9 veriyor" dedi.
+
+**Testin sınırı:** bunlar denge sayılarını koruyor, oynanışı değil.
+"Derinlik 32'de yetişilebiliyor mu" sorusunun cevabı testten çıkmaz,
+oyun testinden çıkar.
 
 ## CODEX'E BİLDİRİM — bölge dışı bulgu, dokunmadım
 
