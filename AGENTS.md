@@ -151,12 +151,27 @@ Silah seviyeleri `GameManager.weapon_slots` içinde tutulur (`card_levels`'ta
 
 ## 5. PR öncesi zorunlu doğrulama
 
+### Motor sürümü — 4.8.dev4
+
+Proje **Godot 4.8.dev4** ile geliştiriliyor (`project.godot` →
+`config/features = ("4.8", "Mobile")`). Doğrulama **aynı sürümle** yapılmalı.
+
+> **Neden yazılı:** bir dönem doğrulamalar 4.6 stable ile yapıldı. 4.6, 4.8
+> projesini **hiç uyarı vermeden** açıyor — yani yanlış motorla test etmek
+> sessizce mümkün. İkisi de temiz sonuç verdi, ama bu şans; 4.8'e özel bir
+> davranış 4.6'da görünmez.
+
 ```bash
 godot --headless --quit-after 300 --path .
 ```
 
 Çıktıda `SCRIPT ERROR` veya `Parse Error` **olmamalı.**
 Çıkıştaki "ObjectDB instance leaked" uyarısı normaldir (zorla kapatma).
+
+**Dev sürümünün bedeli:** 4.8 bir geliştirme sürümü, kararlı değil. Eklenti
+ekosistemi henüz yetişmedi — örneğin gdUnit4 (test çerçevesi) yalnızca
+4.5–4.7.1 destekliyor, 4.8'de kurulamıyor. Eklenti kurmadan önce sürüm
+uyumunu kontrol et.
 
 Geçici test scriptleri `_` ile başlamalı (`_my_test.gd`) — `.gitignore`'da,
 depoya girmez.
