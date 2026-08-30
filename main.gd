@@ -98,7 +98,15 @@ const SFX_NEW_RECORD: AudioStream = preload("res://assets/audio/sfx/ui/new_recor
 @export_range(0.0, 1.0, 0.01) var magnet_drop_chance = 0.03
 @export_range(0.0, 1.0, 0.001) var coin_drop_chance = 0.006
 @export_range(0.0, 1.0, 0.005) var wide_paddle_pickup_drop_chance = 0.015
-@export_range(0.0, 1.0, 0.005) var extra_ball_pickup_drop_chance = 0.015
+## 0.015'ten 0.005'e dusuruldu. Eski deger "+1 gecici top" icindi; artik
+## guclendirme sahnedeki topu IKIYE KATLIYOR ve aktifken de dusuyor, yani
+## etkisi cok daha buyuk.
+##
+## Olculdu (zafer run'i, ~5264 tugla, ~400 tuglada bir top kaybi varsayimi):
+##   %1.5 -> ort. 3.5 top, run'in %58'i tavanda, ilk katlama 66. tuglada
+##   %0.5 -> ort. 2.7 top, run'in %26'si tavanda, ilk katlama 203. tuglada
+## Ilki guclendirmeyi varsayilan duruma cevirıyordu.
+@export_range(0.0, 1.0, 0.005) var extra_ball_pickup_drop_chance = 0.005
 const TEMPORARY_PICKUP_DURATION := 12.0
 const SIDE_WAVE_DROP_MULTIPLIER := 0.35
 
@@ -219,8 +227,9 @@ var xp_bar_value_tween: Tween
 var xp_bar_pulse_tween: Tween
 var magnet_pulse_time = 0.0
 var wide_paddle_pickup_time_remaining := 0.0
-var extra_ball_pickup_time_remaining := 0.0
-var temporary_extra_ball: Node
+## Ekstra top artik sureli degil: katlanan toplar kalici, dogal yoldan
+## (rakete carpamayip dusunce) azaliyorlar. Bu yuzden sure/gecici-top
+## takibi kaldirildi.
 var xp_level_up_sequence_active = false
 var enemy_projectile_damage_locked = false
 var enemy_hit_feedback_tween: Tween
@@ -2577,7 +2586,11 @@ func _resolve_brick_collectible_drop(spawn_position: Vector2, drop_multiplier: f
 	var heart_chance: float = float(heart_drop_chance) * drop_multiplier
 	var magnet_chance: float = float(magnet_drop_chance) * drop_multiplier
 	var wide_pickup_chance: float = float(wide_paddle_pickup_drop_chance) * drop_multiplier
-	var extra_ball_chance: float = float(extra_ball_pickup_drop_chance) * drop_multiplier
+	# Ekstra top artik aktifken de duser; kartopu olmasin diye sans sahnedeki
+	# top sayisiyla ters orantili olceklenir (bkz. _extra_ball_drop_scale).
+	var extra_ball_chance: float = (
+		float(extra_ball_pickup_drop_chance) * drop_multiplier * _extra_ball_drop_scale()
+	)
 	# Hurda Dedektoru karti yalnizca PARCA drop'unu ayrica katlar.
 	var building_part_chance: float = (
 		GameManager.BUILDING_PART_DROP_CHANCE
@@ -2619,8 +2632,7 @@ func _resolve_brick_collectible_drop(spawn_position: Vector2, drop_multiplier: f
 		return
 	range_end += extra_ball_chance
 	if drop_roll < range_end:
-		if extra_ball_pickup_time_remaining <= 0.0:
-			spawn_temporary_power_pickup(spawn_position, &"extra_ball")
+		spawn_temporary_power_pickup(spawn_position, &"extra_ball")
 		return
 
 
@@ -2705,11 +2717,43 @@ func activate_wide_paddle_pickup() -> void:
 	paddle.apply_wide_level(1)
 
 
-func activate_extra_ball_pickup() -> void:
-	extra_ball_pickup_time_remaining = TEMPORARY_PICKUP_DURATION
-	if is_instance_valid(temporary_extra_ball):
-		return
-	temporary_extra_ball = spawn_extra_ball(true)
+## Sahnedeki top sayisini IKIYE KATLAR (MAX_ACTIVE_BALLS tavanina kadar).
+##
+## Eskiden tek gecici top ekliyordu ve zamanla kayboluyordu. Artik katlama
+## yapiyor ve toplar KALICI - dogal yoldan (rakete carpamayip dusunce)
+## azaliyorlar. Sureli olsaydi katlanan toplarin yarisi bir anda yok olurdu,
+## bu da odul gibi degil ceza gibi hissettirirdi.
+func activate_extra_ball_pickup() -> int:
+	var mevcut: int = _active_ball_count()
+	if mevcut <= 0:
+		return 0
+	var eklenecek: int = mini(mevcut, MAX_ACTIVE_BALLS - mevcut)
+	var eklenen := 0
+	for i in range(eklenecek):
+		if spawn_extra_ball(false) == null:
+			break
+		eklenen += 1
+	return eklenen
+
+
+## Sahnede gercekten ucusta olan top sayisi.
+func _active_ball_count() -> int:
+	var count := 0
+	for ball_node in get_tree().get_nodes_in_group("game_ball"):
+		if is_instance_valid(ball_node) and not ball_node.is_queued_for_deletion():
+			count += 1
+	return count
+
+
+## Ekstra top dusme sansi, sahnedeki top sayisina gore azalir.
+##
+## Katlama usteldir: 1 -> 2 -> 4 -> 8. Sabit oranla dusseydi kartopu olurdu.
+## Cok topu olan oyuncu daha az gorur, tavandayken hic gormez.
+func _extra_ball_drop_scale() -> float:
+	var balls: int = _active_ball_count()
+	if balls >= MAX_ACTIVE_BALLS:
+		return 0.0
+	return 1.0 / float(maxi(balls, 1))
 
 func activate_magnet(duration = 10.0):
 
@@ -2754,28 +2798,7 @@ func _update_temporary_pickup_effects(delta: float) -> void:
 		wide_paddle_pickup_time_remaining = maxf(wide_paddle_pickup_time_remaining - delta, 0.0)
 		if wide_paddle_pickup_time_remaining <= 0.0:
 			paddle.apply_wide_level(0)
-	if extra_ball_pickup_time_remaining > 0.0:
-		extra_ball_pickup_time_remaining = maxf(extra_ball_pickup_time_remaining - delta, 0.0)
-		if extra_ball_pickup_time_remaining <= 0.0:
-			_expire_temporary_extra_ball()
 
-
-func _expire_temporary_extra_ball() -> void:
-	extra_ball_pickup_time_remaining = 0.0
-	if not is_instance_valid(temporary_extra_ball):
-		temporary_extra_ball = null
-		return
-	var other_active_balls := 0
-	for ball_node in get_tree().get_nodes_in_group("game_ball"):
-		if ball_node != temporary_extra_ball and is_instance_valid(ball_node) and not ball_node.is_queued_for_deletion():
-			other_active_balls += 1
-	if other_active_balls > 0:
-		temporary_extra_ball.remove_from_group("game_ball")
-		temporary_extra_ball.queue_free()
-	else:
-		# Never remove the last surviving ball; it safely becomes the active main ball.
-		temporary_extra_ball.remove_meta("temporary_extra_ball")
-	temporary_extra_ball = null
 
 func update_magnet_aura_feedback(delta):
 
@@ -3363,7 +3386,8 @@ func _grant_fallback_levelup_reward() -> void:
 		reward_pool.append(&"life")
 	if wide_paddle_pickup_time_remaining <= 0.0:
 		reward_pool.append(&"wide_paddle")
-	if extra_ball_pickup_time_remaining <= 0.0:
+	# Toplar tavandaysa katlama yapamaz; odul havuzuna girmesin.
+	if _active_ball_count() < MAX_ACTIVE_BALLS:
 		reward_pool.append(&"extra_ball")
 
 	var reward: StringName = reward_pool.pick_random()
@@ -3385,7 +3409,7 @@ func _grant_fallback_levelup_reward() -> void:
 			reward_color = Color(0.55, 0.90, 1.0, 1.0)
 		&"extra_ball":
 			activate_extra_ball_pickup()
-			reward_text = "EKSTRA TOP"
+			reward_text = "TOPLAR İKİYE KATLANDI"
 			reward_icon = ICON_EXTRA_BALL
 			reward_color = Color(0.55, 0.90, 1.0, 1.0)
 		&"coins":
@@ -3796,17 +3820,8 @@ func _apply_card_selection(card_id: StringName) -> void:
 			for ball in get_tree().get_nodes_in_group("game_ball"):
 				if ball.has_method("set_fireball_level"):
 					ball.set_fireball_level(next_level)
-		&"paddle_speed", &"paddle_width":
-			if paddle.has_method("refresh_card_modifiers"):
-				paddle.refresh_card_modifiers()
-		&"ball_speed":
-			for ball in get_tree().get_nodes_in_group("game_ball"):
-				if ball.has_method("refresh_card_modifiers"):
-					ball.refresh_card_modifiers()
 		&"combo_window":
 			$HUD/ComboManager.refresh_card_modifiers()
-		&"extra_ball":
-			_refresh_persistent_extra_balls()
 		&"revive":
 			GameManager.revive_available = true
 
@@ -4209,7 +4224,7 @@ func play_card_effect(card):
 # EKSTRA TOP
 # ==================================================
 
-func spawn_extra_ball(is_temporary: bool = false) -> Node:
+func spawn_extra_ball(_is_temporary: bool = false) -> Node:
 	var active_balls = get_tree().get_nodes_in_group("game_ball")
 	if active_balls.is_empty() or active_balls.size() >= MAX_ACTIVE_BALLS:
 		return null
@@ -4220,8 +4235,6 @@ func spawn_extra_ball(is_temporary: bool = false) -> Node:
 	var angle_offset := deg_to_rad(8.0 * spawn_side)
 	var new_ball = ball_scene.instantiate()
 	new_ball.requires_manual_launch = false
-	if is_temporary:
-		new_ball.set_meta("temporary_extra_ball", true)
 	add_child(new_ball)
 	new_ball.global_position = source_ball.global_position + spawn_offset
 	new_ball.speed = minf(source_ball.speed, new_ball.max_speed)
@@ -4230,10 +4243,6 @@ func spawn_extra_ball(is_temporary: bool = false) -> Node:
 
 func ball_lost(ball):
 	$HUD/ComboManager.reset_combo()
-	if ball == temporary_extra_ball:
-		temporary_extra_ball = null
-		extra_ball_pickup_time_remaining = 0.0
-
 	ball.remove_from_group(
 		"game_ball"
 	)
