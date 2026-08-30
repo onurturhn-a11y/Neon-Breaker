@@ -243,7 +243,7 @@ Kart havuzu: **22 kart** (14 pasif + 8 silah).
 
 **Run yapısı (ölçüldü):** depth 1 → 56, 7 boss (depth 8, 16, 24, 32, 40, 48,
 56). Tuğla inişi ~12.3 dakika, boss dövüşleri hariç. Bir run 21 kart seçimi
-veriyor; havuz kapasitesi 52.
+veriyor; havuz kapasitesi 58.
 
 **Sıradaki:** görev dağılımı `GOREVLER.md`, mesajlaşma `ILETISIM.md`.
 - Codex → görsel açık (8 silahın 7'si aynı iki kartı kullanıyor), Krediler

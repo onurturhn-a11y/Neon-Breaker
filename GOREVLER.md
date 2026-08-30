@@ -277,7 +277,7 @@ Maliyet eğrisini değiştirmek erken oyunu da şişiriyordu; gelir çarpanı er
 ölen oyuncuyu hiç etkilemiyor. Faz 4.1'in "eğriyi derinliğe taşı" ilkesiyle
 aynı.
 
-Havuz kapasitesi 52 seçim, yani 21 seçim hâlâ tercih bırakıyor — run her şeyi
+Havuz kapasitesi 58 seçim, yani 21 seçim hâlâ tercih bırakıyor — run her şeyi
 maksimuma çıkarmıyor.
 
 ### Yan ölçüm: zafer run'ı ~12 dakika
@@ -559,7 +559,7 @@ kanca kalmadı. Otomatik tarama sonucunu doğrulamadan raporlamamalı.
 
 ### Test kapsamı — neyin korunduğu
 
-gdUnit4 kuruldu (`addons/gdUnit4`, v6.2.1). **44 test, hepsi geçiyor.**
+gdUnit4 kuruldu (`addons/gdUnit4`, v6.2.1). **48 test, hepsi geçiyor.**
 
 ```bash
 godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests/ --ignoreHeadlessMode
@@ -574,6 +574,7 @@ godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests/
 | `boss_scaling_test` | 6 | Faz 6.2 + 7.4 boss HP ölçeklemesi |
 | `combo_chain_test` | 5 | Faz 7.1 kombo kartı → zincir şimşeği bağı |
 | `colony_effects_test` | 5 | Faz 7.3 koloni tek kaynak |
+| `documented_numbers_test` | 4 | Belgelerdeki sayılar koda karşı doğrulanır |
 
 **Henüz korunmayan:**
 
