@@ -47,6 +47,9 @@ var armored_chance = 0.05
 # ==================================================
 
 var continuous_row_fill = 0.45
+# Platform-neutral row budget; captured before mobile/adaptive fill bonuses.
+const XP_REFERENCE_COLUMNS := 13
+var xp_reference_row_fill := 0.45
 @export_range(0.0, 1.0, 0.01) var explosive_chance = 0.05
 @export_range(0.0, 1.0, 0.01) var shield_chance = 0.0
 @export_range(0.0, 1.0, 0.05) var special_brick_row_cap = 0.40
@@ -167,6 +170,8 @@ func configure_for_depth(depth):
 			explosive_chance = 0.12
 			shield_chance = minf(0.055 + float(depth - 10) * 0.005, 0.07)
 
+	xp_reference_row_fill = continuous_row_fill
+
 	# İlk üç depth korunur; mobile board-pressure bonusu Depth 4'te devreye girer.
 	if portrait_mobile_layout and depth >= 4:
 		continuous_row_fill = minf(
@@ -252,6 +257,20 @@ func get_effective_shield_chance() -> float:
 	return minf(effective_chance, 0.07)
 
 
+func get_row_xp_scale(actual_brick_count: int) -> float:
+	# Snapshot at spawn: later viewport resize must not change this row's rewards.
+	# Post-56 progression is deliberately outside this normalization pass.
+	if GameManager.run_depth > 56 or actual_brick_count <= 0:
+		return 1.0
+	var reference_count := maxi(1, roundi(
+		float(XP_REFERENCE_COLUMNS) * minf(
+			xp_reference_row_fill + GameManager.get_sector_row_fill_bonus(),
+			MAX_CONTINUOUS_ROW_FILL
+		)
+	))
+	return float(reference_count) / float(actual_brick_count)
+
+
 func create_continuous_row(parent, row_y, row_index):
 
 	brick_count = 0
@@ -296,6 +315,7 @@ func create_continuous_row(parent, row_y, row_index):
 		if not occupied.has(fallback_column):
 			occupied.append(fallback_column)
 
+	var row_xp_scale := get_row_xp_scale(target_brick_count)
 	occupied.sort()
 	var row_bricks: Dictionary = {}
 	var row_id = next_continuous_row_id
@@ -310,6 +330,7 @@ func create_continuous_row(parent, row_y, row_index):
 			column,
 			true
 		)
+		brick.set_meta("xp_row_scale", row_xp_scale)
 		row_bricks[column] = brick
 
 	for column in occupied:

@@ -2700,7 +2700,8 @@ func brick_destroyed(brick_position, brick_color, source = "ball", damage_contex
 	if is_instance_valid(destroyed_brick) and bool(destroyed_brick.get_meta("is_elite_brick", false)):
 		drop_chance_multiplier = EliteBricks.DROP_MULTIPLIER
 	if unique_destroy:
-		_resolve_brick_collectible_drop(brick_position, drop_chance_multiplier)
+		var row_xp_scale := float(destroyed_brick.get_meta("xp_row_scale", 1.0)) if is_instance_valid(destroyed_brick) else 1.0
+		_resolve_brick_collectible_drop(brick_position, drop_chance_multiplier, row_xp_scale)
 		var resonance_became_ready := GameManager.register_core_resonance_weapon_kill(
 			StringName(source)
 		)
@@ -2829,7 +2830,7 @@ func update_depth_debug_label(_step_interval = -1.0, _next_step = -1.0):
 # XP SÃƒâ€Ã‚Â°STEMÃƒâ€Ã‚Â°
 # ==================================================
 
-func _resolve_brick_collectible_drop(spawn_position: Vector2, drop_multiplier: float) -> void:
+func _resolve_brick_collectible_drop(spawn_position: Vector2, drop_multiplier: float, row_xp_scale: float = 1.0) -> void:
 	# One shared roll gives every destroyed brick either zero or one collectible.
 	# Ineligible Heart/Magnet slots remain no-drop so other probabilities do not increase.
 	var effective_orb_chance := float(exp_orb_drop_chance)
@@ -2860,7 +2861,7 @@ func _resolve_brick_collectible_drop(spawn_position: Vector2, drop_multiplier: f
 		return
 	range_end += orb_chance
 	if drop_roll < range_end:
-		spawn_xp_orb(spawn_position)
+		spawn_xp_orb(spawn_position, row_xp_scale)
 		return
 	range_end += heart_chance
 	if drop_roll < range_end:
@@ -2889,9 +2890,10 @@ func _resolve_brick_collectible_drop(spawn_position: Vector2, drop_multiplier: f
 		return
 
 
-func spawn_xp_orb(brick_position):
+func spawn_xp_orb(brick_position, row_xp_scale: float = 1.0):
 
 	var orb = xp_orb_scene.instantiate()
+	orb.xp_row_scale = row_xp_scale
 	add_child(orb)
 	orb.global_position = brick_position
 
@@ -3307,7 +3309,7 @@ func _on_combo_rank_changed(new_rank_index):
 
 ## apply_depth_scale: derinlik carpanini uygula. Yalnizca debug kisayolu
 ## kapatir — orada tam olarak bir level-up tetiklenmesi isteniyor.
-func add_xp(amount, apply_depth_scale := true):
+func add_xp(amount, apply_depth_scale := true, row_xp_scale: float = 1.0):
 	var previous_required = GameManager.xp_required
 	# Veri Emilimi karti toplanan XP'yi artirir.
 	var depth_scale: float = (
@@ -3316,6 +3318,9 @@ func add_xp(amount, apply_depth_scale := true):
 	amount = maxi(1, roundi(
 		float(amount) * GameManager.get_xp_gain_multiplier() * depth_scale
 	))
+	amount = GameManager.normalize_collected_xp(amount, row_xp_scale)
+	if amount <= 0:
+		return
 	GameManager.current_xp += amount
 
 	var leveled_up = false

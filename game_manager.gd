@@ -676,6 +676,8 @@ var music_enabled := true
 
 var run_level = 1
 var current_xp = 0
+# Run-only fractional XP; never persisted to meta/save data.
+var xp_normalization_remainder := 0.0
 var xp_required = 100
 var pending_levelup_card = false
 var first_card_selection_done := false
@@ -727,6 +729,7 @@ func reset_run():
 
 	run_level = 1
 	current_xp = 0
+	xp_normalization_remainder = 0.0
 	xp_required = 100
 	pending_levelup_card = false
 	first_card_selection_done = false
@@ -951,6 +954,17 @@ func get_paddle_speed_multiplier() -> float:
 
 func get_paddle_width_multiplier() -> float:
 	return (1.0 + 0.08 * float(get_card_level(&"paddle_width"))) * get_paddle_width_scale()
+
+
+func normalize_collected_xp(amount: int, row_scale: float) -> int:
+	# Apply AFTER the existing modifier rounding, without per-orb rounding bias.
+	# Unscaled side waves/debug sources retain their exact existing reward.
+	if is_equal_approx(row_scale, 1.0):
+		return amount
+	var exact_xp := float(amount) * maxf(row_scale, 0.0) + xp_normalization_remainder
+	var whole_xp := floori(exact_xp + 0.0000001)
+	xp_normalization_remainder = maxf(0.0, exact_xp - float(whole_xp))
+	return whole_xp
 
 
 func get_xp_gain_multiplier() -> float:
