@@ -178,10 +178,33 @@ godot --headless --quit-after 300 --path .
 Çıktıda `SCRIPT ERROR` veya `Parse Error` **olmamalı.**
 Çıkıştaki "ObjectDB instance leaked" uyarısı normaldir (zorla kapatma).
 
+### Testler — gdUnit4
+
+Test çerçevesi kurulu: `addons/gdUnit4` (v6.2.1). Testler `tests/` altında.
+
+```bash
+godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests/ --ignoreHeadlessMode
+```
+
+`--ignoreHeadlessMode` gerekli: gdUnit4 headless modda UI girdisi
+çalışmadığı için uyarı verip duruyor. Denge testleri girdi kullanmadığı
+için bu uyarı bizi ilgilendirmiyor.
+
+**Eklenti `project.godot`'ta etkinleştirilmedi** — CLI koşucusu buna
+ihtiyaç duymuyor ve `project.godot`'a dokunmamak çakışma yüzeyini dar
+tutuyor. Editör içi test denetçisini istersen kendin etkinleştir; o
+değişikliği commit etme.
+
+Üretilen `reports/` klasörü `.gitignore`'da.
+
+**Ne test edilir:** denge sayıları. Faz 4-7'de birçok sabit ölçümle
+seçildi; test onların sessizce bozulmasını engeller. Geçici sondalar
+hâlâ `_` önekiyle yazılır ve depoya girmez — kalıcı olması gereken ölçüm
+`tests/` altına test olarak yazılır.
+
 **Eklenti kurarken:** her eklentinin Godot sürüm uyumunu ayrı kontrol et.
-Örnek: gdUnit4 (test çerçevesi) 4.5–4.7.1 destekliyor. Kurduğun eklentiyi
-`ILETISIM.md`'ye yaz — `addons/` klasörü iki ajan için yeni bir çakışma
-yüzeyidir.
+Kurduğun eklentiyi `ILETISIM.md`'ye yaz — `addons/` klasörü iki ajan için
+yeni bir çakışma yüzeyidir.
 
 Geçici test scriptleri `_` ile başlamalı (`_my_test.gd`) — `.gitignore`'da,
 depoya girmez.
