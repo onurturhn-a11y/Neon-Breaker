@@ -14,14 +14,20 @@ const META_SAVE_PATH := "user://neon_break_meta.cfg"
 const BUILDING_PART_DROP_CHANCE := 0.08
 const MAX_WEAPON_SLOTS := 2
 const MAX_WEAPON_LEVEL := 3
+const CORE_RESONANCE_MAX_CHARGE := 6
+const CORE_RESONANCE_CHARGE_COOLDOWN_MSEC := 300
+const CORE_RESONANCE_FIREBALL_RADIUS_SCALE := 1.12
+const CORE_RESONANCE_PIERCE_BONUS := 1
 const WEAPON_PLASMA: StringName = &"PLASMA"
 const WEAPON_ARC_CANNON: StringName = &"ARC_CANNON"
 const WEAPON_SCATTER_CANNON: StringName = &"SCATTER_CANNON"
 const WEAPON_RAILGUN: StringName = &"RAILGUN"
 const WEAPON_HOMING_MISSILE: StringName = &"HOMING_MISSILE"
 const WEAPON_PULSE_LASER: StringName = &"PULSE_LASER"
-const WEAPON_MINE_LAUNCHER: StringName = &"MINE_LAUNCHER"
+
 const WEAPON_MORTAR: StringName = &"MORTAR"
+const WEAPON_DRONE_BAY: StringName = &"DRONE_BAY"
+const WEAPON_ORBITAL_MARKER: StringName = &"ORBITAL_MARKER"
 const PADDLE_NEUTRAL: StringName = &"NEUTRAL"
 const PADDLE_PLASMA: StringName = &"PLASMA"
 const PADDLE_FIRE: StringName = &"FIRE"
@@ -138,7 +144,7 @@ const CALIBRATION_COST_GROWTH := 1.35
 ##
 ## Artik hem oyun hem UI buradan okuyor; bir daha sapamazlar.
 ## Diziler seviyeye gore indekslenir (0 = kurulmamis).
-const PIERCING_RESEARCH_BASE_PENETRATION := [0, 1, 1, 2]
+const PIERCING_RESEARCH_BASE_PENETRATION := [0, 1, 2, 3]
 const FIRE_REACTOR_BASE_EXTRA_TARGETS := [0, 1, 1, 2]
 const TECH_CENTER_MAGNET_MULTIPLIERS := [1.0, 1.15, 1.30, 1.50]
 const TECH_CENTER_FULL_LIFE_HEART_SALVAGE := [0, 0, 1, 2]
@@ -239,7 +245,7 @@ func load_meta_progression() -> void:
 			var e := item as Dictionary
 			var sid := String(e.get("slot_id", ""))
 			var kind := String(e.get("building_type", e.get("type", "")))
-			if sid in COLONY_PLATFORM_IDS and not occupied.has(sid) and kind in ["reactor", "workshop", COLONY_BUILDING_PLASMA_LAB, COLONY_BUILDING_FIRE_REACTOR, COLONY_BUILDING_PIERCING_RESEARCH, COLONY_BUILDING_PART_FACTORY, COLONY_BUILDING_COIN_REFINERY, COLONY_BUILDING_TECH_CENTER]:
+			if sid in COLONY_PLATFORM_IDS and not occupied.has(sid) and (kind in COLONY_BUILDING_IDS or kind in ["reactor", "workshop"]):
 				var max_level := 3 if kind in COLONY_BUILDING_IDS else maxi(1, int(e.get("level", 1)))
 				colony_platform_buildings.append({
 					"building_type": kind,
@@ -471,12 +477,15 @@ func get_colony_magnet_scale() -> float:
 	return 1.0 + 0.05 * float(get_colony_building_calibration(COLONY_BUILDING_TECH_CENTER))
 
 
-func get_effective_coin_drop_chance(base_chance: float) -> float:
+func get_effective_coin_drop_chance(base_chance: float, drop_multiplier: float = 1.0) -> float:
 	var refinery_level := clampi(get_colony_building_level(COLONY_BUILDING_COIN_REFINERY), 0, 3)
-	return minf(
+	var colony_adjusted_chance := (
 		maxf(base_chance, 0.0)
 		+ float(COIN_REFINERY_BONUSES[refinery_level])
-		+ 0.0003 * float(get_colony_building_calibration(COLONY_BUILDING_COIN_REFINERY)),
+		+ 0.0003 * float(get_colony_building_calibration(COLONY_BUILDING_COIN_REFINERY))
+	)
+	return minf(
+		colony_adjusted_chance * maxf(drop_multiplier, 0.0),
 		MAX_COIN_DROP_CHANCE
 	)
 
@@ -559,6 +568,8 @@ func resolve_boss_direct_hit_damage(source: StringName, fallback_amount: int = 0
 			return 2
 		&"fireball_ball":
 			return 3
+		&"arc_cannon", &"railgun", &"pulse_laser", &"mortar", &"drone_bay", &"orbital_marker":
+			return 1
 		&"fireball_splash", &"napalm", &"explosion", &"chain_lightning":
 			return 0
 	return fallback_amount
@@ -700,6 +711,8 @@ var weapon_slots: Array[Dictionary] = [
 	{"weapon_id": &"", "level": 0},
 	{"weapon_id": &"", "level": 0},
 ]
+var core_resonance_charge := 0
+var last_core_resonance_charge_msec := -CORE_RESONANCE_CHARGE_COOLDOWN_MSEC
 # Kalkan Jeneratörü'nden gelen, can kaybını önleyen ücretsiz yükler.
 var colony_shield_charges := 0
 
@@ -733,6 +746,7 @@ func reset_run():
 	carried_salvage = 0
 	card_levels = {}
 	banished_cards = {}
+	reset_core_resonance()
 	reset_weapon_slots()
 	_apply_paddle_profile_to_run()
 
@@ -982,71 +996,138 @@ func get_card_descent_multiplier() -> float:
 	return 0.85 if get_card_level(&"slow_descent") > 0 else 1.0
 
 
+func get_active_core_module_id() -> StringName:
+	if fireball_level > 0:
+		return &"fireball"
+	if pierce_level > 0:
+		return &"pierce"
+	return &""
+
+
+func reset_core_resonance() -> void:
+	core_resonance_charge = 0
+	last_core_resonance_charge_msec = -CORE_RESONANCE_CHARGE_COOLDOWN_MSEC
+
+
+func register_core_resonance_weapon_kill(source: StringName) -> bool:
+	if get_active_core_module_id() == &"":
+		return false
+	var source_card_id := WeaponCards.get_card_id_for_damage_source(source)
+	if source_card_id == &"":
+		return false
+	var source_weapon_id := WeaponCards.get_weapon_id(source_card_id)
+	if get_weapon_level(source_weapon_id) <= 0:
+		return false
+	if core_resonance_charge >= CORE_RESONANCE_MAX_CHARGE:
+		return false
+	var now_msec := Time.get_ticks_msec()
+	if now_msec - last_core_resonance_charge_msec < CORE_RESONANCE_CHARGE_COOLDOWN_MSEC:
+		return false
+	last_core_resonance_charge_msec = now_msec
+	core_resonance_charge = mini(core_resonance_charge + 1, CORE_RESONANCE_MAX_CHARGE)
+	return core_resonance_charge == CORE_RESONANCE_MAX_CHARGE
+
+
+func is_core_resonance_ready(core_id: StringName = &"") -> bool:
+	var active_core := get_active_core_module_id()
+	return (
+		active_core != &""
+		and (core_id == &"" or core_id == active_core)
+		and core_resonance_charge >= CORE_RESONANCE_MAX_CHARGE
+	)
+
+
+func consume_core_resonance(core_id: StringName) -> bool:
+	if not is_core_resonance_ready(core_id):
+		return false
+	core_resonance_charge = 0
+	last_core_resonance_charge_msec = Time.get_ticks_msec()
+	return true
+
+
+func get_core_resonance_ratio() -> float:
+	return clampf(
+		float(core_resonance_charge) / float(CORE_RESONANCE_MAX_CHARGE),
+		0.0,
+		1.0
+	)
+
+
+func get_build_threat_score() -> int:
+	var score := maxi(fireball_level, pierce_level)
+	var mounted_count := 0
+	var mounted_level_total := 0
+	var legendary_count := 0
+	for slot: Dictionary in weapon_slots:
+		var weapon_id := StringName(slot.get("weapon_id", &""))
+		var weapon_level := clampi(int(slot.get("level", 0)), 0, MAX_WEAPON_LEVEL)
+		if weapon_id == &"" or weapon_level <= 0:
+			continue
+		mounted_count += 1
+		mounted_level_total += weapon_level
+		if WeaponCards.is_legendary_weapon(weapon_id):
+			legendary_count += 1
+	score += mounted_level_total
+	score += mounted_count
+	score += legendary_count
+	if plasma_level > 0 and plasma_evolution != &"none":
+		score += 1
+	if fireball_level > 0 and fireball_evolution != &"none":
+		score += 1
+	if pierce_level > 0 and pierce_evolution != &"none":
+		score += 1
+	return score
+
+
 func get_build_threat() -> int:
-	var effective_plasma_level: int = (
-		maxi(plasma_level, 3) if plasma_evolution != &"none" else plasma_level
-	)
-	var effective_fireball_level: int = (
-		maxi(fireball_level, 3) if fireball_evolution != &"none" else fireball_level
-	)
-	var active_levels: Array[int] = []
-	for card_level: int in [effective_plasma_level, effective_fireball_level, pierce_level]:
-		if card_level > 0:
-			active_levels.append(card_level)
-
-	# Üç ana kart birlikteyse level'lardan bağımsız olarak en yüksek threat önceliklidir.
-	if active_levels.size() == 3:
+	var score := get_build_threat_score()
+	if score >= 9:
 		return 3
-	if active_levels.size() < 2:
-		return 0
-	for card_level: int in active_levels:
-		if card_level >= 3:
-			return 2
-	return 1
+	if score >= 5:
+		return 2
+	if score >= 3:
+		return 1
+	return 0
 
 
-## Faz 4: build-tabanli iniş hızı cezası kaldırıldı.
-## Oyuncu güçlendiği için cezalandırılmaz; zorluk artık yalnızca derinlikten
-## gelir (bkz. get_late_game_descent_multiplier). Fonksiyon çağrı yerlerini
-## bozmamak için duruyor ve her zaman nötr döner.
+## Build pressure remains separate from sector, curse and Ascension modifiers.
 func get_build_speed_multiplier() -> float:
+	match get_build_threat():
+		1:
+			return 0.94
+		2:
+			return 0.90
+		3:
+			return 0.86
 	return 1.0
 
 
 func get_power_synergy_tier() -> int:
-	var active_levels: Array[int] = []
-	for card_level: int in [plasma_level, pierce_level, fireball_level]:
-		if card_level > 0:
-			active_levels.append(card_level)
-	if active_levels.size() < 2:
-		return 0
-
-	var level_two_or_higher := 0
-	for card_level: int in active_levels:
-		if card_level >= 2:
-			level_two_or_higher += 1
-	if active_levels.size() == 3 and level_two_or_higher >= 2:
-		return 4
-	if active_levels.size() == 3 or level_two_or_higher >= 2:
-		return 3
-	if level_two_or_higher >= 1:
-		return 2
-	return 1
+	return get_build_threat()
 
 
-## Faz 4: sinerji baskısı kaldırıldı. Mobilde iyi build kuran oyuncu
-## satırların %27'ye varan hızlanmasıyla cezalandırılıyordu.
-func get_power_synergy_interval_multiplier(_tier: int = 0) -> float:
+func get_power_synergy_interval_multiplier(tier: int = get_power_synergy_tier()) -> float:
+	match tier:
+		1:
+			return 0.92
+		2:
+			return 0.85
+		3:
+			return 0.78
 	return 1.0
 
 
-## Faz 4: sinerji satır doluluk cezası kaldırıldı.
-func get_power_synergy_row_fill_bonus(_tier: int = 0) -> float:
+func get_power_synergy_row_fill_bonus(tier: int = get_power_synergy_tier()) -> float:
+	match tier:
+		1:
+			return 0.05
+		2:
+			return 0.10
+		3:
+			return 0.15
 	return 0.0
 
-## Zorluğun tek kaynağı: derinlik. Eğri 10 boss planına göre depth 80'e
-## kadar uzatıldı; build cezaları kaldırıldığı için biraz daha dik.
-## Sektör modifier'larına tek giriş noktası.
+## Sector, curse and Ascension modifiers are composed with capped build pressure.
 # ==================================================
 # RİSK: LANETLER VE KASA
 # ==================================================
@@ -1246,9 +1327,15 @@ func get_late_game_descent_multiplier(depth: int = run_depth) -> float:
 	if depth <= 4:
 		return 1.00
 	if depth <= 8:
-		return 0.93
-	if depth <= 12:
-		return 0.85
+		return 0.94
+	if depth == 9:
+		return 0.94
+	if depth == 10:
+		return 0.91
+	if depth == 11:
+		return 0.89
+	if depth == 12:
+		return 0.87
 	if depth <= 16:
 		return 0.77
 	if depth <= 20:
@@ -1278,7 +1365,7 @@ func get_late_game_side_attacker_multiplier(depth: int = run_depth) -> float:
 	if depth >= 29:
 		return 0.55
 	if depth >= 21:
-		return 0.60
+		return maxf(0.52, 0.60 - float(depth - 21) * 0.002)
 	if depth >= 17:
 		return 0.70
 	if depth >= 13:

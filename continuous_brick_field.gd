@@ -25,6 +25,8 @@ var top_row_y = GameManager.PLAYFIELD_TOP + 22.0
 const EXPLOSION_SFX = preload("res://assets/audio/sfx/bricks/explosive_brick.mp3")
 const EXPLOSION_SFX_VOICE_COUNT = 2
 const EXPLOSION_SFX_RETRIGGER_MSEC = 60
+const MOBILE_EXPLOSION_VFX_LIMIT := 4
+const EXPLOSION_VFX_GROUP: StringName = &"explosive_brick_vfx"
 
 var level_generator = preload("res://level_generator.gd").new()
 var step_timer = 0.0
@@ -622,11 +624,14 @@ func trigger_explosive_blast(origin, source_brick, damage_context = null, is_cha
 
 func spawn_explosion_visual(origin):
 	play_explosion_sfx()
+	if OS.has_feature("mobile") and get_tree().get_nodes_in_group(EXPLOSION_VFX_GROUP).size() >= MOBILE_EXPLOSION_VFX_LIMIT:
+		return
 
 	var effect_root = Node2D.new()
 	effect_root.name = "ExplosiveBrickBlast"
 	effect_root.global_position = origin
 	effect_root.z_index = 35
+	effect_root.add_to_group(EXPLOSION_VFX_GROUP)
 	if OS.has_feature("mobile"):
 		effect_root.scale = Vector2.ONE * 1.20
 	get_tree().current_scene.add_child(effect_root)
@@ -706,7 +711,7 @@ func apply_depth_settings():
 
 	level_generator.configure_for_depth(GameManager.run_depth)
 
-	var depth_intervals = [1.50, 1.35, 1.20, 1.05, 0.90, 0.75]
+	var depth_intervals = [1.50, 1.35, 1.20, 1.05, 0.95, 0.82]
 	var base_interval: float
 	if GameManager.run_depth == 1 and not OS.has_feature("mobile"):
 		base_interval = desktop_initial_row_step_interval
@@ -741,7 +746,7 @@ func _refresh_mobile_power_synergy_pressure() -> void:
 	var tier := GameManager.get_power_synergy_tier()
 	if tier != last_power_synergy_tier:
 		last_power_synergy_tier = tier
-		var tier_names := ["NONE", "TIER 1", "TIER 2", "TIER 3", "EXTREME"]
+		var tier_names := ["NONE", "TIER 1", "TIER 2", "TIER 3"]
 		print("POWER SYNERGY: " + tier_names[tier])
 
 	var pressure_scale := 0.0
@@ -784,7 +789,7 @@ func print_difficulty_debug(bricks_this_row):
 			level_generator.get_effective_continuous_row_fill(),
 			level_generator.get_effective_armored_chance(),
 			level_generator.get_effective_shield_chance(),
-			level_generator.explosive_chance,
+			level_generator.get_effective_explosive_chance(),
 			EliteBricks.get_chance(GameManager.run_depth, GameManager.run_ascension),
 			row_step_interval,
 			turret_interval.x,

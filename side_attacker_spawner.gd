@@ -36,6 +36,15 @@ func spawn_attacker() -> void:
 	active_attacker.setup(game, -1 if randf() < 0.5 else 1, projectile_speed)
 
 
+func cleanup_for_boss_transition() -> void:
+	if is_instance_valid(active_attacker):
+		active_attacker.queue_free()
+	active_attacker = null
+	for projectile: Node in get_tree().get_nodes_in_group("side_attacker_projectile"):
+		if is_instance_valid(projectile):
+			projectile.queue_free()
+
+
 func _on_attacker_finished() -> void:
 	active_attacker = null
 	var interval := get_interval_for_depth(GameManager.run_depth)
@@ -63,10 +72,11 @@ func refresh_build_modifier() -> void:
 
 
 func _get_interval_multiplier(depth: int) -> float:
-	# Faz 4: build-tabanlı sıklık cezası kaldırıldı; yalnızca derinlik ölçekler.
+	# Entegrasyon: sınırlı build threat, depth, sector ve curse birlikte uygulanır.
 	var mobile_multiplier := MOBILE_INTERVAL_MULTIPLIER if OS.has_feature("mobile") else 1.0
 	return (
-		GameManager.get_late_game_side_attacker_multiplier(depth)
+		(0.85 if GameManager.get_build_threat() == 3 else 1.0)
+		* GameManager.get_late_game_side_attacker_multiplier(depth)
 		* GameManager.get_sector_attacker_scale()
 		* GameManager.get_curse_attacker_scale()
 		* mobile_multiplier

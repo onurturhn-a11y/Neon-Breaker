@@ -145,7 +145,8 @@ func _spawn_projectile(shot_direction: Vector2) -> void:
 
 
 func _spawn_projectile_pattern(center_direction: Vector2) -> void:
-	_spawn_projectile(center_direction)
+	for angle_degrees: float in get_projectile_angles():
+		_spawn_projectile(center_direction.rotated(deg_to_rad(angle_degrees)))
 
 
 var projectile_block_until_msec := 0
@@ -219,6 +220,10 @@ func hit_from_ball(attacker_instance_id: int, source: StringName = &"ball") -> v
 func hit_from_plasma(attacker_instance_id: int) -> void:
 	print("BOSS DAMAGE ROUTE | plasma_bullet.gd::_on_body_entered")
 	apply_boss_damage(1, &"plasma", attacker_instance_id)
+
+
+func hit_from_mounted_weapon(source: StringName, cycle_id: int) -> void:
+	apply_boss_damage(1, source, cycle_id)
 
 
 func debug_instant_kill() -> void:

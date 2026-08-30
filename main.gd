@@ -286,7 +286,19 @@ var sentinel_shield_indicator: Label
 var sentinel_feedback_label: Label
 var sentinel_feedback_tween: Tween
 var mobile_safe_area_refresh_timer := 0.0
+var build_identity_panel: PanelContainer
+var build_identity_core_label: Label
+var build_identity_slots_label: Label
+var card_slot_state_panel: PanelContainer
+var card_slot_state_label: Label
+var hud_status_toast: Label
+var hud_status_toast_tween: Tween
+var danger_line_visual: Line2D
+var ui_feedback_refresh_left := 0.0
+var last_build_identity_signature := ""
+var sentinel_hint_shown := false
 const CARD_MOVE_SOUND_COOLDOWN_MSEC := 70
+const UI_FEEDBACK_REFRESH_INTERVAL := 0.10
 
 
 # ==================================================
@@ -439,18 +451,19 @@ func _apply_mobile_portrait_layout() -> void:
 	total_coin_label.add_theme_font_size_override("font_size", 18)
 
 
-	_set_mobile_rect(build_hud, Rect2(safe_rect.position + Vector2(12, 112), Vector2(safe_rect.size.x - 24.0, 76)))
+	_set_mobile_rect(build_hud, Rect2(safe_rect.position + Vector2(12, 150), Vector2(safe_rect.size.x - 24.0, 38)))
 	var build_title := $HUD/BuildHUD/Title as Control
-	_set_mobile_rect(build_title, Rect2(0, 0, 62, 18))
-	(build_title as Label).add_theme_font_size_override("font_size", 12)
+	_set_mobile_rect(build_title, Rect2(0, 0, 42, 16))
+	(build_title as Label).add_theme_font_size_override("font_size", 9)
 	var build_list := $HUD/BuildHUD/UpgradeList as GridContainer
-	_set_mobile_rect(build_list, Rect2(68, 0, safe_rect.size.x - 92.0, 76))
-	build_list.columns = 6
+	_set_mobile_rect(build_list, Rect2(44, 0, maxf(safe_rect.size.x - 238.0, 260.0), 38))
+	build_list.columns = 8
 	build_list.add_theme_constant_override("h_separation", 4)
 	build_list.add_theme_constant_override("v_separation", 3)
 
 	var combo_rank := $HUD/ComboManager/RankLabel as Control
 	_set_mobile_rect(combo_rank, Rect2(safe_right - 170.0, safe_rect.position.y + 112.0, 145, 58))
+	_layout_readability_ui()
 
 	_set_mobile_rect(boss_hp_panel, Rect2(safe_rect.position.x + 64.0, GameManager.PLAYFIELD_TOP + 12.0, safe_rect.size.x - 128.0, 54))
 	_set_mobile_rect(boss_hp_bar, Rect2(10, 27, boss_hp_panel.size.x - 20.0, 18))
@@ -789,6 +802,236 @@ func _on_total_salvage_changed(total: int) -> void:
 		building_part_label.text = str(total)
 
 
+func _make_readability_panel_style(tone: Color, alpha := 0.90) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.012, 0.035, 0.075, alpha)
+	style.border_color = Color(tone.r, tone.g, tone.b, 0.70)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(7)
+	style.shadow_color = Color(tone.r, tone.g, tone.b, 0.16)
+	style.shadow_size = 5
+	style.content_margin_left = 8.0
+	style.content_margin_right = 8.0
+	style.content_margin_top = 3.0
+	style.content_margin_bottom = 3.0
+	return style
+
+
+func _setup_readability_ui() -> void:
+	if is_instance_valid(build_identity_panel):
+		return
+	build_identity_panel = PanelContainer.new()
+	build_identity_panel.name = "BuildIdentity"
+	build_identity_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	build_identity_panel.add_theme_stylebox_override(
+		"panel", _make_readability_panel_style(Color(0.32, 0.91, 1.0, 1.0))
+	)
+	$HUD.add_child(build_identity_panel)
+	var identity_lines := VBoxContainer.new()
+	identity_lines.add_theme_constant_override("separation", 0)
+	identity_lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	build_identity_panel.add_child(identity_lines)
+	build_identity_core_label = Label.new()
+	build_identity_core_label.add_theme_color_override("font_color", Color(0.62, 0.96, 1.0, 1.0))
+	build_identity_core_label.add_theme_font_size_override("font_size", 13)
+	build_identity_core_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	identity_lines.add_child(build_identity_core_label)
+	build_identity_slots_label = Label.new()
+	build_identity_slots_label.add_theme_color_override("font_color", Color(0.90, 0.94, 1.0, 0.96))
+	build_identity_slots_label.add_theme_font_size_override("font_size", 12)
+	build_identity_slots_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	identity_lines.add_child(build_identity_slots_label)
+
+	card_slot_state_panel = PanelContainer.new()
+	card_slot_state_panel.name = "WeaponSlotState"
+	card_slot_state_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	card_slot_state_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card_slot_state_panel.add_theme_stylebox_override(
+		"panel", _make_readability_panel_style(Color(0.54, 0.60, 1.0, 1.0), 0.94)
+	)
+	card_panel.add_child(card_slot_state_panel)
+	card_slot_state_label = Label.new()
+	card_slot_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	card_slot_state_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	card_slot_state_label.add_theme_color_override("font_color", Color(0.88, 0.94, 1.0, 1.0))
+	card_slot_state_label.add_theme_font_size_override("font_size", 12)
+	card_slot_state_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card_slot_state_panel.add_child(card_slot_state_label)
+
+	hud_status_toast = Label.new()
+	hud_status_toast.name = "RunStatusToast"
+	hud_status_toast.z_index = 120
+	hud_status_toast.visible = false
+	hud_status_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hud_status_toast.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hud_status_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_status_toast.add_theme_font_size_override("font_size", 15 if OS.has_feature("mobile") else 17)
+	hud_status_toast.add_theme_stylebox_override(
+		"normal", _make_readability_panel_style(Color(0.45, 0.94, 1.0, 1.0), 0.95)
+	)
+	$HUD.add_child(hud_status_toast)
+
+	danger_line_visual = Line2D.new()
+	danger_line_visual.name = "DangerLineVisual"
+	danger_line_visual.z_index = 4
+	danger_line_visual.width = 1.25
+	danger_line_visual.antialiased = true
+	danger_line_visual.visible = false
+	add_child(danger_line_visual)
+	_layout_readability_ui()
+
+
+func _layout_readability_ui() -> void:
+	if not is_instance_valid(build_identity_panel):
+		return
+	var viewport_size := get_viewport_rect().size
+	if OS.has_feature("mobile"):
+		var safe_rect := GameManager.get_layout_safe_rect(viewport_size)
+		var identity_width := maxf(280.0, safe_rect.size.x - 194.0)
+		_set_mobile_rect(build_identity_panel, Rect2(
+			safe_rect.position + Vector2(12.0, 112.0), Vector2(identity_width, 36.0)
+		))
+		build_identity_core_label.add_theme_font_size_override("font_size", 10)
+		build_identity_slots_label.add_theme_font_size_override("font_size", 9)
+		var state_width := minf(520.0, safe_rect.size.x - 28.0)
+		_set_mobile_rect(card_slot_state_panel, Rect2(
+			Vector2(safe_rect.get_center().x - state_width * 0.5, safe_rect.position.y + 184.0),
+			Vector2(state_width, 40.0)
+		))
+		_set_mobile_rect(hud_status_toast, Rect2(
+			Vector2(safe_rect.position.x + 24.0, GameManager.PLAYFIELD_TOP + 66.0),
+			Vector2(safe_rect.size.x - 48.0, 38.0)
+		))
+	else:
+		_set_mobile_rect(build_identity_panel, Rect2(
+			Vector2(viewport_size.x - 432.0, 84.0), Vector2(414.0, 58.0)
+		))
+		build_identity_core_label.add_theme_font_size_override("font_size", 13)
+		build_identity_slots_label.add_theme_font_size_override("font_size", 12)
+		_set_mobile_rect(card_slot_state_panel, Rect2(
+			Vector2(viewport_size.x * 0.5 - 270.0, 116.0), Vector2(540.0, 48.0)
+		))
+		_set_mobile_rect(hud_status_toast, Rect2(
+			Vector2(viewport_size.x * 0.5 - 300.0, 148.0), Vector2(600.0, 42.0)
+		))
+
+
+func _weapon_short_name(weapon_id: StringName) -> String:
+	match weapon_id:
+		&"PLASMA": return "PLASMA"
+		&"ARC_CANNON": return "ARC"
+		&"SCATTER_CANNON": return "SCATTER"
+		&"RAILGUN": return "RAIL"
+		&"HOMING_MISSILE": return "HOMING"
+		&"PULSE_LASER": return "PULSE"
+		&"MORTAR": return "MORTAR"
+		&"DRONE_BAY": return "DRONE"
+		&"ORBITAL_MARKER": return "ORBITAL"
+	return String(weapon_id).replace("_", " ")
+
+
+func _weapon_slot_text(slot_index: int, compact := false) -> String:
+	if slot_index < 0 or slot_index >= GameManager.weapon_slots.size():
+		return "S%d EMPTY" % (slot_index + 1)
+	var slot: Dictionary = GameManager.weapon_slots[slot_index]
+	var weapon_id := StringName(slot.get("weapon_id", &""))
+	if weapon_id == &"":
+		return "S%d EMPTY" % (slot_index + 1)
+	var level := clampi(int(slot.get("level", 0)), 0, GameManager.MAX_WEAPON_LEVEL)
+	var max_suffix := " MAX" if level >= GameManager.MAX_WEAPON_LEVEL else ""
+	var level_prefix := "L" if compact else "Lv"
+	return "S%d %s %s%d%s" % [slot_index + 1, _weapon_short_name(weapon_id), level_prefix, level, max_suffix]
+
+
+func _active_core_text() -> String:
+	if GameManager.fireball_level > 0:
+		return "FIREBALL Lv%d" % GameManager.fireball_level
+	if GameManager.pierce_level > 0:
+		return "PIERCING Lv%d" % GameManager.pierce_level
+	return "EMPTY"
+
+
+func _refresh_build_identity_hud(force := false) -> void:
+	if not is_instance_valid(build_identity_panel):
+		return
+	var resonance_text := (
+		"READY" if GameManager.is_core_resonance_ready()
+		else "%d/%d" % [GameManager.core_resonance_charge, GameManager.CORE_RESONANCE_MAX_CHARGE]
+	)
+	var signature := "%s|%s|%s|%s|%d" % [
+		_active_core_text(), _weapon_slot_text(0), _weapon_slot_text(1),
+		resonance_text, GameManager.colony_shield_charges
+	]
+	if not force and signature == last_build_identity_signature:
+		return
+	last_build_identity_signature = signature
+	build_identity_core_label.text = "CORE %s   ·   REZONANS %s" % [_active_core_text(), resonance_text]
+	build_identity_core_label.modulate = (
+		Color(1.0, 0.78, 0.28, 1.0) if GameManager.is_core_resonance_ready()
+		else Color.WHITE
+	)
+	build_identity_slots_label.text = "%s   ·   %s   ·   KALKAN %d" % [
+		_weapon_slot_text(0, OS.has_feature("mobile")),
+		_weapon_slot_text(1, OS.has_feature("mobile")),
+		GameManager.colony_shield_charges,
+	]
+
+
+func _refresh_card_slot_state() -> void:
+	if not is_instance_valid(card_slot_state_label):
+		return
+	var slots_text := "%s    ·    %s" % [_weapon_slot_text(0), _weapon_slot_text(1)]
+	if not GameManager.has_empty_weapon_slot():
+		slots_text += "\nYUVALAR DOLU — YALNIZ YÜKSELTMELER"
+	card_slot_state_label.text = slots_text
+
+
+func _show_hud_status(message: String, tone := Color(0.45, 0.94, 1.0, 1.0), duration := 1.45) -> void:
+	if not is_instance_valid(hud_status_toast):
+		return
+	if is_instance_valid(hud_status_toast_tween):
+		hud_status_toast_tween.kill()
+	hud_status_toast.text = message
+	hud_status_toast.add_theme_color_override("font_color", tone)
+	hud_status_toast.modulate = Color.WHITE
+	hud_status_toast.scale = Vector2(0.94, 0.94)
+	hud_status_toast.pivot_offset = hud_status_toast.size * 0.5
+	hud_status_toast.visible = true
+	hud_status_toast_tween = hud_status_toast.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	hud_status_toast_tween.tween_property(hud_status_toast, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	hud_status_toast_tween.tween_interval(duration)
+	hud_status_toast_tween.tween_property(hud_status_toast, "modulate:a", 0.0, 0.22)
+	hud_status_toast_tween.tween_callback(func() -> void: hud_status_toast.visible = false)
+
+
+func _update_danger_line_feedback() -> void:
+	if not is_instance_valid(danger_line_visual) or not is_instance_valid(brick_field):
+		return
+	var should_show: bool = not main_menu.visible and not game_over and not boss_active and not boss_pending
+	danger_line_visual.visible = should_show
+	if not should_show:
+		return
+	var danger_y := float(brick_field.get("danger_line_y"))
+	var gameplay_rect := GameManager.get_gameplay_rect(get_viewport_rect().size)
+	danger_line_visual.points = PackedVector2Array([
+		Vector2(gameplay_rect.position.x + 14.0, danger_y),
+		Vector2(gameplay_rect.end.x - 14.0, danger_y),
+	])
+	var closest_distance := 9999.0
+	for brick: Node2D in get_tree().get_nodes_in_group("game_brick"):
+		if not is_instance_valid(brick) or brick.is_queued_for_deletion():
+			continue
+		var brick_bottom := brick.global_position.y + 18.0
+		if brick_field.has_method("get_brick_bottom"):
+			brick_bottom = float(brick_field.call("get_brick_bottom", brick))
+		closest_distance = minf(closest_distance, danger_y - brick_bottom)
+	var pressure := 1.0 - clampf((closest_distance - 20.0) / 150.0, 0.0, 1.0)
+	var calm := Color(0.30, 0.88, 1.0, 0.12 if OS.has_feature("mobile") else 0.16)
+	var danger := Color(1.0, 0.28, 0.12, 0.42 if OS.has_feature("mobile") else 0.52)
+	danger_line_visual.default_color = calm.lerp(danger, pressure)
+	danger_line_visual.width = lerpf(1.0, 2.0, pressure)
+
+
 func _apply_colony_menu_button_texture(button: Button) -> void:
 	button.text = ""
 	button.icon = null
@@ -931,6 +1174,7 @@ func _ready():
 	_setup_card_presentation()
 	_setup_main_menu_assets()
 	_setup_building_part_hud()
+	_setup_readability_ui()
 	if not GameManager.total_salvage_changed.is_connected(_on_total_salvage_changed):
 		GameManager.total_salvage_changed.connect(_on_total_salvage_changed)
 	_setup_arc_cannon_controller()
@@ -1051,6 +1295,7 @@ func _ready():
 
 	update_labels()
 	build_hud.refresh_from_run_state(false)
+	_refresh_build_identity_hud(true)
 	paddle.apply_run_upgrades(
 		GameManager.plasma_level,
 		GameManager.plasma_evolution
@@ -1277,6 +1522,7 @@ func on_continuous_row_spawned(row_depth: int) -> void:
 	else:
 		return
 	boss_pending = true
+	_cleanup_side_attacker_for_boss_transition()
 	if is_instance_valid(brick_field):
 		brick_field.begin_boss_board_drain()
 	call_deferred("_try_start_pending_boss")
@@ -1378,6 +1624,12 @@ func _try_start_pending_boss() -> void:
 	if is_instance_valid(brick_field):
 		brick_field.lock_for_boss_transition()
 	_run_progression_boss_warning()
+
+
+func _cleanup_side_attacker_for_boss_transition() -> void:
+	var side_spawner := get_node_or_null("SideAttackerSpawner")
+	if is_instance_valid(side_spawner) and side_spawner.has_method("cleanup_for_boss_transition"):
+		side_spawner.cleanup_for_boss_transition()
 
 
 func _count_active_field_bricks() -> int:
@@ -1555,10 +1807,10 @@ func _build_boss_reward_options(boss_type: StringName) -> Array:
 		options.append({
 			"id": &"heal",
 			"title": "FAZLA ENERJİ",
-			"description": "Can zaten dolu.\n+%d PARÇA" % (salvage_reward * 3),
+			"description": "Can zaten dolu.\n+%d PARÇA" % salvage_reward,
 			"icon": ICON_LIFE,
 			"tone": Color(1.0, 0.42, 0.58, 1.0),
-			"salvage": salvage_reward * 3,
+			"salvage": salvage_reward,
 		})
 
 	# 3) Taktik: kart ekranı üzerinde kontrol.
@@ -1852,6 +2104,14 @@ func _setup_boss_hud(boss_type: StringName) -> void:
 		sentinel_right_indicator.visible = true
 		sentinel_shield_indicator.visible = true
 		_on_sentinel_generator_state_changed(true, true, true)
+		if not sentinel_hint_shown:
+			sentinel_hint_shown = true
+			call_deferred(
+				"_show_hud_status",
+				"ÇEKİRDEĞİ AÇMAK İÇİN İKİ JENERATÖRÜ DE YOK ET",
+				Color(0.58, 0.96, 1.0, 1.0),
+				2.2
+			)
 	else:
 		boss_name_label.text = _get_boss_display_name(boss_type)
 		boss_name_label.size.x = 210.0 if boss_type in [&"sovereign", &"architect"] else 168.0 if boss_type == &"chronoform" else (178.0 if boss_type == &"void" else (150.0 if boss_type == &"celestial" else 112.0))
@@ -1873,7 +2133,7 @@ func _ensure_sentinel_hud_indicators() -> void:
 	sentinel_left_indicator.position = Vector2(120.0, 3.0)
 	sentinel_left_indicator.size = Vector2(96.0, 22.0)
 	sentinel_left_indicator.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sentinel_left_indicator.add_theme_font_size_override("font_size", 10)
+	sentinel_left_indicator.add_theme_font_size_override("font_size", 12 if OS.has_feature("mobile") else 11)
 	boss_hp_panel.add_child(sentinel_left_indicator)
 	sentinel_right_indicator = Label.new()
 	sentinel_right_indicator.name = "SentinelRightGenerator"
@@ -1881,7 +2141,7 @@ func _ensure_sentinel_hud_indicators() -> void:
 	sentinel_right_indicator.position = Vector2(216.0, 3.0)
 	sentinel_right_indicator.size = Vector2(96.0, 22.0)
 	sentinel_right_indicator.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sentinel_right_indicator.add_theme_font_size_override("font_size", 10)
+	sentinel_right_indicator.add_theme_font_size_override("font_size", 12 if OS.has_feature("mobile") else 11)
 	boss_hp_panel.add_child(sentinel_right_indicator)
 	sentinel_shield_indicator = Label.new()
 	sentinel_shield_indicator.name = "SentinelShieldState"
@@ -1889,7 +2149,7 @@ func _ensure_sentinel_hud_indicators() -> void:
 	sentinel_shield_indicator.position = Vector2(312.0, 3.0)
 	sentinel_shield_indicator.size = Vector2(96.0, 22.0)
 	sentinel_shield_indicator.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sentinel_shield_indicator.add_theme_font_size_override("font_size", 11)
+	sentinel_shield_indicator.add_theme_font_size_override("font_size", 13 if OS.has_feature("mobile") else 12)
 	boss_hp_panel.add_child(sentinel_shield_indicator)
 	sentinel_feedback_label = Label.new()
 	sentinel_feedback_label.name = "SentinelStatusFeedback"
@@ -2441,6 +2701,11 @@ func brick_destroyed(brick_position, brick_color, source = "ball", damage_contex
 		drop_chance_multiplier = EliteBricks.DROP_MULTIPLIER
 	if unique_destroy:
 		_resolve_brick_collectible_drop(brick_position, drop_chance_multiplier)
+		var resonance_became_ready := GameManager.register_core_resonance_weapon_kill(
+			StringName(source)
+		)
+		if resonance_became_ready and OS.is_debug_build():
+			print("CORE RESONANCE READY: %s" % GameManager.get_active_core_module_id())
 	$HUD/FrameGlow.flash(brick_color)
 	var contributes_to_combo = true
 	if source == "explosion" and damage_context is Dictionary:
@@ -2572,7 +2837,7 @@ func _resolve_brick_collectible_drop(spawn_position: Vector2, drop_multiplier: f
 		effective_orb_chance *= 1.50
 	# Tarama Dizisi karti tum drop sanslarini yukseltir.
 	drop_multiplier *= GameManager.get_drop_rate_multiplier()
-	var coin_chance: float = GameManager.get_effective_coin_drop_chance(float(coin_drop_chance)) * drop_multiplier
+	var coin_chance: float = GameManager.get_effective_coin_drop_chance(float(coin_drop_chance), drop_multiplier)
 	var orb_chance: float = effective_orb_chance * drop_multiplier
 	var heart_chance: float = float(heart_drop_chance) * drop_multiplier
 	var magnet_chance: float = float(magnet_drop_chance) * drop_multiplier
@@ -2747,6 +3012,11 @@ func _process(delta):
 		)
 
 	update_magnet_aura_feedback(delta)
+	ui_feedback_refresh_left -= delta
+	if ui_feedback_refresh_left <= 0.0:
+		ui_feedback_refresh_left = UI_FEEDBACK_REFRESH_INTERVAL
+		_refresh_build_identity_hud()
+		_update_danger_line_feedback()
 
 
 func _update_temporary_pickup_effects(delta: float) -> void:
@@ -2828,17 +3098,21 @@ func trigger_fireball_blast(origin_position: Vector2, primary_brick: Node, level
 	var clamped_level := clampi(level, 0, 3)
 	var base_radius: float = FIREBALL_BASE_RADII[clamped_level]
 	var damage_radius: float = (
-		base_radius * FIREBALL_RADIUS_MULTIPLIERS[clamped_level]
+		base_radius
+		* FIREBALL_RADIUS_MULTIPLIERS[clamped_level]
+		* GameManager.get_colony_fire_radius_scale()
 	)
 	if damage_radius <= 0.0:
 		return
-	var visual_radius := base_radius
+	var resonance_boosted := GameManager.consume_core_resonance(&"fireball")
+	if resonance_boosted:
+		damage_radius *= GameManager.CORE_RESONANCE_FIREBALL_RADIUS_SCALE
 	var is_inferno: bool = GameManager.fireball_evolution == &"inferno" and level >= 3
 	var is_napalm: bool = GameManager.fireball_evolution == &"napalm" and level >= 3
 	if is_inferno:
 		damage_radius *= 1.45
-		visual_radius *= 1.45
-	spawn_fireball_visual(origin_position, visual_radius, is_inferno)
+	# Görsel ve gameplay aynı tek effective radius değerini kullanır.
+	spawn_fireball_visual(origin_position, damage_radius, is_inferno)
 	# Tek event context'i primary ve splash hedeflerini instance ID ile deduplicate eder.
 	var context = {
 		"damaged": {primary_brick.get_instance_id(): true},
@@ -2860,19 +3134,9 @@ func trigger_fireball_blast(origin_position: Vector2, primary_brick: Node, level
 		if brick.has_method("play_fireball_splash_reaction"):
 			brick.play_fireball_splash_reaction()
 		brick.hit("fireball", context)
-	damage_radius *= GameManager.get_colony_fire_radius_scale()
 	if level > 0:
-		var reactor_level := clampi(
-			GameManager.get_colony_building_level(GameManager.COLONY_BUILDING_FIRE_REACTOR),
-			0,
-			3
-		)
-		# Bina herkese temel ek hedef verir; Alev rakette iki katina cikar.
-		var base_extra_targets := [0, 1, 1, 2]
-		var extra_target_count: int = int(round(
-			float(base_extra_targets[reactor_level])
-			* GameManager.get_affinity_scale(GameManager.PADDLE_FIRE)
-		))
+		# Aynı effective radius hem ana splash hem affinity hedef aramasında kullanılır.
+		var extra_target_count := GameManager.get_colony_fire_extra_targets()
 		for _target_index in range(extra_target_count):
 			var affinity_target: Node2D
 			var nearest_distance := INF
@@ -3436,6 +3700,7 @@ func show_card_selection(force_plasma = false):
 
 	card_screen.visible = true
 	card_panel.visible = true
+	_refresh_card_slot_state()
 
 	last_focused_card = null
 	card_select_sound_played = false
@@ -3482,12 +3747,7 @@ func _roll_card_ids(count: int) -> Array:
 
 func choose_random_cards(force_plasma = false):
 	var rolled: Array = []
-	if not GameManager.first_card_selection_done:
-		# Acilis eli garanti: uc silah karti birden sunulur.
-		for card_id: StringName in [&"fireball", &"pierce", &"plasma"]:
-			if _is_card_eligible(card_id):
-				rolled.append(card_id)
-	elif force_plasma and _is_card_eligible(&"plasma"):
+	if force_plasma and _is_card_eligible(&"plasma"):
 		rolled.append(&"plasma")
 		for card_id: StringName in _roll_card_ids(3):
 			if rolled.size() >= 3:
@@ -3723,6 +3983,7 @@ func _render_card_slot(slot: Button, card_id: StringName) -> void:
 
 	_set_card_description(slot, CardPool.get_description(card_id, next_level))
 	_set_card_rarity_tag(slot, card_id, tone)
+	_set_card_type_tag(slot, card_id, next_level, tone)
 
 	# Karta ozel dekoratif dugumler yalnizca kendi kartinda gorunsun.
 	for decoration_name in ["ImpactRing", "ImpactBrick", "PiercingIcon"]:
@@ -3747,6 +4008,37 @@ func _set_card_rarity_tag(slot: Button, card_id: StringName, tone: Color) -> voi
 	_set_mobile_rect(tag, Rect2(0.0, slot_height - 20.0, slot_width, 16.0))
 
 
+func _set_card_type_tag(slot: Button, card_id: StringName, next_level: int, tone: Color) -> void:
+	var tag := slot.get_node_or_null("TypeTag") as Label
+	if not is_instance_valid(tag):
+		tag = Label.new()
+		tag.name = "TypeTag"
+		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		slot.add_child(tag)
+	var tag_text := "PASSIVE"
+	if card_id in [&"fireball", &"pierce"]:
+		tag_text = "CORE"
+	elif WeaponSystem.handles(card_id):
+		var current_level := CardPool.get_display_level(GameManager, card_id)
+		tag_text = (
+			"WEAPON · NEW" if current_level <= 0
+			else "WEAPON · UPGRADE → LV%d" % next_level
+		)
+	tag.text = tag_text
+	tag.add_theme_font_size_override("font_size", 10 if OS.has_feature("mobile") else 9)
+	tag.add_theme_color_override("font_color", Color(0.94, 0.98, 1.0, 1.0))
+	var tag_style := StyleBoxFlat.new()
+	tag_style.bg_color = Color(0.01, 0.04, 0.09, 0.88)
+	tag_style.border_color = Color(tone.r, tone.g, tone.b, 0.72)
+	tag_style.set_border_width_all(1)
+	tag_style.set_corner_radius_all(6)
+	tag.add_theme_stylebox_override("normal", tag_style)
+	var slot_width: float = MOBILE_CARD_SIZE.x if OS.has_feature("mobile") else slot.size.x
+	_set_mobile_rect(tag, Rect2(10.0, 9.0, slot_width - 20.0, 23.0))
+
+
 func _get_slot_card_id(slot: Button) -> StringName:
 	if not is_instance_valid(slot) or not slot.has_meta("card_id"):
 		return &"none"
@@ -3769,6 +4061,7 @@ func _on_card_slot_pressed(slot: Button) -> void:
 
 
 func _apply_card_selection(card_id: StringName) -> void:
+	var previous_level := CardPool.get_display_level(GameManager, card_id)
 	var next_level: int = mini(
 		CardPool.get_display_level(GameManager, card_id) + 1,
 		CardPool.get_max_level(card_id)
@@ -3778,6 +4071,7 @@ func _apply_card_selection(card_id: StringName) -> void:
 	if WeaponSystem.handles(card_id):
 		WeaponSystem.apply(self, card_id, next_level)
 		build_hud.refresh_from_run_state()
+		_refresh_build_identity_hud(true)
 		refresh_dynamic_build_difficulty()
 		call_deferred("_try_resolve_pending_rewards")
 		return
@@ -3811,6 +4105,15 @@ func _apply_card_selection(card_id: StringName) -> void:
 			GameManager.revive_available = true
 
 	build_hud.refresh_from_run_state()
+	_refresh_build_identity_hud(true)
+	if previous_level <= 0 and card_id in [&"fireball", &"pierce"]:
+		var selected_name := "FIREBALL" if card_id == &"fireball" else "PIERCING"
+		var blocked_name := "PIERCING" if card_id == &"fireball" else "FIREBALL"
+		_show_hud_status(
+			"ÇEKİRDEK KİLİTLENDİ: %s · %s DEVRE DIŞI" % [selected_name, blocked_name],
+			Color(1.0, 0.72, 0.28, 1.0),
+			1.8
+		)
 	refresh_dynamic_build_difficulty()
 	call_deferred("_try_resolve_pending_rewards")
 

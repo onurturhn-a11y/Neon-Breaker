@@ -3,14 +3,18 @@ extends "res://plasma_bullet.gd"
 const SHARD_ANGLE_DEGREES := 20.0
 const SCATTER_COLOR := Color(0.38, 0.82, 1.0, 1.0)
 const SCATTER_CORE_COLOR := Color(0.78, 0.46, 1.0, 1.0)
+const MOBILE_FULL_VFX_LIMIT := 10
 
 var can_split := false
 var split_spawned := false
 var is_shard := false
+var reduced_mobile_visual := false
 
 
 func _ready() -> void:
 	add_to_group("scatter_projectile")
+	if OS.has_feature("mobile"):
+		reduced_mobile_visual = get_tree().get_nodes_in_group("scatter_projectile").size() > MOBILE_FULL_VFX_LIMIT
 	body_entered.connect(_on_body_entered)
 	_apply_scatter_visual()
 
@@ -31,6 +35,8 @@ func _apply_scatter_visual() -> void:
 	trail.width = 1.0 if is_shard else 1.35
 	trail.default_color = Color(tint.r, tint.g, tint.b, 0.58)
 	trail.modulate.a = 0.70
+	# Mobilde projectile ve collision korunur; yalnız pahalı trail/impact katmanı azaltılır.
+	trail.visible = not reduced_mobile_visual
 
 
 func _on_body_entered(body: Node) -> void:
@@ -44,7 +50,7 @@ func _on_body_entered(body: Node) -> void:
 			body.hit_from_plasma_at(get_instance_id(), global_position)
 		else:
 			body.hit_from_plasma(get_instance_id())
-		create_impact(false)
+		_create_scatter_impact(false)
 		queue_free()
 		return
 	if not body.has_method("hit"):
@@ -53,8 +59,14 @@ func _on_body_entered(body: Node) -> void:
 	if can_split and not split_spawned:
 		split_spawned = true
 		_spawn_shards()
-	create_impact(body.get("is_destroyed") == true)
+	_create_scatter_impact(body.get("is_destroyed") == true)
 	queue_free()
+
+
+func _create_scatter_impact(destroyed: bool) -> void:
+	if reduced_mobile_visual:
+		return
+	create_impact(destroyed)
 
 
 func _spawn_shards() -> void:

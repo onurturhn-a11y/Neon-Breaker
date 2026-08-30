@@ -41,7 +41,7 @@ static func make_state(
 ## silah seviyesi başına davranış her controller'da ayrı tanımlı (Codex
 ## bölgesi), Lv4'ün ne yapacağına o karar vermeli.
 const ASCENSION_SCALED_CARDS: Array[StringName] = [
-	&"crit_hit", &"extra_ball", &"ball_speed", &"pierce", &"fireball",
+	&"crit_hit", &"extra_ball", &"ball_speed",
 ]
 
 ## Kaç ascension katmanında +1 tavan, ve en fazla kaç.
@@ -52,14 +52,9 @@ const ASCENSION_SCALED_CARDS: Array[StringName] = [
 ##
 ##   asc0  -> 21 seçim     asc5  -> 24 seçim     asc10 -> 25 seçim
 ##
-## Tavanı 33'e çıkarmak boşuna olurdu, oyuncunun eline o kadar seçim geçmiyor
-## — açılan tavan boş kalırdı. Bu yüzden +2 ile sınırlı:
-##
-##   asc 0-4  -> tavan 18 seçim (arz 21-23)
-##   asc 5-9  -> tavan 23       (arz 24-25)
-##   asc 10   -> tavan 28       (arz 25)
-##
-## Yüksek ascension'da tavan artık bağlayıcı değil; oyuncu tercih yapıyor.
+## Entegrasyon: ek tavan yalnız yukarıdaki üç pasif karta uygulanır.
+## Fireball/Pierce Core tavanı boss milestone'larıyla Lv1/Lv2/Lv3 kalır.
+## Mounted weapon tavanı da Lv3'tür; Ascension bunu değiştirmez.
 const ASCENSION_LEVEL_BONUS_PER := 5
 const ASCENSION_LEVEL_BONUS_MAX := 2
 
@@ -87,8 +82,7 @@ static func get_weapon_level_cap(state: Dictionary) -> int:
 
 
 static func get_card_level_cap(card_id: StringName, state: Dictionary) -> int:
-	# pierce/fireball hem WEAPON_CARDS'ta hem ascension listesinde: bonus her
-	# iki tavana da eklenir, yoksa boss milestone tavani bonusu yutar.
+	# Core modules retain boss-gated Lv1/Lv2/Lv3; Ascension scales passives only.
 	var bonus := get_ascension_level_bonus(card_id, state)
 	var pool_cap: int = CardPool.get_max_level(card_id) + bonus
 	if CardPool.is_weapon(card_id):
@@ -131,14 +125,33 @@ static func get_rarity_weight(rarity: StringName, state: Dictionary) -> float:
 		CardPool.RARITY_CORE:
 			# İlk iki silah alınana kadar çekirdek kartlar baskın gelsin.
 			var weapons: int = (gm.get_active_weapon_count() + gm.get_active_core_count()) if gm != null else 0
-			return 60.0 if weapons < 2 else 26.0
+			return 48.0 if weapons < 2 else 24.0
 		CardPool.RARITY_COMMON:
-			return 45.0
+			return 34.0
 		CardPool.RARITY_RARE:
-			return minf(12.0 + float(depth) * 0.8, 32.0)
+			return minf(15.0 + float(depth) * 0.65, 34.0)
 		CardPool.RARITY_EPIC:
-			return minf(3.0 + float(depth) * 0.35, 14.0)
+			return minf(4.0 + float(depth) * 0.30, 14.0)
+		CardPool.RARITY_LEGENDARY:
+			return minf(1.5 + float(depth - 1) * 0.10, 4.0)
 	return 1.0
+
+
+## Sahip olunan Legendary silahın Lv2/Lv3 yükseltmesi daha görünür olur.
+## İlk edinme ağırlığı değişmez; Lv3 kart zaten eligibility'de elenir.
+static func get_card_weight(card_id: StringName, state: Dictionary) -> float:
+	var weight := get_rarity_weight(CardPool.get_rarity(card_id), state)
+	if CardPool.get_rarity(card_id) != CardPool.RARITY_LEGENDARY:
+		return weight
+	if not CardPool.is_mounted_weapon(card_id):
+		return weight
+	var gm: Node = state.get("gm")
+	if gm == null:
+		return weight
+	var level := WeaponCards.get_level(gm, card_id)
+	if level > 0 and level < CardPool.get_max_level(card_id):
+		return weight * 4.0
+	return weight
 
 
 static func roll_card_ids(count: int, state: Dictionary) -> Array:
@@ -154,13 +167,13 @@ static func roll_card_ids(count: int, state: Dictionary) -> Array:
 static func _pick_weighted_index(candidates: Array, state: Dictionary) -> int:
 	var total_weight := 0.0
 	for card_id: StringName in candidates:
-		total_weight += get_rarity_weight(CardPool.get_rarity(card_id), state)
+		total_weight += get_card_weight(card_id, state)
 	if total_weight <= 0.0:
 		return candidates.size() - 1
 	var target := randf() * total_weight
 	var running := 0.0
 	for index in range(candidates.size()):
-		running += get_rarity_weight(CardPool.get_rarity(candidates[index]), state)
+		running += get_card_weight(candidates[index], state)
 		if target <= running:
 			return index
 	return candidates.size() - 1

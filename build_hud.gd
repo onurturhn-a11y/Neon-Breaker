@@ -18,7 +18,10 @@ func refresh_from_run_state(animate_changes: bool = true) -> void:
 			&"plasma", GameManager.get_weapon_level(GameManager.WEAPON_PLASMA), PLASMA_TEXTURE, Rect2(0, 0, 768, 610),
 			"Lv.%d", _plasma_display_text(), GameManager.plasma_evolution
 		),
-		_make_upgrade(&"pierce", GameManager.pierce_level, BALL_TEXTURE, Rect2(0, 0, 768, 610)),
+		_make_upgrade(
+			&"pierce", GameManager.pierce_level, BALL_TEXTURE, Rect2(0, 0, 768, 610),
+			"Lv.%d", _pierce_display_text(), GameManager.pierce_evolution
+		),
 		_make_upgrade(
 			&"fireball", GameManager.fireball_level, BALL_TEXTURE, Rect2(0, 0, 768, 610),
 			"Lv.%d", _fireball_display_text(), GameManager.fireball_evolution
@@ -119,6 +122,15 @@ func _fireball_display_text() -> String:
 	return ""
 
 
+func _pierce_display_text() -> String:
+	match GameManager.pierce_evolution:
+		&"breach":
+			return "PIERCING\nBREACH"
+		&"cascade":
+			return "PIERCING\nCASCADE"
+	return ""
+
+
 func _make_atlas_texture(texture: Texture2D, region: Rect2) -> AtlasTexture:
 	var atlas := AtlasTexture.new()
 	atlas.atlas = texture
@@ -128,7 +140,7 @@ func _make_atlas_texture(texture: Texture2D, region: Rect2) -> AtlasTexture:
 
 func _add_entry(upgrade: Dictionary, animate_entry: bool) -> void:
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(88.0, 72.0) if OS.has_feature("mobile") else MINI_CARD_SIZE
+	card.custom_minimum_size = Vector2(48.0, 36.0) if OS.has_feature("mobile") else MINI_CARD_SIZE
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_theme_stylebox_override("panel", _make_card_style())
 
@@ -139,7 +151,7 @@ func _add_entry(upgrade: Dictionary, animate_entry: bool) -> void:
 	card.add_child(content)
 
 	var image := TextureRect.new()
-	image.custom_minimum_size = Vector2(84.0, 45.0) if OS.has_feature("mobile") else Vector2(60.0, 53.0)
+	image.custom_minimum_size = Vector2(46.0, 23.0) if OS.has_feature("mobile") else Vector2(60.0, 53.0)
 	image.texture = upgrade.texture
 	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -148,7 +160,7 @@ func _add_entry(upgrade: Dictionary, animate_entry: bool) -> void:
 
 	var level_label := Label.new()
 	level_label.name = "LevelLabel"
-	level_label.custom_minimum_size = Vector2(84.0, 23.0) if OS.has_feature("mobile") else Vector2(60.0, 19.0)
+	level_label.custom_minimum_size = Vector2(46.0, 13.0) if OS.has_feature("mobile") else Vector2(60.0, 19.0)
 	level_label.text = (
 		upgrade.display_text
 		if not upgrade.display_text.is_empty()
@@ -160,7 +172,7 @@ func _add_entry(upgrade: Dictionary, animate_entry: bool) -> void:
 	level_label.add_theme_color_override("font_shadow_color", Color(0.02, 0.12, 0.28, 0.95))
 	level_label.add_theme_constant_override("shadow_offset_x", 1)
 	level_label.add_theme_constant_override("shadow_offset_y", 1)
-	level_label.add_theme_font_size_override("font_size", 10 if OS.has_feature("mobile") else 12)
+	level_label.add_theme_font_size_override("font_size", 8 if OS.has_feature("mobile") else 12)
 	level_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(level_label)
 

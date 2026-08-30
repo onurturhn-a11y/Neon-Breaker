@@ -15,6 +15,7 @@ var consumed = false
 
 
 func _ready() -> void:
+	add_to_group("side_attacker_projectile")
 	if OS.has_feature("mobile"):
 		$ProjectileSprite.scale *= 1.12
 		$ProjectileSprite.self_modulate = Color(1.12, 1.10, 1.06, 1.0)
