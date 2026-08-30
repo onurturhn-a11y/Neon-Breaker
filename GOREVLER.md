@@ -297,17 +297,28 @@ süre değil.
 
 `feat/integration-phase5` dalında ölçüldü (8 silah gerekiyordu).
 
-**Boss HP:** 180 → 500, boss 1'den 7'ye ×2.78.
+**Boss HP:** 100 → 500, boss 1'den 7'ye ×5.0.
 
-| Boss | Derinlik | asc0 | asc10 |
-|---|---|---|---|
-| CORE | 8 | 180 | 396 |
-| SENTINEL | 16 | 180 | 396 |
-| CELESTIAL | 24 | 200 | 440 |
-| VOID | 32 | 260 | 572 |
-| SOVEREIGN | 40 | 330 | 726 |
-| ARCHITECT | 48 | 410 | 902 |
-| CHRONOFORM | 56 | 500 | **1100** |
+| Boss | Derinlik | asc0 | asc10 | Bir öncekine göre |
+|---|---|---|---|---|
+| CORE | 8 | 100 | 220 | — |
+| SENTINEL | 16 | 145 | 319 | ×1.45 |
+| CELESTIAL | 24 | 200 | 440 | ×1.38 |
+| VOID | 32 | 260 | 572 | ×1.30 |
+| SOVEREIGN | 40 | 330 | 726 | ×1.27 |
+| ARCHITECT | 48 | 410 | 902 | ×1.24 |
+| CHRONOFORM | 56 | 500 | **1100** | ×1.22 |
+
+> **DÜZELTME (Faz 7.4):** bu tablonun ilk iki satırı önce yanlış yazılmıştı
+> (ikisi de 180, toplam ×2.78). Sebep: `boss_sprite_entity.gd`'deki
+> `_get_base_hp()` varsayılanını (180) okumuştum, ama **CORE ve SENTINEL o
+> sınıfı hiç kullanmıyor** — `StaticBody2D`'den türüyorlar ve kendi
+> `@export var max_hp` alanları var (100 ve 145).
+>
+> Gerçek eğri düşündüğümden **daha iyi**: ×1.45'ten ×1.22'ye yavaşlayan
+> düzgün bir rampa. İlk iki boss bilinçli olarak daha kolay.
+> Sonuç değişmiyor — hasar tavanı yine 5. bossta doluyor ve sonrasında
+> boss HP'si %52 artıyor.
 
 **Oyuncunun hasar kaynaklarının HEPSİ tavanlı:**
 
@@ -516,6 +527,35 @@ kopyaların sapmasıydı.
 **Ders:** bir sistemin bozuk olduğuna karar vermeden önce **tüm** tüketim
 noktalarını ara. `grep get_colony_building_level` ilk bakışta görmediğim
 altı çağrı yeri gösterdi.
+
+### 7.4 Boss denetimi — ✅ KOD TEMİZ, RAPOR HATALIYDI
+
+Kart ve koloni tarafında üç hata bulan yöntemi bosslara uyguladım:
+vaat edilen ile yapılanı karşılaştır.
+
+**Sonuç: boss sisteminde hata yok.** Ölü kanca yok, her ezilen kanca
+gerçekten çağrılıyor, ascension HP ölçeklemesi üç mimaride de uygulanıyor.
+
+**İki mimari bir arada:**
+
+| Boss | Türediği sınıf | Ezdiği kanca |
+|---|---|---|
+| CORE, SENTINEL | `StaticBody2D` | 1 tane |
+| Diğer beşi | `boss_sprite_entity.gd` | 13-15 tane |
+
+İlk ikisi, taban sınıf yazılmadan önceki mimariden kalma. Bu bir hata
+değil ama bilinmesi gereken bir ayrım: taban sınıfa eklenen her yeni
+davranış ilk iki bossa **kendiliğinden gelmez.** Ascension HP ölçeklemesi
+onlarda ayrı ayrı yazılmış ve doğru — ama bir sonraki eklemede bu
+hatırlanmalı.
+
+**Bulunan tek hata benimdi.** Faz 6.2'deki boss HP tablosunun ilk iki
+satırı yanlıştı; düzeltildi (yukarıda).
+
+**Yöntem notu:** ilk taramamda `_get_phase_message` "ölü kanca" olarak
+çıktı. Yanlıştı — grep desenim `_get_phase_message()` arıyordu ama çağrı
+argümanlı (`_get_phase_message(current_phase)`). Desen düzeltilince ölü
+kanca kalmadı. Otomatik tarama sonucunu doğrulamadan raporlamamalı.
 
 ## CODEX'E BİLDİRİM — bölge dışı bulgu, dokunmadım
 
