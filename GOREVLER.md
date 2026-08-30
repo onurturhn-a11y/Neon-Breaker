@@ -557,6 +557,51 @@ satırı yanlıştı; düzeltildi (yukarıda).
 argümanlı (`_get_phase_message(current_phase)`). Desen düzeltilince ölü
 kanca kalmadı. Otomatik tarama sonucunu doğrulamadan raporlamamalı.
 
+### 7.5 Kendi Faz 4 sistemlerimin denetimi — ✅ TEMİZ, ama bir keşif
+
+Herkesin kodunu denetledim, kendiminkini denetlemedim. Yaptım.
+
+**Lanet ve sektörün on ekseni de tüketiliyor** — hiçbiri ölü değil:
+
+| Sistem | Eksen | Tüketildiği yer |
+|---|---|---|
+| Lanet | kazanç | `game_manager.gd` |
+| Lanet | iniş | `continuous_brick_field.gd` |
+| Lanet | zırh | `level_generator.gd` |
+| Lanet | saldırgan | `side_attacker_spawner.gd` |
+| Sektör | iniş, doluluk, patlayıcı, top hızı, saldırgan | beş ayrı dosya |
+
+Kasa, zafer ekranı ve ascension açma akışı da bağlı ve ulaşılabilir.
+
+#### `[ÖNEMLİ]` Ascension'ı test etmenin tek yolu Shift+G, sonra K
+
+Ascension **son boss (CHRONOFORM, depth 56) yenilene kadar tamamen
+görünmez.** Akış doğru çalışıyor:
+
+`_trigger_run_victory()` → `register_ascension_clear()` →
+`highest_ascension_cleared` −1'den 0'a çıkar → menüde seçici belirir.
+
+Ama bunun anlamı şu: **Faz 4 ascension, 5.3 iniş tabanı ve 6.2 hasar
+tavanı — hepsi kimsenin görmediği bir kapının arkasında.** Ascension 5-10
+için ayarladığım dengeler hiç oynanmadı.
+
+Debug tuşuyla açma yolu var ama **hiç belli değil**:
+
+| Tuş | Sonuç |
+|---|---|
+| `G` | Chronoform başlar ama **progression boss DEĞİL** — yenmek zafer getirmez |
+| **`Shift+G`** | Chronoform **progression boss olarak** başlar |
+| `K` | Aktif bossu anında öldürür |
+
+Yani **Shift+G → K** ascension'ı saniyeler içinde açar. Düz `G` açmaz.
+
+Sebep: `start_boss_encounter(event.shift_pressed, &"chronoform")` —
+ilk parametre `is_progression_boss` ve `shift_pressed`'e bağlı. Aynı şey
+diğer altı boss tuşu için de geçerli (B, N, M, V, J, H).
+
+Bu bir hata değil, ama bilinmeden ascension test edilemez. 25F öncesi
+ascension'a bakılacaksa bu kombinasyon gerekli.
+
 ### Test kapsamı — neyin korunduğu
 
 gdUnit4 kuruldu (`addons/gdUnit4`, v6.2.1). **48 test, hepsi geçiyor.**
