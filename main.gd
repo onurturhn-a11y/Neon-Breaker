@@ -531,11 +531,12 @@ func _apply_mobile_portrait_layout() -> void:
 		main_menu_box.offset_left = -menu_width * 0.5
 		main_menu_box.offset_right = menu_width * 0.5
 		if OS.is_debug_build():
-			print("MENU LAYOUT | viewport=%.0f safe_x=%.0f safe_w=%.0f menu_w=%.0f" % [
-				get_viewport_rect().size.x,
-				safe_rect.position.x,
-				safe_rect.size.x,
-				menu_width
+			print("MENU LAYOUT | viewport=%.0fx%.0f safe=%.0f,%.0f %.0fx%.0f | menu=%.0fx%.0f ust=%.0f" % [
+				get_viewport_rect().size.x, get_viewport_rect().size.y,
+				safe_rect.position.x, safe_rect.position.y,
+				safe_rect.size.x, safe_rect.size.y,
+				menu_width, menu_height,
+				safe_rect.position.y + (safe_rect.size.y - menu_height) * 0.5
 			])
 		var mobile_title := main_menu_box.get_node_or_null("TitleLabel") as Label
 		if is_instance_valid(mobile_title):
