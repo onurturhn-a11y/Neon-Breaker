@@ -3907,15 +3907,33 @@ func _try_open_pending_evolution() -> void:
 
 
 func _get_remaining_evolution_capacity() -> int:
-	# Henüz evrimleşmemiş her silah ileride bir kredi harcayabilir.
 	var capacity := 0
+	var plasma_level: int = GameManager.get_weapon_level(GameManager.WEAPON_PLASMA)
+	# A banished upgrade below Lv3 cannot reach evolution; an owned Lv3 still can.
 	if GameManager.plasma_evolution == &"none":
-		capacity += 1
-	if GameManager.fireball_evolution == &"none":
-		capacity += 1
-	if GameManager.pierce_evolution == &"none":
-		capacity += 1
-	return capacity
+		if plasma_level >= 3:
+			capacity += 1
+		elif not GameManager.banished_cards.has(&"plasma") and GameManager.can_acquire_weapon(GameManager.WEAPON_PLASMA):
+			capacity += 1
+
+	var core_capacity := 0
+	for core_id: StringName in [&"fireball", &"pierce"]:
+		var other_id: StringName = &"pierce" if core_id == &"fireball" else &"fireball"
+		var level: int = GameManager.get_card_level(core_id)
+		var evolved: bool = (
+			GameManager.fireball_evolution != &"none" if core_id == &"fireball"
+			else GameManager.pierce_evolution != &"none"
+		)
+		if evolved:
+			continue
+		if level >= 3:
+			core_capacity += 1
+		elif GameManager.get_card_level(other_id) <= 0 and not GameManager.banished_cards.has(core_id):
+			core_capacity += 1
+	# Before a Core is chosen, both are offers but only one can ever evolve.
+	if GameManager.fireball_level <= 0 and GameManager.pierce_level <= 0:
+		core_capacity = mini(core_capacity, 1)
+	return capacity + core_capacity
 
 
 func _convert_surplus_evolution_credit() -> void:

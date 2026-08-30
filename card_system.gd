@@ -104,6 +104,11 @@ static func is_card_eligible(card_id: StringName, state: Dictionary) -> bool:
 		return false
 	if gm.banished_cards.has(card_id):
 		return false
+	# Core modules are alternatives; upgrades of the selected Core remain eligible.
+	if card_id == &"fireball" and gm.get_card_level(&"pierce") > 0:
+		return false
+	if card_id == &"pierce" and gm.get_card_level(&"fireball") > 0:
+		return false
 	# Monteli silahlar GameManager.weapon_slots üzerinden yönetilir:
 	# hem yuva doluluğu hem seviye tavanı orada kontrol edilir.
 	if CardPool.is_mounted_weapon(card_id):
@@ -125,7 +130,7 @@ static func get_rarity_weight(rarity: StringName, state: Dictionary) -> float:
 	match rarity:
 		CardPool.RARITY_CORE:
 			# İlk iki silah alınana kadar çekirdek kartlar baskın gelsin.
-			var weapons: int = gm.get_active_weapon_count() if gm != null else 0
+			var weapons: int = (gm.get_active_weapon_count() + gm.get_active_core_count()) if gm != null else 0
 			return 60.0 if weapons < 2 else 26.0
 		CardPool.RARITY_COMMON:
 			return 45.0

@@ -897,29 +897,17 @@ func set_card_level(card_id: StringName, level: int) -> void:
 			card_levels[card_id] = level
 
 
-## Oyuncunun kaç saldırı seçeneği var? Yalnızca kart nadirlik ağırlığı
-## kullanır (card_system.get_rarity_weight): "iki saldırı seçeneği olana
-## kadar ÇEKİRDEK kartları öne çıkar".
-##
-## Faz 5.2 DÜZELTMESİ: eskiden [plasma_level, pierce_level, fireball_level]
-## sayılıyordu. O üçü, silah sistemi gelmeden önceki üç "silah kartı"ydı.
-## Codex plazmayı yuva sistemine taşıyıp 7 silah daha ekleyince bu sayaç
-## kör kaldı: oyuncu Railgun + Mortar ile İKİ yuvayı da doldurduğunda bile
-## 0 dönüyordu. Sonuç: ÇEKİRDEK ağırlığı (60) run boyunca hiç düşmüyor,
-## pierce ve fireball sürekli fazla teklif ediliyordu.
-##
-## Artık dolu yuvalar + monteli olmayan çekirdek kartlar sayılıyor.
-## plasma_level ayrıca sayılmaz — plazma artık bir yuva silahıdır,
-## yuva döngüsünde zaten sayılır (çift sayım olurdu).
+## Mounted weapons only; Core ownership is queried separately.
 func get_active_weapon_count() -> int:
 	var count := 0
 	for slot in weapon_slots:
-		if StringName(slot.get("weapon_id", &"")) != &"":
-			count += 1
-	for card_level: int in [pierce_level, fireball_level]:
-		if card_level > 0:
+		if StringName(slot.get("weapon_id", &"")) != &"" and int(slot.get("level", 0)) > 0:
 			count += 1
 	return count
+
+
+func get_active_core_count() -> int:
+	return 1 if fireball_level > 0 or pierce_level > 0 else 0
 
 
 func get_paddle_profile(paddle_id: StringName = active_paddle_id) -> Dictionary:

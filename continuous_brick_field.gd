@@ -719,7 +719,6 @@ func apply_depth_settings():
 		* GameManager.post_boss_descent_multiplier
 		* GameManager.get_build_speed_multiplier()
 		* GameManager.get_late_game_descent_multiplier()
-		/ GameManager.get_card_descent_multiplier()
 		* GameManager.get_sector_descent_scale()
 		* GameManager.get_curse_descent_scale()
 		* GameManager.get_ascension_descent_scale()
@@ -736,7 +735,8 @@ func apply_depth_settings():
 func _refresh_mobile_power_synergy_pressure() -> void:
 	if not OS.has_feature("mobile"):
 		level_generator.set_mobile_power_synergy(0, 0.0)
-		row_step_interval = maxf(interval_before_power_synergy, _get_effective_min_step_interval())
+		# Apply the speed reduction after the floor so it also works at saturation.
+		row_step_interval = maxf(interval_before_power_synergy, _get_effective_min_step_interval()) / GameManager.get_card_descent_multiplier()
 		return
 	var tier := GameManager.get_power_synergy_tier()
 	if tier != last_power_synergy_tier:
@@ -750,10 +750,11 @@ func _refresh_mobile_power_synergy_pressure() -> void:
 	level_generator.set_mobile_power_synergy(tier, pressure_scale)
 	var synergy_multiplier := GameManager.get_power_synergy_interval_multiplier(tier)
 	var adaptive_multiplier := lerpf(1.0, synergy_multiplier, pressure_scale)
+	# Keep the same floor/pressure calculation, then slow actual movement by 15%.
 	row_step_interval = maxf(
 		interval_before_power_synergy * adaptive_multiplier,
 		_get_effective_min_step_interval()
-	)
+	) / GameManager.get_card_descent_multiplier()
 
 
 func _get_board_synergy_pressure_scale() -> float:
