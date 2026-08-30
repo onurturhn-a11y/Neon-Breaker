@@ -1070,6 +1070,7 @@ func _ready():
 	if rehearsal_boss != &"none":
 		GameManager.start_directly = false
 		main_menu.visible = false
+		_refresh_coin_debug_visibility()
 		$HUD.visible = true
 		game_over_screen.visible = false
 		get_tree().paused = false
@@ -1084,6 +1085,7 @@ func _ready():
 		GameManager.start_directly = false
 
 		main_menu.visible = false
+		_refresh_coin_debug_visibility()
 		$HUD.visible = true
 
 		game_over_screen.visible = false
@@ -1099,6 +1101,7 @@ func _ready():
 		# Oyunun ilk aÃƒÆ’Ã‚Â§Ãƒâ€Ã‚Â±lÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸Ãƒâ€Ã‚Â±.
 
 		main_menu.visible = true
+		_refresh_coin_debug_visibility()
 		$HUD.visible = false
 
 		if OS.has_feature("mobile"):
@@ -2067,6 +2070,14 @@ func _show_victory_screen(banked_salvage: int, unlocked_new_tier: bool) -> void:
 		retry_button.grab_focus()
 
 
+## Coin debug butonu yalnizca ana menude gorunur — oyun sirasinda sag alt
+## kose mobilde raket dokunma alanina yakin.
+## Debug disi derlemede overlay hic olusturulmaz, gecerlilik kontrolu yeterli.
+func _refresh_coin_debug_visibility() -> void:
+	if is_instance_valid(coin_debug_overlay):
+		coin_debug_overlay.visible = main_menu.visible
+
+
 func _debug_add_test_coins() -> void:
 	if not OS.is_debug_build() or OS.has_feature("release"):
 		return
@@ -2099,9 +2110,16 @@ func _create_coin_debug_overlay() -> void:
 	coin_debug_button.pressed.connect(_debug_add_test_coins)
 	coin_debug_overlay.add_child(coin_debug_button)
 
+	# SOL UST DEGIL SAG ALT. Eskiden sol ustteydi ve ana menude logonun
+	# uzerine biniyordu; guvenli alan duzeltmesinden sonra menu %90 genislige
+	# ciktigi icin cakisma daha da artacakti.
 	var safe_rect := GameManager.get_layout_safe_rect(get_viewport_rect().size)
-	coin_debug_button.position = safe_rect.position + Vector2(16.0, 76.0)
 	coin_debug_button.size = Vector2(126.0, 54.0)
+	coin_debug_button.position = Vector2(
+		safe_rect.end.x - 126.0 - 16.0,
+		safe_rect.end.y - 54.0 - 56.0
+	)
+	_refresh_coin_debug_visibility()
 
 func _create_paddle_shop() -> void:
 	paddle_shop = CanvasLayer.new()
@@ -2287,6 +2305,7 @@ func _open_colony() -> void:
 func _open_paddle_shop() -> void:
 	_refresh_paddle_shop()
 	main_menu.visible = false
+	_refresh_coin_debug_visibility()
 	paddle_shop.visible = true
 	if OS.has_feature("mobile"):
 		for shop_control in paddle_shop_buttons.values():
@@ -2298,6 +2317,7 @@ func _open_paddle_shop() -> void:
 func _close_paddle_shop() -> void:
 	paddle_shop.visible = false
 	main_menu.visible = true
+	_refresh_coin_debug_visibility()
 	_refresh_shop_button_text()
 	if not OS.has_feature("mobile"):
 		shop_button.grab_focus()
