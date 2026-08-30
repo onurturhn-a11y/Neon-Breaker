@@ -564,6 +564,17 @@ func resolve_boss_direct_hit_damage(source: StringName, fallback_amount: int = 0
 	return fallback_amount
 
 
+## Guvenli alan olcumu makul mu? Android'de get_display_safe_area()
+## ekran yonu oturmadan once window_get_size() ile ayni koordinat uzayinda
+## olmayabiliyor; sonuc absurd derecede kucuk cikiyor.
+##
+## Gercek bir telefonda portrait'te guvenli alan yatayda neredeyse tam
+## genisliktir (centik ustte olur), dikeyde durum cubugu + gezinme cubugu
+## kadar kisalir. Bu esiklerin altina duserse olcum bozuktur.
+const SAFE_AREA_MIN_WIDTH_RATIO := 0.80
+const SAFE_AREA_MIN_HEIGHT_RATIO := 0.60
+
+
 func refresh_mobile_safe_area(logical_viewport_size: Vector2) -> Rect2:
 	if not OS.has_feature("mobile"):
 		mobile_safe_rect = Rect2(Vector2.ZERO, logical_viewport_size)
@@ -589,6 +600,28 @@ func refresh_mobile_safe_area(logical_viewport_size: Vector2) -> Rect2:
 	)
 	if mobile_safe_rect.size.x <= 0.0 or mobile_safe_rect.size.y <= 0.0:
 		mobile_safe_rect = Rect2(Vector2.ZERO, logical_viewport_size)
+
+	# Olcum makul degilse ona GUVENME. Bozuk bir guvenli alan yalnizca
+	# menuyu degil HUD'u, koloniyi ve kart ekranini da yanlis yere oturtur;
+	# hepsi bu fonksiyondan besleniyor.
+	if (
+		mobile_safe_rect.size.x < logical_viewport_size.x * SAFE_AREA_MIN_WIDTH_RATIO
+		or mobile_safe_rect.size.y < logical_viewport_size.y * SAFE_AREA_MIN_HEIGHT_RATIO
+	):
+		if OS.is_debug_build():
+			print("SAFE AREA REDDEDILDI | olculen=%.0fx%.0f viewport=%.0fx%.0f -> tam viewport kullaniliyor" % [
+				mobile_safe_rect.size.x, mobile_safe_rect.size.y,
+				logical_viewport_size.x, logical_viewport_size.y
+			])
+		mobile_safe_rect = Rect2(Vector2.ZERO, logical_viewport_size)
+
+	if OS.is_debug_build():
+		print("SAFE AREA | fiziksel_pencere=%s fiziksel_guvenli=%s logical=%.0fx%.0f -> guvenli=%.0f,%.0f %.0fx%.0f" % [
+			str(physical_window), str(physical_safe),
+			logical_viewport_size.x, logical_viewport_size.y,
+			mobile_safe_rect.position.x, mobile_safe_rect.position.y,
+			mobile_safe_rect.size.x, mobile_safe_rect.size.y
+		])
 	return mobile_safe_rect
 
 
