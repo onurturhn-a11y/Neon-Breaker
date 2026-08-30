@@ -39,7 +39,7 @@ const CARDS := {
 		"roman": true,
 		"weapon": true,
 		"weapon_id": &"ARC_CANNON",
-		"icon": "res://assets/cards/plasma_card.png",
+		"icon": "res://assets/cards/arc_cannon_card.png",
 		"descriptions": [
 			"",
 			"Vurduğu tuğladan komşularına elektrik sıçratır.",
@@ -54,7 +54,7 @@ const CARDS := {
 		"roman": true,
 		"weapon": true,
 		"weapon_id": &"SCATTER_CANNON",
-		"icon": "res://assets/cards/plasma_card.png",
+		"icon": "res://assets/cards/scatter_cannon_card.png",
 		"descriptions": [
 			"",
 			"Yelpaze şeklinde küçük mermiler yollar.",
@@ -69,7 +69,7 @@ const CARDS := {
 		"roman": true,
 		"weapon": true,
 		"weapon_id": &"RAILGUN",
-		"icon": "res://assets/cards/plasma_card.png",
+		"icon": "res://assets/cards/railgun_card.png",
 		"descriptions": [
 			"",
 			"Dikey ince ışın; aynı sütundaki tuğlaları deler.",
@@ -84,7 +84,7 @@ const CARDS := {
 		"roman": true,
 		"weapon": true,
 		"weapon_id": &"HOMING_MISSILE",
-		"icon": "res://assets/cards/ball_card.png",
+		"icon": "res://assets/cards/homing_missile_card.png",
 		"descriptions": [
 			"",
 			"En yakın tuğlayı takip eden füze yollar.",
@@ -99,7 +99,7 @@ const CARDS := {
 		"roman": true,
 		"weapon": true,
 		"weapon_id": &"PULSE_LASER",
-		"icon": "res://assets/cards/plasma_card.png",
+		"icon": "res://assets/cards/pulse_laser_card.png",
 		"descriptions": [
 			"",
 			"Periyodik olarak kısa süreli sürekli ışın açar.",
@@ -131,7 +131,7 @@ const CARDS := {
 		"roman": true,
 		"weapon": true,
 		"weapon_id": &"MORTAR",
-		"icon": "res://assets/cards/ball_card.png",
+		"icon": "res://assets/cards/mortar_card.png",
 		"controller_script": "res://mortar_controller.gd",
 		"controller_node": "MortarController",
 		"descriptions": [
