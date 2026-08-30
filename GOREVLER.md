@@ -602,6 +602,30 @@ diğer altı boss tuşu için de geçerli (B, N, M, V, J, H).
 Bu bir hata değil, ama bilinmeden ascension test edilemez. 25F öncesi
 ascension'a bakılacaksa bu kombinasyon gerekli.
 
+### Faz 8 — oyun testi sonrası kalibrasyon (BAŞLAMADI, bloke)
+
+Claude şeridinde ölçülebilir iş kalmadı. Faz 4-7'de ölçülen her şey
+54 testle korunuyor; kalan yedi soru (aşağıda) oynanışla cevaplanıyor.
+
+**Faz 8 şu üçü geldiğinde başlar:**
+
+1. **Oyun testi çıktısı** — aşağıdaki yedi sorudan hangilerinin gerçek
+   olduğu. Tahminle sabit çevirmek, Faz 5-7'de iki kez yanlış çıktı.
+2. **Codex'in 3. yuva cevabı** (`ILETISIM.md` A4) — Faz 6.2'nin yarısı
+   ona bağlı. Boss HP'sini düşürmek gerekip gerekmediği o cevaba göre
+   belli olur.
+3. **25F kapsamı** — feature freeze sonrası neyin değişebileceği.
+
+**Faz 8'de yapılacak iş türü:** yeni sistem değil, mevcut sabitleri
+gözlemlenen davranışa göre çekmek. Her değişiklik ilgili testi de
+güncellemeli — test kırılırsa belge de kırılıyor demektir.
+
+**Şu an yapılmaması gereken:** yedi sorunun cevabını tahmin edip sabit
+çevirmek. Faz 6.4'te "9.2 tuğla/sn tutturulabilir" diye kaba bir sınır
+çıkardım ve bunu tahmin olarak işaretledim; hâlâ öyle. Faz 7.1'de zincir
+şimşeğini buff'ladıktan sonra o sınır zaten değişti ama yeniden
+hesaplamadım — çünkü hesaplamanın kendisi tahmine dayanıyor.
+
 ### 25F için: oyun testi olmadan cevaplanamayan yedi soru
 
 Faz 4-7 boyunca yedi yerde "bu tahmin, gerçek cevap testten gelir" dedim.

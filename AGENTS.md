@@ -246,9 +246,17 @@ Kart havuzu: **22 kart** (14 pasif + 8 silah).
 veriyor; havuz kapasitesi 58.
 
 **Sıradaki:** görev dağılımı `GOREVLER.md`, mesajlaşma `ILETISIM.md`.
-- Codex → görsel açık (8 silahın 7'si aynı iki kartı kullanıyor), Krediler
-  ekranı, kalan iki silah
-- Claude → Faz 7: ölçülmemiş sistemler (kombo, koloni ekonomisi)
+
+- **Codex** → görsel açık (8 silahın 7'si aynı iki kartı kullanıyor),
+  Krediler ekranı, kalan iki silah
+- **Claude** → Faz 7 bitti. Şeridi **oyun testine kadar kapalı.**
+
+Faz 4-7'de ölçülebilir olan ölçüldü ve 54 testle korumaya alındı. Kalan
+yedi soru tabloyla değil oynanışla cevaplanıyor (`GOREVLER.md` → "25F
+için"). Bir sonraki Claude işi o cevaplar geldikten sonra başlar:
+**Faz 8 = oyun testi sonrası kalibrasyon.**
+
+Yeni sistem tasarlanmıyor — 25F feature freeze.
 
 **Oyun testi bekliyor.** Faz 6'da üç sayı ölçümle değil tahminle seçildi ve
 oyun testi olmadan doğrulanamaz:
@@ -256,10 +264,19 @@ oyun testi olmadan doğrulanamaz:
 - Ascension 10'un iniş tabanı (0.368s) oynanabilir mi
 - Elit tuğla çerçevesi diğer özel tuğlalardan ayırt ediliyor mu
 
-**Açık konular:**
+**Açık konular** (hepsi Codex'te ya da karar bekliyor —
+`ILETISIM.md` açık maddeler tablosunda takip ediliyor):
+
 - `CREDITS.md` — 8 ikonun yazarı doğrulanmalı
-- Oyun içi "Krediler" ekranı yok (CC BY 3.0 gereği)
-- `assets/_archive/` (35 MB) depoya alınmadı; silinecek mi karar verilmeli
+- Oyun içi "Krediler" ekranı yok (CC BY 3.0 gereği, tek hukuki kalem)
 - `RARITY_LEGENDARY` tanımlı ama `get_rarity_weight()`'te karşılığı yok
-- `xp_orb.gd` / `xp_orb.tscn` ölü kod
+  → teklif ağırlığı 1.0'a düşüyor, yaygının 1/45'i
+- `xp_orb.gd` / `xp_orb.tscn` ölü kod — `main.gd` `exp_orb.tscn` yüklüyor
+  ama değişken adı `xp_orb_scene`, okuyanı yanıltıyor
 - `main.gd` debug tuşları `OS.is_debug_build()` ile korunmuyor
+- Faz 6.2 kararı yarım: ascension hasar tavanı açıldı (pasif kartlar),
+  silah tarafı (3. yuva) Codex'in cevabını bekliyor
+
+> `assets/_archive/` maddesi kaldırıldı: bu makinede de depoda da yok,
+> `.gitignore`'da da geçmiyor. Karşı tarafın diskinde duruyorsa orada
+> karar verilir; bu deponun sorunu değil.
