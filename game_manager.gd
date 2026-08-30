@@ -679,7 +679,7 @@ var current_xp = 0
 # Run-only fractional XP; never persisted to meta/save data.
 var xp_normalization_remainder := 0.0
 var xp_required = 100
-var pending_levelup_card = false
+var pending_card_choices: int = 0
 var first_card_selection_done := false
 
 var plasma_level = 0
@@ -731,7 +731,7 @@ func reset_run():
 	current_xp = 0
 	xp_normalization_remainder = 0.0
 	xp_required = 100
-	pending_levelup_card = false
+	pending_card_choices = 0
 	first_card_selection_done = false
 
 	plasma_level = 0

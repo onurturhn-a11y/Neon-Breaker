@@ -222,6 +222,7 @@ var wide_paddle_pickup_time_remaining := 0.0
 var extra_ball_pickup_time_remaining := 0.0
 var temporary_extra_ball: Node
 var xp_level_up_sequence_active = false
+var card_selection_committing := false
 var enemy_projectile_damage_locked = false
 var enemy_hit_feedback_tween: Tween
 var last_focused_card: Control
@@ -1616,6 +1617,8 @@ func _apply_sector_background(sector: int, animate: bool) -> void:
 
 
 func _try_start_pending_boss() -> void:
+	if choosing_card or xp_level_up_sequence_active or evolution_selection_active or boss_reward_active or pause_menu_active:
+		return
 	if not boss_pending or pending_boss_type == &"none" or boss_active or boss_warning_running:
 		return
 	if _count_active_field_bricks() > 0:
@@ -2059,9 +2062,8 @@ func _on_boss_reward_selected(option_index: int) -> void:
 	boss_reward_screen.visible = false
 	boss_reward_active = false
 	boss_reward_options = []
-	get_tree().paused = false
 	_play_reward_sfx(SFX_BOSS_REWARD)
-	call_deferred("_try_resolve_pending_rewards")
+	_try_resolve_pending_rewards()
 
 
 func _get_boss_combat_offset(boss_type: StringName) -> float:
@@ -2288,6 +2290,7 @@ func _trigger_run_victory() -> void:
 
 
 func _show_victory_screen(banked_salvage: int, unlocked_new_tier: bool) -> void:
+	GameManager.pending_card_choices = 0
 	game_over = true
 	_award_colony_run_end_bonus_once()
 	_populate_run_summary()
@@ -2630,7 +2633,10 @@ func resume_from_pause_menu() -> void:
 		return
 	pause_menu_active = false
 	pause_menu.visible = false
-	get_tree().paused = false
+	if boss_active or boss_warning_running:
+		get_tree().paused = false
+	else:
+		_try_resolve_pending_rewards()
 	if is_instance_valid(pause_resume_button):
 		pause_resume_button.release_focus()
 
@@ -3310,7 +3316,8 @@ func _on_combo_rank_changed(new_rank_index):
 ## apply_depth_scale: derinlik carpanini uygula. Yalnizca debug kisayolu
 ## kapatir — orada tam olarak bir level-up tetiklenmesi isteniyor.
 func add_xp(amount, apply_depth_scale := true, row_xp_scale: float = 1.0):
-	var previous_required = GameManager.xp_required
+	if game_over:
+		return
 	# Veri Emilimi karti toplanan XP'yi artirir.
 	var depth_scale: float = (
 		GameManager.get_depth_xp_multiplier() if apply_depth_scale else 1.0
@@ -3329,6 +3336,7 @@ func add_xp(amount, apply_depth_scale := true, row_xp_scale: float = 1.0):
 
 		GameManager.current_xp -= GameManager.xp_required
 		GameManager.run_level += 1
+		GameManager.pending_card_choices += 1
 		GameManager.xp_required = roundi(
 			100.0
 			* pow(1.20, GameManager.run_level - 1)
@@ -3339,25 +3347,9 @@ func add_xp(amount, apply_depth_scale := true, row_xp_scale: float = 1.0):
 
 	if leveled_up:
 		print("XP LEVEL UP TRIGGER")
-		xp_bar.max_value = previous_required
-		animate_xp_bar(previous_required, previous_required)
-		# Shared XP bar tween yeni bir orb tarafÃƒâ€Ã‚Â±ndan kill edilebilir; timer zinciri koparmaz.
-		await get_tree().create_timer(0.20, true, false, true).timeout
+		_try_resolve_pending_rewards()
 	else:
 		animate_xp_bar(GameManager.current_xp, GameManager.xp_required)
-
-	if leveled_up and not choosing_card and not game_over and not xp_level_up_sequence_active:
-		xp_level_up_sequence_active = true
-		get_tree().paused = true
-		await show_level_up_feedback()
-		xp_bar.max_value = GameManager.xp_required
-		xp_bar.value = GameManager.current_xp
-		show_card_selection()
-		xp_level_up_sequence_active = false
-
-	elif leveled_up:
-
-		GameManager.pending_levelup_card = true
 
 
 func get_xp_bar_target_position():
@@ -3587,8 +3579,16 @@ func _show_reward_banner(
 
 
 func show_pending_levelup_reward():
+	if xp_level_up_sequence_active or GameManager.pending_card_choices <= 0:
+		return
+	xp_level_up_sequence_active = true
 	get_tree().paused = true
 	await show_level_up_feedback()
+	xp_level_up_sequence_active = false
+	if game_over or main_menu.visible or GameManager.pending_card_choices <= 0:
+		return
+	xp_bar.max_value = GameManager.xp_required
+	xp_bar.value = GameManager.current_xp
 	show_card_selection()
 
 
@@ -3600,6 +3600,7 @@ func _try_resolve_pending_rewards() -> void:
 	# Kart ve evrim ödülleri run içinde bekleyebilir; uygun ilk anda ikisini de boşalt.
 	if (
 		choosing_card
+		or card_selection_committing
 		or evolution_selection_active
 		or xp_level_up_sequence_active
 		or boss_reward_active
@@ -3610,11 +3611,13 @@ func _try_resolve_pending_rewards() -> void:
 		or boss_warning_running
 	):
 		return
-	if GameManager.pending_levelup_card:
-		GameManager.pending_levelup_card = false
+	if GameManager.pending_card_choices > 0:
 		show_pending_levelup_reward()
 		return
 	_try_open_pending_evolution()
+	if not evolution_selection_active:
+		get_tree().paused = false
+		call_deferred("_try_start_pending_boss")
 
 
 # ==================================================
@@ -3686,8 +3689,10 @@ func _grant_fallback_levelup_reward() -> void:
 
 func show_card_selection(force_plasma = false):
 
-	if choosing_card:
+	if choosing_card or game_over or evolution_selection_active or boss_reward_active or boss_active or boss_warning_running:
 		return
+	# Existing debug-only direct offers also own one choice.
+	GameManager.pending_card_choices = maxi(GameManager.pending_card_choices, 1)
 
 	print("OPEN CARD SCREEN")
 
@@ -3699,7 +3704,7 @@ func show_card_selection(force_plasma = false):
 	if visible_cards.is_empty():
 		# Uygun kart kalmadığında level-up sessizce kaybolmasın: yedek ödül ver.
 		choosing_card = false
-		get_tree().paused = false
+		GameManager.pending_card_choices -= 1
 		_grant_fallback_levelup_reward()
 		return
 
@@ -3884,7 +3889,7 @@ func _refresh_card_action_buttons() -> void:
 
 
 func _on_reroll_pressed() -> void:
-	if not choosing_card or GameManager.rerolls_remaining <= 0:
+	if not choosing_card or card_selection_committing or GameManager.rerolls_remaining <= 0:
 		return
 	GameManager.rerolls_remaining -= 1
 	banish_arm_active = false
@@ -3893,7 +3898,7 @@ func _on_reroll_pressed() -> void:
 	if visible_cards.is_empty():
 		# Reroll sonrasi aday kalmadiysa level-up bos gecmesin.
 		choosing_card = false
-		get_tree().paused = false
+		GameManager.pending_card_choices = maxi(0, GameManager.pending_card_choices - 1)
 		_grant_fallback_levelup_reward()
 		return
 	if not OS.has_feature("mobile"):
@@ -3901,7 +3906,7 @@ func _on_reroll_pressed() -> void:
 
 
 func _on_banish_pressed() -> void:
-	if not choosing_card or GameManager.banishes_remaining <= 0:
+	if not choosing_card or card_selection_committing or GameManager.banishes_remaining <= 0:
 		return
 	banish_arm_active = not banish_arm_active
 	_refresh_card_action_buttons()
@@ -4051,7 +4056,7 @@ func _get_slot_card_id(slot: Button) -> StringName:
 
 
 func _on_card_slot_pressed(slot: Button) -> void:
-	if not choosing_card or not slot.visible:
+	if not choosing_card or card_selection_committing or not slot.visible:
 		return
 	var card_id := _get_slot_card_id(slot)
 	if card_id == &"none" or not CardPool.has_card(card_id):
@@ -4059,10 +4064,16 @@ func _on_card_slot_pressed(slot: Button) -> void:
 	if banish_arm_active:
 		_banish_slot(slot)
 		return
+	card_selection_committing = true
 	_play_card_select_sound()
 	await play_card_effect(slot)
+	if game_over:
+		card_selection_committing = false
+		return
 	close_card_selection()
 	_apply_card_selection(card_id)
+	card_selection_committing = false
+	_try_resolve_pending_rewards()
 
 
 func _apply_card_selection(card_id: StringName) -> void:
@@ -4140,6 +4151,9 @@ func _refresh_persistent_extra_balls() -> void:
 
 
 func close_card_selection():
+	if not choosing_card:
+		return
+	GameManager.pending_card_choices = maxi(0, GameManager.pending_card_choices - 1)
 
 	if not GameManager.first_card_selection_done:
 		GameManager.first_card_selection_done = true
@@ -4150,7 +4164,7 @@ func close_card_selection():
 	banish_arm_active = false
 	last_focused_card = null
 
-	get_tree().paused = false
+	# Reward coordinator resumes after queued cards/evolutions are resolved.
 
 
 # ==================================================
@@ -4363,8 +4377,7 @@ func _select_plasma_evolution(evolution: StringName) -> void:
 	evolution_selection_active = false
 	active_evolution_card = &"none"
 	last_focused_card = null
-	get_tree().paused = false
-	call_deferred("_try_resolve_pending_rewards")
+	_try_resolve_pending_rewards()
 
 
 func refresh_dynamic_build_difficulty() -> void:
@@ -4398,8 +4411,7 @@ func _select_pierce_evolution(evolution: StringName) -> void:
 	evolution_selection_active = false
 	active_evolution_card = &"none"
 	last_focused_card = null
-	get_tree().paused = false
-	call_deferred("_try_resolve_pending_rewards")
+	_try_resolve_pending_rewards()
 
 
 func _select_fireball_evolution(evolution: StringName) -> void:
@@ -4421,8 +4433,7 @@ func _select_fireball_evolution(evolution: StringName) -> void:
 	evolution_selection_active = false
 	active_evolution_card = &"none"
 	last_focused_card = null
-	get_tree().paused = false
-	call_deferred("_try_resolve_pending_rewards")
+	_try_resolve_pending_rewards()
 
 
 func _set_card_description(card: Button, description_text: String) -> void:
@@ -4814,6 +4825,7 @@ func _award_colony_run_end_bonus_once() -> void:
 	run_salvage_lost = int(settlement.get("lost", 0))
 
 func show_game_over():
+	GameManager.pending_card_choices = 0
 
 	game_over = true
 	_award_colony_run_end_bonus_once()

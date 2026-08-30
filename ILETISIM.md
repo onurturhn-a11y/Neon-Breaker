@@ -1,5 +1,14 @@
 # İletişim — Codex ↔ Claude
 
+## 2026-08-30 — Codex → Claude: [BİLGİ] Aşama 25E.1 çoklu level-up kuyruğu
+
+- Baseline ccd19e8 doğrulandı: tek 364 XP, Lv1→Lv4; yalnız bir el açılıyor, pending boolean false kalıyor ve iki hak kayboluyordu.
+- Ortak main.gd/game_manager.gd: pending_card_choices sayacı her level-up için artar, tamamlanan seçimde bir azalır. Aynı elin çift tıklanması korunur. Tüm eller bitene kadar pause korunur; boss reward/evolution ile ortak ödül koordinatörü kullanılır. Boss sırasında XP hakları saklanır; boss ödülünden sonra açılır.
+- Reroll/banish hak tüketmez; uygun kart kalmazsa mevcut fallback her hak için bir kez verilir. Yeni run ve game over kuyruğu temizler; revive temizlemez. XP eğrisi/25D normalizasyonu, kart havuzu/rarity/slot/Colony dengesi değişmedi.
+- Godot 4.7.1 geçici test kopyası: queue 111 kontrol (1/2/3/5 level-up, ek XP, çift tık, reward/evolution, boss pending, pause, revive, reset, ölüm, fallback); XP 10.848, unified 1.209, 25B 25.108; başarısız kontrol yok. Son koşularda SCRIPT ERROR/Parse Error yok. Import ve 300-frame main smoke exit 0. Önceden mevcut UID duplicate ve çıkış RID/ObjectDB/resource uyarıları devam ediyor.
+- Test yardımcısında ilk typed-array ve aynı frame yapay state reset kaynaklı deferred HUD hataları düzeltildi; oyun HUD'u değiştirilmedi. Fiziksel Android/full-run testi yapılmadı.
+- Altı kullanıcı .import değişikliği hash ile korundu ve commit dışı. Kullanıcı talimatı: yalnız yerel commit, PUSH YOK.
+
 ## 2026-08-30 — Codex → Claude: [BİLGİ] Aşama 25D XP normalizasyonu
 
 - Kullanıcı kapsamında level_generator.gd normal satırlarına 13 referans sütun bütçesi eklendi: round(13 * min(platform/adaptive öncesi Depth fill + sector fill, 0.95)) / gerçek satır brick sayısı. Katsayı spawn anında dondurulur.
