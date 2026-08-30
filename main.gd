@@ -513,6 +513,30 @@ func _apply_mobile_portrait_layout() -> void:
 			menu_width,
 			menu_height
 		))
+		# YATAY ORTALAMA safe_rect'e GUVENMEZ.
+		#
+		# Cihazda menu sola dayali cikiyordu. Sebep: yatay konum
+		# safe_rect.size.x'ten hesaplaniyor, o da _ready aninda
+		# DisplayServer.get_display_safe_area()'dan geliyor. Android'de bu
+		# deger ekran yonu oturmadan once eksik/yanlis donebiliyor ve bir
+		# daha guncellenmiyorsa menu yanlis yerde kaliyor.
+		#
+		# Dikey konum safe_rect'e bagli kalabilir (centik/durum cubugu
+		# gercekten dikeyde onemli). Yatayda portrait'te safe alan simetrik,
+		# o yuzden viewport merkezine ANCHOR'lamak hem dogru hem de olcumun
+		# bayat olmasindan etkilenmez.
+		main_menu_box.anchor_left = 0.5
+		main_menu_box.anchor_right = 0.5
+		main_menu_box.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		main_menu_box.offset_left = -menu_width * 0.5
+		main_menu_box.offset_right = menu_width * 0.5
+		if OS.is_debug_build():
+			print("MENU LAYOUT | viewport=%.0f safe_x=%.0f safe_w=%.0f menu_w=%.0f" % [
+				get_viewport_rect().size.x,
+				safe_rect.position.x,
+				safe_rect.size.x,
+				menu_width
+			])
 		var mobile_title := main_menu_box.get_node_or_null("TitleLabel") as Label
 		if is_instance_valid(mobile_title):
 			mobile_title.custom_minimum_size = Vector2(menu_width, logo_height)
