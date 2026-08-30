@@ -642,7 +642,7 @@ bakılacaksa ikinci bir oturum gerekiyor.
 
 ### Test kapsamı — neyin korunduğu
 
-gdUnit4 kuruldu (`addons/gdUnit4`, v6.2.1). **48 test, hepsi geçiyor.**
+gdUnit4 kuruldu (`addons/gdUnit4`, v6.2.1). **54 test, hepsi geçiyor.**
 
 ```bash
 godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests/ --ignoreHeadlessMode
@@ -658,12 +658,18 @@ godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests/
 | `combo_chain_test` | 5 | Faz 7.1 kombo kartı → zincir şimşeği bağı |
 | `colony_effects_test` | 5 | Faz 7.3 koloni tek kaynak |
 | `documented_numbers_test` | 4 | Belgelerdeki sayılar koda karşı doğrulanır |
+| `throughput_test` | 6 | Faz 6.4 türetilmiş değerler (9.2 tuğla/sn, 12.3 dk) |
 
 **Henüz korunmayan:**
 
-- Faz 6.4 tehlike hattı ekonomisi — çoğu sabit, regresyon riski düşük
 - Faz 6.1'in XP eğrisi tam olarak değil, yalnızca derinlik çarpanı
 - Silah davranışları (Codex bölgesi)
+
+**Türetilmiş değerler artık korunuyor.** `throughput_test` "9.2 tuğla/sn"
+ve "~12.3 dakika" gibi *hesaplanan* sayıları canlı sabitlerden yeniden
+kuruyor. 25F sırasında `minimum_safe_step_interval` ya da iniş eğrisi
+değişirse test kırılıyor ve **yeni değeri söylüyor**. Doğrulandı: tabanı
+0.45'ten 0.30'a çekince test "kod şimdi 9.9 veriyor" dedi.
 
 **Testin sınırı:** bunlar denge sayılarını koruyor, oynanışı değil.
 "Derinlik 32'de yetişilebiliyor mu" sorusunun cevabı testten çıkmaz,
