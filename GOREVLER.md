@@ -602,6 +602,44 @@ diğer altı boss tuşu için de geçerli (B, N, M, V, J, H).
 Bu bir hata değil, ama bilinmeden ascension test edilemez. 25F öncesi
 ascension'a bakılacaksa bu kombinasyon gerekli.
 
+### 25F için: oyun testi olmadan cevaplanamayan yedi soru
+
+Faz 4-7 boyunca yedi yerde "bu tahmin, gerçek cevap testten gelir" dedim.
+Dağınık kaldılar; 25F kararı için tek yerde toplanmaları lazım.
+
+**Hepsi tek bir run'da gözlenebilir** — biri hariç (ascension, ayrı gerekiyor).
+
+| # | Soru | Nereden geldi | Yanlışsa geri alması |
+|---|---|---|---|
+| 1 | **Derinlik 32+ yetişilebiliyor mu?** Gereken hız 9.2 tuğla/sn ve depth 56'ya kadar sabit. Kaba sınırım 10-11 dedi — ama bu tahmin. | Faz 6.4 | Kolay — tek sabit (`minimum_safe_step_interval`) |
+| 2 | **Ascension 10'un iniş tabanı (0.368s) oynanabilir mi?** | Faz 5.3 | Kolay — tek sabit |
+| 3 | **Elit tuğla çerçevesi ayırt ediliyor mu?** Zırhlı beyaz, kalkanlı, patlayıcı ve elit kehribar aynı ekranda. | Faz 5.1 | Kolay — görsel |
+| 4 | **Son iki boss duvar mı, tıkanma mı?** Hasar tavanı 5. bossta doluyor, sonra boss HP %52 artıyor. | Faz 6.2 | Orta — boss HP eğrisi |
+| 5 | **Sektör 6-7 baskı hissettiriyor mu?** `descent_scale` ölüydü, baskı satır doluluğu ve saldırgan sıklığına taşındı. Fark hissediliyor mu, yoksa gürültü mü? | Faz 5.3 | Kolay — iki sayı |
+| 6 | **İkinci yarı artık ödüllendirici mi?** Önce depth 40-48 arası sıfır level-up veriyordu. | Faz 6.1 | Kolay — tek eğri |
+| 7 | **Zincir şimşeği ne kadar katkı veriyor?** Faz 7.1'de kart ona bağlandı ve bu bir buff. Temizleme hızı sınırımda hesaba katılmamıştı. | Faz 7.1 | Orta |
+
+#### Bunlardan hangisi 25F'i gerçekten değiştirir
+
+**1 ve 2 kritik.** İkisi de "oyun oynanabilir mi" sorusu. Yanlışsalar tek
+sabit değişikliğiyle düzelir ama bilinmeden dondurulamaz.
+
+**4 ve 7 birbirine bağlı.** Zincir şimşeği beklediğimden çok katkı
+veriyorsa, boss duvarı sorun olmayabilir. İkisini ayrı ayrı değerlendirmek
+yanıltır.
+
+**3, 5, 6 his sorusu.** Tek run yeterli, ve cevap "evet/hayır"dan çok
+"fark ettim mi" olur.
+
+#### Ascension ayrı bir oturum istiyor
+
+Yukarıdaki 2. madde ve Faz 6.2'nin tamamı ascension'a bağlı, ve
+**ascension normal oynanışta görünmüyor** (bkz. 7.5). Test etmek için
+`Shift+G` → `K` ile zafer tetiklenmeli, sonra menüden ascension seçilmeli.
+
+Bu, "bir run oyna" isteğinin kapsamı dışında. Ascension dengesine
+bakılacaksa ikinci bir oturum gerekiyor.
+
 ### Test kapsamı — neyin korunduğu
 
 gdUnit4 kuruldu (`addons/gdUnit4`, v6.2.1). **48 test, hepsi geçiyor.**
