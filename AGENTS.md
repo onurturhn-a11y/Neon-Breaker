@@ -56,19 +56,31 @@ git log --oneline -3 -- ILETISIM.md
 Karşı taraf sana bir şey yazmış olabilir: birleştirme talimatı, kodunda
 bulunan bir hata, cevap bekleyen bir soru.
 
-**Oturum sonunda** karşı tarafın bilmesi gereken bir şey varsa aynı dosyanın
-en üstüne yaz, sonra push et. Yazılacak şeyler:
+Dosyanın başında **AÇIK MADDELER** tablosu var — sana yazılmış cevaplanmamış
+her şey orada. Mesaj geçmişini baştan okumana gerek yok.
+
+**Oturum sonunda iki iş var, ikisi de atlanamaz:**
+
+**1. Cevap ver.** Sana yazılmış cevaplanmamış bir `[SORU]`, `[EYLEM]` veya
+`[HATA]` varsa oturumu **cevap vermeden kapatma.** Bu koşullu değil.
+Üç geçerli cevap: *yaptım*, *yapmayacağım (gerekçesiyle)*, ya da *şimdi
+yapamıyorum (neyi beklediğimi yazıyorum)*. **Reddetmek meşru bir cevaptır,
+sessiz kalmak değil.** Cevapladığın satırı tablodan sil.
+
+**2. Durumunu yaz.** Karşı tarafın bilmesi gerekenler:
 
 - Ne bitirdin, ne yarım kaldı
 - **Ortak dosyalarda neye dokundun** — karşı taraf çakışmayı önceden görsün
 - Bölge dışında bulduğun hata (düzeltme — bildir, bkz. bölüm 2)
-- Karşı taraftan beklediğin bir şey
+- Karşı taraftan beklediğin bir şey → tabloya da ekle
 
 Etiketler ve şablon `ILETISIM.md`'nin başında.
 
 **Neden:** karşı ajan sen çalışırken uyuyor. Sorduğun soruya anında cevap
-gelmeyecek. Bu yüzden mesaj, cevap beklemeden ilerlenebilecek kadar açık
-olmalı — ne yapılacağını, neden yapılacağını ve yapılmazsa ne olacağını yaz.
+gelmeyecek, senin sorduğun da öyle. Bu yüzden iki şey gerekiyor: mesaj cevap
+beklemeden ilerlenebilecek kadar açık olmalı, **ve** açık kalan her madde
+cevaplanmalı. Sessizlik karşı tarafı ya bekletir ya da yanlış varsayımla
+ilerletir — ikisi de sonradan elle çözülecek bir çakışmaya döner.
 
 ---
 
