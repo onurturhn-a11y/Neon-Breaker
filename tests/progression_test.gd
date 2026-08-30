@@ -146,3 +146,40 @@ func test_hasar_tavani_ascension_ile_gercekten_yukselir() -> void:
 		"pierce tavani ascension ile acilmadi - boss milestone tavani bonusu yutuyor"
 	).is_greater(pierce_0)
 	gm.run_ascension = 0
+
+
+# ==================================================
+# FAZ 8.0.1 — hasar tavani kart havuzuyla birlikte kayar
+# ==================================================
+
+## Hasar tavani, kart havuzu degistikce SESSIZCE kayiyor.
+##
+## Gercek ornek: denge turunda extra_ball ve ball_speed kart olmaktan
+## cikti; tavan 18'den 14'e dustu ve GOREVLER'deki Faz 6.2 analizi iki
+## gun boyunca eski sayiya dayandi. Testler mekanigi koruyordu ama
+## ANALIZ METNINI korumuyordu.
+##
+## Bu test tavani koddan hesaplar. Kart havuzu degisince kirilir ve yeni
+## sayiyi soyler; GOREVLER 8.0.1 tablosu ona gore guncellenir.
+func test_hasar_tavani_belgeyle_ayni() -> void:
+	gm.run_ascension = 0
+	var state := CardSystem.make_state(gm, true, true)
+	var pasif := 0
+	for card_id: StringName in CardSystem.ASCENSION_SCALED_CARDS:
+		pasif += CardSystem.get_card_level_cap(card_id, state)
+	var silah: int = gm.MAX_WEAPON_SLOTS * 3
+	var tavan: int = pasif + silah
+	assert_int(tavan).override_failure_message(
+		"Hasar tavani degisti: kod simdi %d secim veriyor (pasif %d + silah %d). "
+		% [tavan, pasif, silah]
+		+ "GOREVLER 8.0.1 tablosunu guncelle."
+	).is_equal(14)
+
+
+func test_hasar_kartlari_havuzda_gercekten_var() -> void:
+	# ASCENSION_SCALED_CARDS'ta olup havuzdan kaldirilmis bir kart kalirsa
+	# tavan hesabi sessizce yanlis olur.
+	for card_id: StringName in CardSystem.ASCENSION_SCALED_CARDS:
+		assert_bool(CardPool.has_card(card_id)).override_failure_message(
+			"'%s' hasar karti listesinde ama kart havuzunda yok" % card_id
+		).is_true()

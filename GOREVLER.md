@@ -326,6 +326,10 @@ süre değil.
 - crit_hit(2) + extra_ball(2) + ball_speed(2) + pierce(3) + fireball(3) = 12 seçim
 - **Tavan: 18 seçim.** Sonrasında hasar büyümez.
 
+> **GÜNCEL DEĞİL (bkz. 8.0.1):** denge turunda `extra_ball` ve
+> `ball_speed` kart olmaktan çıktı. Tavan artık **14 seçim** ve 5. bossta
+> değil **3. bossta** doluyor. Aşağıdaki analiz o eski sayıya dayanıyor.
+
 Run 21 seçim veriyor, yani hasar tavanına **5. bossta (depth 40)** ulaşılıyor.
 O noktadan sonra oyuncu hasarı sabit, boss HP'si +%52 artıyor (330 → 500).
 
@@ -601,6 +605,67 @@ diğer altı boss tuşu için de geçerli (B, N, M, V, J, H).
 
 Bu bir hata değil, ama bilinmeden ascension test edilemez. 25F öncesi
 ascension'a bakılacaksa bu kombinasyon gerekli.
+
+### 8.0 Denge turu (Onur talimatıyla) — ✅ YAPILDI
+
+Faz 8'in "oyun testi bekliyor" kilidinden ayrı: Onur doğrudan bir denge
+listesi verdi, uygulandı.
+
+**Kaldırılan 4 kart** (havuz 22 → 18, pasif 14 → 10):
+
+| Kart | Sebep |
+|---|---|
+| Raket Hızı | işlevsizdi |
+| Hızlı Top | derinlik zaten hızlandırıyor |
+| Geniş Raket | kart değil, güçlendirme olarak kalır |
+| Ekstra Top | kart değil, güçlendirme olarak kalır |
+
+**Düşürülen oranlar** (seviye başına): XP %20→5, Ganimet %25→5,
+Mıknatıs %30→5, Kombo %25→5, Kritik %14→5, Hurda **%100→3**,
+Yavaş İniş ikili %15 → %5. **17 açıklama metni de güncellendi.**
+
+**Ekstra top yeniden yazıldı:** artık sahnedeki topu ikiye katlıyor
+(1→2→4), toplar kalıcı, düşme şansı top sayısıyla ters orantılı.
+Oran ölçülerek %1.5 → %0.5 (eskisinde oyuncu run'ın %58'ini tavanda
+geçiriyordu).
+
+**Boss ayarları:** CORE aynı anda en fazla 2 mermi. SENTINEL kalkan
+döngüsü yumuşatıldı — jeneratör canı 14→8, pencere 10s→14s, ve
+jeneratörler artık tam dolu yenilenmiyor (%75 azalarak). Ölçülen etki:
+6 turda jeneratör hasarı 168→56, çekirdek süresi 60s→84s.
+
+### 8.0.1 Denge turunun geçersiz kıldığı ölçümler — yeniden ölçüldü
+
+Kendi değişikliklerim önceki ölçümlerimi kaydırdı. Yeniden ölçtüm:
+
+| Ölçüm | Önce | Sonra | Sebep |
+|---|---|---|---|
+| **Hasar tavanı** | 18 seçim | **14 seçim** | `extra_ball` (2) ve `ball_speed` (2) kart olmaktan çıktı |
+| Yuva doldurma (silah öncelikli) | 2.9 level-up | **2.6** | Havuz küçüldü, silah oranı arttı |
+| Yuva doldurma (rastgele) | 6.0 level-up | **4.9** | Aynı sebep |
+| Havuz bileşimi | 8 silah + 14 pasif | **8 + 10** | 4 pasif kart kaldırıldı |
+
+#### Faz 6.2'nin sonucu değişti
+
+Hasar tavanı 18'den 14'e indi ama **boss HP'si aynı kaldı.** Seçim arzı
+boss başına 7, 11, 14, 16, 18, 19, 21 idi — yani tavan artık **5. bossta
+değil, 3. bossta** doluyor.
+
+Düz kalan aralık 5→7 iken şimdi **3→7**. O aralıkta boss HP'si 200'den
+500'e çıkıyor: **+%150**.
+
+**Ama bu düz bir kötüleşme değil.** Kaldırılan `extra_ball` kartı kalıcı
++1/+2 top veriyordu; yerine gelen güçlendirme **4 topa kadar** katlıyor.
+Yani top sayısı — hasarın en büyük bileşenlerinden biri — kart ekonomisinden
+**tamamen çıktı** ve daha yükseğe ulaşabiliyor.
+
+Yani "hasar tavanı 14 seçim" artık toplam hasar potansiyelini ölçmüyor.
+Doğru okuma: *kart seçimiyle alınabilen* hasar 14'te doluyor, gerisi
+güçlendirmeden geliyor. Bu ikisini tek sayıda toplamak yanlış olur.
+
+**Sonuç:** Faz 6.2'nin "boss duvarı" sorusu oyun testi olmadan artık daha
+da cevaplanamaz — çünkü cevabı büyük ölçüde ekstra top güçlendirmesinin
+ne sıklıkta geldiğine bağlı, ve o da ölçülmüş değil, modellenmiş.
 
 ### Faz 8 — oyun testi sonrası kalibrasyon (BAŞLAMADI, bloke)
 
