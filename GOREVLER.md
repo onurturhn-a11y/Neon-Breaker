@@ -557,6 +557,34 @@ satırı yanlıştı; düzeltildi (yukarıda).
 argümanlı (`_get_phase_message(current_phase)`). Desen düzeltilince ölü
 kanca kalmadı. Otomatik tarama sonucunu doğrulamadan raporlamamalı.
 
+### Test kapsamı — neyin korunduğu
+
+gdUnit4 kuruldu (`addons/gdUnit4`, v6.2.1). **44 test, hepsi geçiyor.**
+
+```bash
+godot --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests/ --ignoreHeadlessMode
+```
+
+| Paket | Test | Korunan ölçüm |
+|---|---|---|
+| `elite_bricks_test` | 7 | Faz 5.1 elit oran ve can eğrisi |
+| `sector_modifiers_test` | 6 | Faz 4.3 + 5.3 sektör modifier'ları |
+| `curses_test` | 5 | Faz 4.2 lanet bedel/ödül dengesi |
+| `progression_test` | 10 | Faz 5.2, 5.3, 6.1, 6.2 hata düzeltmeleri |
+| `boss_scaling_test` | 6 | Faz 6.2 + 7.4 boss HP ölçeklemesi |
+| `combo_chain_test` | 5 | Faz 7.1 kombo kartı → zincir şimşeği bağı |
+| `colony_effects_test` | 5 | Faz 7.3 koloni tek kaynak |
+
+**Henüz korunmayan:**
+
+- Faz 6.4 tehlike hattı ekonomisi — çoğu sabit, regresyon riski düşük
+- Faz 6.1'in XP eğrisi tam olarak değil, yalnızca derinlik çarpanı
+- Silah davranışları (Codex bölgesi)
+
+**Testin sınırı:** bunlar denge sayılarını koruyor, oynanışı değil.
+"Derinlik 32'de yetişilebiliyor mu" sorusunun cevabı testten çıkmaz,
+oyun testinden çıkar.
+
 ## CODEX'E BİLDİRİM — bölge dışı bulgu, dokunmadım
 
 CLAUDE.md bölüm 2 gereği düzeltmedim, bildiriyorum. Onay verirsen ben de
