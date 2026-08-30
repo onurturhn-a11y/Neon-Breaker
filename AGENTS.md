@@ -151,15 +151,25 @@ Silah seviyeleri `GameManager.weapon_slots` içinde tutulur (`card_levels`'ta
 
 ## 5. PR öncesi zorunlu doğrulama
 
-### Motor sürümü — 4.8.dev4
+### Motor sürümü — 4.7 stable
 
-Proje **Godot 4.8.dev4** ile geliştiriliyor (`project.godot` →
-`config/features = ("4.8", "Mobile")`). Doğrulama **aynı sürümle** yapılmalı.
+Proje **Godot 4.7 stable** ile geliştiriliyor. Her iki geliştirici de aynı
+minör sürümde olmalı; doğrulama da 4.7 ile yapılır.
 
-> **Neden yazılı:** bir dönem doğrulamalar 4.6 stable ile yapıldı. 4.6, 4.8
-> projesini **hiç uyarı vermeden** açıyor — yani yanlış motorla test etmek
-> sessizce mümkün. İkisi de temiz sonuç verdi, ama bu şans; 4.8'e özel bir
-> davranış 4.6'da görünmez.
+> **Neden yazılı:** bir dönem üç sürüm aynı anda dolaştı — `project.godot`
+> "4.8" diyordu, telefona 4.8.dev4 ile kuruluyordu, doğrulamalar 4.6 stable
+> ile yapılıyordu. **Godot eski sürümü açarken uyarı vermiyor**, yani yanlış
+> motorla test etmek sessizce mümkün.
+>
+> `project.godot` içindeki `config/features = ("4.8", "Mobile")` etiketi
+> **gerçek bir bağımlılık değil** — projeyi ilk kuran editörden kalma.
+> Kanıtı: 4.7.2 projeyi hatasız koşuyor. 4.8'e özel bir şey kullanılsaydı
+> koşmazdı. Dosya ilk baseline commit'inden beri hiç değişmedi, hiçbir
+> editör onu yeniden yazmadı.
+
+**Sürüm neden 4.7:** iki geliştiricinin farklı motorda olması, herhangi bir
+dosya çakışmasından daha sinsi bir risktir — biri kaydettiğinde diğerinin
+açamayacağı bir şey yazabilir. 4.7 ayrıca kararlı sürüm; 4.8 dev build.
 
 ```bash
 godot --headless --quit-after 300 --path .
@@ -168,10 +178,10 @@ godot --headless --quit-after 300 --path .
 Çıktıda `SCRIPT ERROR` veya `Parse Error` **olmamalı.**
 Çıkıştaki "ObjectDB instance leaked" uyarısı normaldir (zorla kapatma).
 
-**Dev sürümünün bedeli:** 4.8 bir geliştirme sürümü, kararlı değil. Eklenti
-ekosistemi henüz yetişmedi — örneğin gdUnit4 (test çerçevesi) yalnızca
-4.5–4.7.1 destekliyor, 4.8'de kurulamıyor. Eklenti kurmadan önce sürüm
-uyumunu kontrol et.
+**Eklenti kurarken:** her eklentinin Godot sürüm uyumunu ayrı kontrol et.
+Örnek: gdUnit4 (test çerçevesi) 4.5–4.7.1 destekliyor. Kurduğun eklentiyi
+`ILETISIM.md`'ye yaz — `addons/` klasörü iki ajan için yeni bir çakışma
+yüzeyidir.
 
 Geçici test scriptleri `_` ile başlamalı (`_my_test.gd`) — `.gitignore`'da,
 depoya girmez.
