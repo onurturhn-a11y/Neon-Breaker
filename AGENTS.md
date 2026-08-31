@@ -258,16 +258,41 @@ veriyor; havuz kapasitesi 51.
 
 **Sıradaki:** görev dağılımı `GOREVLER.md`, mesajlaşma `ILETISIM.md`.
 
-- **Codex** → görsel açık (8 silahın 7'si aynı iki kartı kullanıyor),
-  Krediler ekranı, kalan iki silah
-- **Claude** → Faz 7 bitti. Şeridi **oyun testine kadar kapalı.**
+- **Codex** → Krediler ekranı, ikon yazarlarının doğrulanması
+- **Claude** → Faz 9: boss kadrosu 7 → 10
 
-Faz 4-7'de ölçülebilir olan ölçüldü ve 54 testle korumaya alındı. Kalan
+Faz 4-7'de ölçülebilir olan ölçüldü ve 56 testle korumaya alındı. Kalan
 yedi soru tabloyla değil oynanışla cevaplanıyor (`GOREVLER.md` → "25F
-için"). Bir sonraki Claude işi o cevaplar geldikten sonra başlar:
-**Faz 8 = oyun testi sonrası kalibrasyon.**
+için"); **Faz 8 = oyun testi sonrası kalibrasyon** hâlâ o cevapları
+bekliyor.
 
-Yeni sistem tasarlanmıyor — 25F feature freeze.
+### Faz 9 — boss kadrosu 7 → 10 (Onur talimatı, 2026-08-31)
+
+25F feature freeze **bu iş için kaldırıldı.** Üç yeni boss eklendi; üçü de
+mevcut yedinin kullanmadığı bir mekanik fiil üstüne kurulu, çünkü yedinin
+beşi aynı şeyi yapıyordu (telegraf edilen bölgeden kaç).
+
+| Boss | HP | Fiil |
+|---|---|---|
+| THE HARVESTER | 175 | Tuğla sahasını yer, zırha çevirir — yem/takas |
+| THE CHORUS | 5×58 | Beş gövde, ölen her üye kalanı hızlandırır — hedef seçimi |
+| THE INVERSION | 455 | Kendi ateşini geri döndürür — ateş kesme testi |
+
+HP değerleri mevcutların **arasına** giriyor (100, 145, *175*, 200, 260,
+*290*, 330, 410, *455*, 500), yani yedi bossun hiçbir sayısı değişmedi.
+
+**Bitti:** kare setleri kesildi (`assets/bosses/{harvester,chorus,inversion}/`),
+üç script + sahne yazıldı, `main.gd`'ye bağlandı, debug tuşları açıldı
+(`Y` / `U` / `I`).
+
+**Bitmedi — derinlik yerleştirmesi.** Bosslar şu an yalnız debug
+tuşuyla açılıyor, ilerleme akışına bağlı değiller. Bağlanması için aralık
+8'den 6'ya inmeli (10 boss, derinlik 6…60; run %7 uzar). Bu `main.gd`'de
+yedi `*_POST_BOSS_DEPTH` sabitinin yeniden yazılması + üç yenisi + üç
+`*_boss_defeated` bayrağı demek, ve `throughput_test` ile
+`documented_numbers_test`'i kırar — ikisi de haklı olarak. Boss ödülü 7'den
+10'a çıktığı için oyuncu güç tavanı da yeniden ölçülmeli (`GOREVLER.md`
+6.2). Ayrı iş olarak duruyor.
 
 **Oyun testi bekliyor.** Faz 6'da üç sayı ölçümle değil tahminle seçildi ve
 oyun testi olmadan doğrulanamaz:
@@ -284,7 +309,6 @@ oyun testi olmadan doğrulanamaz:
   → teklif ağırlığı 1.0'a düşüyor, yaygının 1/45'i
 - `xp_orb.gd` / `xp_orb.tscn` ölü kod — `main.gd` `exp_orb.tscn` yüklüyor
   ama değişken adı `xp_orb_scene`, okuyanı yanıltıyor
-- `main.gd` debug tuşları `OS.is_debug_build()` ile korunmuyor
 - Faz 6.2 kararı yarım: ascension hasar tavanı açıldı (pasif kartlar),
   silah tarafı (3. yuva) Codex'in cevabını bekliyor
 
