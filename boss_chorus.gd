@@ -149,6 +149,14 @@ func _build_voices() -> void:
 		sprite.texture = idle
 		sprite.scale = Vector2.ONE * scale_factor
 		holder.add_child(sprite)
+		# Ikinci katman: taban sinifin yaptigi capraz gecisin uye olcegindeki
+		# hali. Onceden sprite.texture dogrudan degistiriliyordu, yani bes
+		# govde ayni anda sert kesme yapiyordu.
+		var sprite_top := Sprite2D.new()
+		sprite_top.texture = idle
+		sprite_top.scale = Vector2.ONE * scale_factor
+		sprite_top.self_modulate.a = 0.0
+		holder.add_child(sprite_top)
 		# Her uyenin KENDI carpisma sekli var. Tek buyuk kutu kullanilamaz:
 		# top kutunun yuzeyine carpiyor ve temas noktasi halkanin bos
 		# ortasina/kenarina dusuyordu, hicbir uyeye yazilamiyordu.
@@ -159,10 +167,35 @@ func _build_voices() -> void:
 		shape.disabled = true
 		add_child(shape)
 		voices.append({
-			"node": holder, "sprite": sprite, "shape": shape,
+			"node": holder, "sprite": sprite, "top": sprite_top, "shape": shape,
 			"hp": VOICE_HP, "index": i,
 		})
 	_layout_ring()
+
+
+## Uyeyi yeni poza YUMUSAK gecirir. Alt katman mevcut pozu tutar, ust
+## katman yeni pozu alfayla eritir; bitince yeni poz alta iner ve ust
+## katman sifirlanir. Taban sinifin _blend_to'sunun aynisi, uye olceginde.
+func _blend_voice(v: Dictionary, anim_name: StringName, duration: float = -1.0) -> void:
+	var sprite: Sprite2D = v.get("sprite")
+	var top: Sprite2D = v.get("top")
+	var target := _frame(anim_name, 0)
+	if target == null or not is_instance_valid(sprite) or not is_instance_valid(top):
+		return
+	if sprite.texture == target:
+		return
+	var fade := duration
+	if fade < 0.0:
+		fade = POSE_FADE_RELEASE if String(anim_name).begins_with("release") else POSE_FADE_CHARGE
+	top.texture = target
+	top.self_modulate.a = 0.0
+	var t := top.create_tween()
+	t.tween_property(top, "self_modulate:a", 1.0, fade).set_trans(POSE_BLEND_TRANS).set_ease(POSE_BLEND_EASE)
+	t.tween_callback(func() -> void:
+		if is_instance_valid(sprite) and is_instance_valid(top):
+			sprite.texture = target
+			top.self_modulate.a = 0.0
+	)
 
 
 func _layout_ring() -> void:
@@ -268,15 +301,20 @@ func _voice_hit_feedback(v: Dictionary, hit_position: Vector2) -> void:
 	var sprite: Sprite2D = v.get("sprite")
 	var holder: Node2D = v.get("node")
 	if is_instance_valid(sprite):
+		# Darbe karesi KESKIN gecer - taban sinifla ayni gerekce: capraz
+		# gecis vurusu korletir. DONUS yumusaktir.
 		var hit_frame := _frame(&"hit", 0)
 		if hit_frame != null:
+			var top: Sprite2D = v.get("top")
+			if is_instance_valid(top):
+				top.self_modulate.a = 0.0
 			sprite.texture = hit_frame
 			sprite.modulate = Color(1.6, 1.6, 1.6, 1.0)
 			var back := sprite.create_tween()
 			back.tween_property(sprite, "modulate", Color.WHITE, 0.18)
 			back.tween_callback(func() -> void:
-				if is_instance_valid(sprite) and int(v.get("hp", 0)) > 0:
-					sprite.texture = _frame(&"idle", 0)
+				if int(v.get("hp", 0)) > 0:
+					_blend_voice(v, &"idle", POSE_FADE_IDLE)
 			)
 	if is_instance_valid(holder):
 		# Halkanin merkezinden disa dogru kucuk bir geri tepme.
@@ -294,9 +332,7 @@ func _kill_voice(v: Dictionary) -> void:
 		shape.set_deferred("disabled", true)
 	var holder: Node2D = v.get("node")
 	if is_instance_valid(holder):
-		var sprite: Sprite2D = v.get("sprite")
-		if is_instance_valid(sprite):
-			sprite.texture = _frame(&"defeat", 0)
+		_blend_voice(v, &"defeat", POSE_FADE_DEFEAT)
 		var out := holder.create_tween().set_parallel(true)
 		out.tween_property(holder, "modulate:a", 0.0, 0.45)
 		out.tween_property(holder, "scale", Vector2(1.35, 1.35), 0.45)
@@ -360,21 +396,17 @@ func _run_note() -> void:
 		return
 	signature_active = true
 	var v: Dictionary = live[randi() % live.size()]
-	var sprite: Sprite2D = v.get("sprite")
-	if is_instance_valid(sprite):
-		sprite.texture = _frame(&"charge", 0)
+	_blend_voice(v, &"charge")
 	await get_tree().create_timer(_get_telegraph_duration()).timeout
 	if not combat_active or not accepting_damage:
 		signature_active = false
 		return
-	if is_instance_valid(sprite):
-		sprite.texture = _frame(&"release", 0)
+	_blend_voice(v, &"release")
 	var holder: Node2D = v.get("node")
 	if is_instance_valid(holder):
 		_fire_note(holder.global_position)
 	await get_tree().create_timer(0.35).timeout
-	if is_instance_valid(sprite):
-		sprite.texture = _frame(&"idle", 0)
+	_blend_voice(v, &"idle", POSE_FADE_IDLE)
 	signature_active = false
 
 
