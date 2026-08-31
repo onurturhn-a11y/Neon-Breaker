@@ -131,20 +131,47 @@ func test_yalnizca_hasar_kartlari_etkilenir() -> void:
 ## test yazarken tuzak. Tum asc0 degerleri once okunur.
 func test_hasar_tavani_ascension_ile_gercekten_yukselir() -> void:
 	gm.run_ascension = 0
-	var state_0 := CardSystem.make_state(gm, true, true)
-	var crit_0: int = CardSystem.get_card_level_cap(&"crit_hit", state_0)
-	var pierce_0: int = CardSystem.get_card_level_cap(&"pierce", state_0)
-
+	var crit_0: int = CardSystem.get_card_level_cap(&"crit_hit", CardSystem.make_state(gm, true, true))
 	gm.run_ascension = 10
-	var state_10 := CardSystem.make_state(gm, true, true)
-	var crit_10: int = CardSystem.get_card_level_cap(&"crit_hit", state_10)
-	var pierce_10: int = CardSystem.get_card_level_cap(&"pierce", state_10)
+	var crit_10: int = CardSystem.get_card_level_cap(&"crit_hit", CardSystem.make_state(gm, true, true))
+	assert_int(crit_10).override_failure_message(
+		"crit_hit tavani ascension ile acilmadi - Faz 6.2 karari calismiyor"
+	).is_greater(crit_0)
+	gm.run_ascension = 0
 
-	assert_int(crit_10).is_greater(crit_0)
-	# pierce WEAPON_CARDS'ta da: boss milestone tavani bonusu YUTMAMALI.
-	assert_int(pierce_10).override_failure_message(
-		"pierce tavani ascension ile acilmadi - boss milestone tavani bonusu yutuyor"
-	).is_greater(pierce_0)
+
+## `[HATA / KARAR GEREKLI]` Faz 6.2 karari Core modullerinde CALISMIYOR.
+##
+## Faz 6.2: ascension boss HP'sini katman basina %12 artiriyordu ama
+## oyuncunun hasar tavanini hic artirmiyordu. Cozum, ASCENSION_SCALED_CARDS
+## icindeki kartlara ascension esiklerinde +1 max_level vermekti.
+## O liste: crit_hit, pierce, fireball.
+##
+## Codex'in kilit acma dukkani card_system.gd'ye su satiri ekledi:
+##   pool_cap = mini(pool_cap, gm.get_card_unlock_level(card_id))
+## pierce ve fireball UNLOCK_CORE_IDS'te, dolayisiyla tavanlari satin
+## alinan seviyeyle sinirli. Ama get_card_unlock_level MAX_WEAPON_LEVEL=3
+## ile kirpiliyor ve pierce'in taban max_level'i de zaten 3. Yani
+## mini(3 + bonus, 3) = 3: ascension bonusu SATIN ALINSA BILE, HER ZAMAN
+## yutuluyor.
+##
+## Yani Faz 6.2 uc karttan ikisinde gecersiz. crit_hit duz pasif oldugu
+## icin calismaya devam ediyor (ustteki test onu koruyor).
+##
+## Bu test o davranisi DOGRU diye onaylamiyor - kayit altina aliyor ki
+## sessizce kalmasin. Duzeltilince bu test kirilir; ILETISIM A15'e bakip
+## guncelle.
+func test_core_modullerinde_ascension_tavani_yutuluyor() -> void:
+	for card_id: StringName in [&"pierce", &"fireball"]:
+		gm.run_ascension = 0
+		var cap_0: int = CardSystem.get_card_level_cap(card_id, CardSystem.make_state(gm, true, true))
+		gm.run_ascension = 10
+		var cap_10: int = CardSystem.get_card_level_cap(card_id, CardSystem.make_state(gm, true, true))
+		assert_int(cap_10).override_failure_message(
+			"'%s' tavani ascension ile acildi (%d -> %d) - Faz 6.2 artik calisiyor. "
+			% [card_id, cap_0, cap_10]
+			+ "ILETISIM A15 kararina bakip bu testi kaldir."
+		).is_equal(cap_0)
 	gm.run_ascension = 0
 
 

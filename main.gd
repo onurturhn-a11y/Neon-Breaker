@@ -20,6 +20,8 @@ const PULSE_LASER_CONTROLLER_SCRIPT := preload("res://pulse_laser_controller.gd"
 
 var bricks_left = 0
 var game_over = false
+var development_reset_button: Button
+var development_reset_dialog: ConfirmationDialog
 
 var choosing_card = false
 
@@ -596,7 +598,7 @@ func _apply_mobile_portrait_layout() -> void:
 		var menu_width := minf(safe_rect.size.x * 0.90, 620.0)
 		var button_height := clampf(menu_width * 0.21, 96.0, 122.0)
 		var logo_height := clampf(menu_width * 0.42, 190.0, 250.0)
-		var menu_height := logo_height + button_height * 5.0 + 60.0
+		var menu_height := logo_height + button_height * 6.0 + 72.0
 		_set_mobile_rect(main_menu_box, Rect2(
 			safe_rect.position.x + (safe_rect.size.x - menu_width) * 0.5,
 			safe_rect.position.y + (safe_rect.size.y - menu_height) * 0.5,
@@ -631,7 +633,7 @@ func _apply_mobile_portrait_layout() -> void:
 		var mobile_title := main_menu_box.get_node_or_null("TitleLabel") as Label
 		if is_instance_valid(mobile_title):
 			mobile_title.custom_minimum_size = Vector2(menu_width, logo_height)
-		for button_name in ["NewGameButton", "ShopButton", "ColonyButton", "MusicButton", "QuitButton"]:
+		for button_name in ["NewGameButton", "ShopButton", "WeaponsButton", "ColonyButton", "MusicButton", "QuitButton"]:
 			var mobile_menu_button := main_menu_box.get_node_or_null(button_name) as Button
 			if is_instance_valid(mobile_menu_button):
 				mobile_menu_button.custom_minimum_size = Vector2(menu_width, button_height)
@@ -660,6 +662,7 @@ func _refresh_mobile_safe_layout() -> void:
 	if not OS.has_feature("mobile") or not is_inside_tree():
 		return
 	_apply_mobile_portrait_layout()
+	_layout_development_progress_reset()
 	if is_instance_valid(mobile_card_info) and choosing_card:
 		mobile_card_info.layout()
 	if is_instance_valid(brick_field) and brick_field.has_method("refresh_safe_area_layout"):
@@ -874,6 +877,7 @@ func _setup_building_part_hud() -> void:
 	building_part_label.add_theme_constant_override("shadow_offset_x", 1)
 	building_part_label.add_theme_constant_override("shadow_offset_y", 1)
 	building_part_counter.add_child(building_part_label)
+	_on_carried_salvage_changed(GameManager.carried_salvage)
 
 
 func _on_carried_salvage_changed(total: int) -> void:
@@ -1188,8 +1192,12 @@ func _refresh_desktop_gameplay_layout() -> void:
 func _ready():
 	_setup_card_presentation()
 	_setup_main_menu_assets()
+	var weapon_unlock_shop := preload("res://weapon_unlock_shop.gd").new()
+	weapon_unlock_shop.name = "WeaponUnlockShop"
+	add_child(weapon_unlock_shop)
 	_setup_building_part_hud()
 	_setup_readability_ui()
+	_setup_development_progress_reset()
 	if not GameManager.carried_salvage_changed.is_connected(_on_carried_salvage_changed):
 		GameManager.carried_salvage_changed.connect(_on_carried_salvage_changed)
 	_setup_arc_cannon_controller()
@@ -1337,6 +1345,7 @@ func _ready():
 		return
 
 	if GameManager.start_directly:
+		GameManager.record_run_started()
 
 		# Level geÃƒÆ’Ã‚Â§iÃƒâ€¦Ã…Â¸i veya Tekrar Oyna.
 		# Ana menÃƒÆ’Ã‚Â¼yÃƒÆ’Ã‚Â¼ atla.
@@ -1401,7 +1410,80 @@ func _begin_boss_rehearsal(boss_type: StringName) -> void:
 	start_boss_encounter(false, boss_type)
 
 
+func _development_reset_available() -> bool:
+	return GameManager.DEVELOPMENT_PROGRESS_RESET and OS.is_debug_build() and main_menu.visible and not game_over
+
+
+func _setup_development_progress_reset() -> void:
+	if not GameManager.DEVELOPMENT_PROGRESS_RESET or not OS.is_debug_build():
+		return
+	development_reset_dialog = ConfirmationDialog.new()
+	development_reset_dialog.name = "DevelopmentProgressResetConfirmation"
+	development_reset_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
+	development_reset_dialog.title = "Geliştirme testi"
+	development_reset_dialog.dialog_text = "Tüm achievement ve unlock ilerlemesi sıfırlansın mı?\nCoin, PARÇA ve Colony yatırımları korunur."
+	development_reset_dialog.get_label().autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	development_reset_dialog.get_label().add_theme_font_size_override("font_size", 20)
+	development_reset_dialog.ok_button_text = "EVET"
+	development_reset_dialog.cancel_button_text = "HAYIR"
+	development_reset_dialog.get_ok_button().custom_minimum_size.y = 44.0
+	development_reset_dialog.get_cancel_button().custom_minimum_size.y = 44.0
+	development_reset_dialog.confirmed.connect(_confirm_development_progress_reset)
+	add_child(development_reset_dialog)
+	if OS.has_feature("mobile"):
+		development_reset_button = Button.new()
+		development_reset_button.name = "DevelopmentProgressReset"
+		development_reset_button.text = "RESET PROGRESS"
+		development_reset_button.add_theme_font_size_override("font_size", 18)
+		development_reset_button.focus_mode = Control.FOCUS_NONE
+		development_reset_button.pressed.connect(_request_development_progress_reset)
+		main_menu.add_child(development_reset_button)
+	get_viewport().size_changed.connect(_layout_development_progress_reset)
+	call_deferred("_layout_development_progress_reset")
+
+
+func _layout_development_progress_reset() -> void:
+	var safe := GameManager.get_layout_safe_rect(get_viewport_rect().size).grow(-16.0)
+	if is_instance_valid(development_reset_button):
+		development_reset_button.size = Vector2(minf(200.0, safe.size.x), 44.0)
+		development_reset_button.position = safe.end - development_reset_button.size
+		var footer := main_menu.get_node_or_null("VersionLabel") as Control
+		if is_instance_valid(footer) and footer.visible:
+			development_reset_button.position.y -= footer.size.y + 8.0
+	if is_instance_valid(development_reset_dialog) and development_reset_dialog.visible:
+		var dialog_size := Vector2(minf(440.0, safe.size.x), minf(220.0, safe.size.y))
+		development_reset_dialog.size = Vector2i(dialog_size)
+		development_reset_dialog.position = Vector2i(safe.get_center() - dialog_size * 0.5)
+
+
+func _request_development_progress_reset() -> void:
+	if not _development_reset_available() or not is_instance_valid(development_reset_dialog):
+		return
+	development_reset_dialog.popup()
+	_layout_development_progress_reset()
+	development_reset_dialog.get_cancel_button().grab_focus()
+
+
+func _confirm_development_progress_reset() -> void:
+	if not _development_reset_available():
+		return
+	if not GameManager.development_reset_progression():
+		push_warning("Development progression reset could not be saved.")
+		return
+	# Rebuild menu/controllers and clear all scene-local run state without rewards.
+	get_tree().call_deferred("reload_current_scene")
+
+
 func _unhandled_key_input(event):
+	if (
+		event is InputEventKey and event.pressed and not event.echo
+		and event.keycode == KEY_F10 and event.shift_pressed
+		and not event.ctrl_pressed and not event.alt_pressed and not event.meta_pressed
+		and not OS.has_feature("mobile") and _development_reset_available()
+	):
+		_request_development_progress_reset()
+		get_viewport().set_input_as_handled()
+		return
 
 	if (
 		event is InputEventKey
@@ -1727,6 +1809,7 @@ func start_boss_encounter(is_progression_boss: bool = false, boss_type: StringNa
 	if not boss_active or game_over:
 		return
 	active_boss = _get_boss_scene(boss_type).instantiate()
+	active_boss.set_meta("achievement_boss_id", boss_type)
 	add_child(active_boss)
 	var viewport_size: Vector2 = get_viewport_rect().size
 	var boss_safe_rect := GameManager.get_gameplay_rect(viewport_size)
@@ -2271,6 +2354,7 @@ func _on_boss_defeated() -> void:
 		brick_field.stop_boss_side_waves()
 	var defeated_progression_boss := active_boss_is_progression
 	var defeated_boss_type := active_boss_type
+	GameManager.record_boss_defeated(defeated_boss_type, active_boss)
 	active_boss_is_progression = false
 	active_boss_type = &"none"
 	if defeated_progression_boss:
@@ -2366,6 +2450,7 @@ func _trigger_run_victory() -> void:
 	if run_victory:
 		return
 	run_victory = true
+	GameManager.record_run_completed()
 	# Factory dahil tüm taşınan PARÇA tek seferde, ölüm cezası olmadan aktarılır.
 	_award_colony_run_end_bonus_once(true)
 	var banked: int = run_salvage_rescued
@@ -2660,7 +2745,11 @@ func _refresh_paddle_shop() -> void:
 	for paddle_id: StringName in GameManager.PADDLE_IDS:
 		var button := paddle_shop_buttons[paddle_id] as Button
 		var action := ""
-		if GameManager.active_paddle_id == paddle_id:
+		button.disabled = not GameManager.is_paddle_unlocked(paddle_id)
+		if button.disabled:
+			action = "KİLİTLİ"
+			button.modulate = Color(0.55, 0.60, 0.66, 1.0)
+		elif GameManager.active_paddle_id == paddle_id:
 			action = "AKT\u0130F"
 			button.modulate = _get_paddle_affinity_color(paddle_id)
 		elif GameManager.owned_paddles.has(paddle_id):
@@ -2714,6 +2803,8 @@ func _close_paddle_shop() -> void:
 
 
 func _on_paddle_shop_pressed(paddle_id: StringName) -> void:
+	if not GameManager.is_paddle_unlocked(paddle_id):
+		return
 	if GameManager.owned_paddles.has(paddle_id):
 		GameManager.activate_paddle(paddle_id)
 	else:
@@ -2807,6 +2898,7 @@ func _on_main_menu_button_up(menu_button: Button) -> void:
 
 
 func quit_game():
+	GameManager.save_meta_progression()
 
 	get_tree().quit()
 
@@ -4253,6 +4345,8 @@ func _on_card_slot_pressed(slot: Button, confirmed: bool = false) -> void:
 	if banish_arm_active:
 		_banish_slot(slot)
 		return
+	if not _is_card_eligible(card_id):
+		return
 	card_selection_committing = true
 	_play_card_select_sound()
 	await play_card_effect(slot)
@@ -4266,6 +4360,9 @@ func _on_card_slot_pressed(slot: Button, confirmed: bool = false) -> void:
 
 
 func _apply_card_selection(card_id: StringName) -> void:
+	# Reject stale/programmatic selections as well as filtered-out offers.
+	if not _is_card_eligible(card_id):
+		return
 	var previous_level := CardPool.get_display_level(GameManager, card_id)
 	var next_level: int = mini(
 		CardPool.get_display_level(GameManager, card_id) + 1,
@@ -4415,7 +4512,7 @@ func _get_remaining_evolution_capacity() -> int:
 	if GameManager.plasma_evolution == &"none":
 		if plasma_level >= 3:
 			capacity += 1
-		elif not GameManager.banished_cards.has(&"plasma") and GameManager.can_acquire_weapon(GameManager.WEAPON_PLASMA):
+		elif GameManager.get_card_unlock_level(&"plasma") >= 3 and not GameManager.banished_cards.has(&"plasma") and GameManager.can_acquire_weapon(GameManager.WEAPON_PLASMA):
 			capacity += 1
 
 	var core_capacity := 0
@@ -4430,7 +4527,7 @@ func _get_remaining_evolution_capacity() -> int:
 			continue
 		if level >= 3:
 			core_capacity += 1
-		elif GameManager.get_card_level(other_id) <= 0 and not GameManager.banished_cards.has(core_id):
+		elif GameManager.get_card_unlock_level(core_id) >= 3 and GameManager.get_card_level(other_id) <= 0 and not GameManager.banished_cards.has(core_id):
 			core_capacity += 1
 	# Before a Core is chosen, both are offers but only one can ever evolve.
 	if GameManager.fireball_level <= 0 and GameManager.pierce_level <= 0:
@@ -5003,6 +5100,7 @@ func _award_colony_run_end_bonus_once(victory: bool = false) -> void:
 	run_salvage_lost = int(settlement.get("lost", 0))
 
 func show_game_over():
+	GameManager.record_run_ended()
 	GameManager.pending_card_choices = 0
 
 	game_over = true
@@ -5044,6 +5142,8 @@ func retry_game():
 # ==================================================
 
 func return_to_main_menu():
+	GameManager.record_run_ended()
+	GameManager.save_meta_progression()
 
 	GameManager.start_directly = false
 

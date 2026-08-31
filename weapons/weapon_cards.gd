@@ -249,7 +249,7 @@ static func can_offer(gm: Node, card_id: StringName) -> bool:
 	var weapon_id := get_weapon_id(card_id)
 	if weapon_id == &"":
 		return false
-	return gm.can_acquire_weapon(weapon_id)
+	return gm.get_weapon_level(weapon_id) < gm.get_card_unlock_level(card_id) and gm.can_acquire_weapon(weapon_id)
 
 
 ## Silahın mevcut seviyesi (yuva sisteminden okunur).

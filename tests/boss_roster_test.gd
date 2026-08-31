@@ -98,3 +98,21 @@ func test_odul_index_i_her_boss_icin_ayri() -> void:
 	assert_array(indices).override_failure_message(
 		"Odul index'leri benzersiz 0..9 olmali, kodda: %s" % str(indices)
 	).is_equal([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+
+## Codex'in basarim sistemi bossları kendi listesinden taniyor. Kadro
+## buyudugunde o liste guncellenmezse yeni bosslar record_boss_defeated()
+## icinde sessizce elenir - hicbir hata vermez, yalnizca sayaclar eksik
+## kalir. Faz 9'da tam bu oldu ve burada yakalandi.
+func test_basarim_listesi_kadroyu_kapsiyor() -> void:
+	var gm: Node = Engine.get_main_loop().root.get_node_or_null("GameManager")
+	assert_object(gm).is_not_null()
+	var ids: Array = gm.ACHIEVEMENT_BOSS_IDS
+	for entry: Array in ROSTER:
+		var boss: String = entry[0]
+		assert_bool(ids.has(StringName(boss))).override_failure_message(
+			"'%s' ACHIEVEMENT_BOSS_IDS'te yok - basarim sayaclarinda gorunmez." % boss
+		).is_true()
+	assert_int(ids.size()).override_failure_message(
+		"Basarim listesinde kadroda olmayan id var: %s" % str(ids)
+	).is_equal(ROSTER.size())

@@ -12,6 +12,30 @@ const DESKTOP_GAMEPLAY_CAMERA_ZOOM := 0.88
 const DESKTOP_GAMEPLAY_SIDE_MARGIN := 24.0
 const DESKTOP_PADDLE_BOTTOM_MARGIN := 48.0
 const META_SAVE_PATH := "user://neon_break_meta.cfg"
+const META_SCHEMA_VERSION := 2
+const DEVELOPMENT_PROGRESS_RESET := true
+const WEAPON_UNLOCK_PRICES = preload("res://weapons/weapon_unlock_prices.gd")
+const UNLOCK_CORE_IDS: Array[StringName] = [&"fireball", &"pierce"]
+# Account access, not run levels. Paddle access is separate from Coin ownership.
+var card_unlock_levels: Dictionary = {}
+var unlocked_paddles: Dictionary = {&"NEUTRAL": true}
+var _meta_save_writable := true
+# Account lifetime stats are separate from run summaries and unlock state.
+var _achievement_stats: Dictionary = {}
+var _achievement_run_active := false
+var _achievement_run_pending := false
+var _achievement_seen_bricks: Dictionary = {}
+var _achievement_seen_bosses: Dictionary = {}
+# Same IDs used by main.start_boss_encounter(), not a new boss identity system.
+#
+# Kadro sirasiyla, 10 boss. Faz 9'da uc yeni boss eklendi (harvester,
+# chorus, inversion); bu liste eksik kalirsa record_boss_defeated() ilk
+# satirda false doner ve o bosslar basarim sayaclarinda hic gorunmez.
+# tests/boss_roster_test.gd bu listeyi kadroyla karsilastirir.
+const ACHIEVEMENT_BOSS_IDS: Array[StringName] = [
+	&"core", &"sentinel", &"harvester", &"celestial", &"void",
+	&"chorus", &"sovereign", &"architect", &"inversion", &"chronoform"
+]
 const BUILDING_PART_DROP_CHANCE := 0.08
 const MAX_WEAPON_SLOTS := 2
 const MAX_WEAPON_LEVEL := 3
@@ -94,7 +118,7 @@ const PADDLE_PROFILES := {
 const NEON_CORE_SHIELD_CHARGES := 2
 var mobile_safe_rect := Rect2()
 var total_coins := 0
-var owned_paddles: Dictionary = {PADDLE_NEUTRAL: true, PADDLE_NEON_CORE: true}
+var owned_paddles: Dictionary = {PADDLE_NEUTRAL: true}
 var active_paddle_id: StringName = PADDLE_NEUTRAL
 var paddle_affinity: StringName = PADDLE_NEUTRAL
 
@@ -175,8 +199,13 @@ func _ready() -> void:
 
 
 func load_meta_progression() -> void:
+	_reset_achievement_stats()
+	_achievement_run_active = false
+	_achievement_run_pending = false
+	_reset_account_unlocks()
+	_meta_save_writable = true
 	total_coins = 0
-	owned_paddles = {PADDLE_NEUTRAL: true, PADDLE_NEON_CORE: true}
+	owned_paddles = {PADDLE_NEUTRAL: true}
 	active_paddle_id = PADDLE_NEUTRAL
 	total_salvage = COLONY_PROTOTYPE_STARTING_SALVAGE
 	colony_platform_buildings = []
@@ -193,8 +222,28 @@ func load_meta_progression() -> void:
 	highest_ascension_cleared = -1
 	var config := ConfigFile.new()
 	var error := config.load(META_SAVE_PATH)
+	if error != OK and error != ERR_FILE_NOT_FOUND:
+		_meta_save_writable = false
+		push_warning("Meta save could not be read; original file will not be overwritten: %s" % error_string(error))
+		return
+	var migrated_unlocks := false
 	var migrated_legacy_colony := false
 	if error == OK:
+		var schema := int(config.get_value("meta", "schema_version", 0))
+		if schema > META_SCHEMA_VERSION:
+			_meta_save_writable = false
+			push_warning("Newer meta save schema; saving disabled to preserve its data.")
+		_load_achievement_stats(config)
+		if schema < 1 and not config.has_section("unlocks"):
+			# Pre-unlock profiles had all cards available and every paddle buyable.
+			for card_id in card_unlock_levels:
+				card_unlock_levels[card_id] = MAX_WEAPON_LEVEL
+			for paddle_id in PADDLE_IDS:
+				unlocked_paddles[paddle_id] = true
+			owned_paddles[PADDLE_NEON_CORE] = true
+			migrated_unlocks = true
+		else:
+			_load_account_unlocks(config)
 		total_coins = maxi(0, int(config.get_value("meta", "total_coins", 0)))
 		var saved_owned: Array = config.get_value("meta", "owned_paddles", ["NEUTRAL"])
 		for saved_id in saved_owned:
@@ -204,7 +253,7 @@ func load_meta_progression() -> void:
 		var saved_active := StringName(
 			String(config.get_value("meta", "active_paddle_id", "NEUTRAL")).to_upper()
 		)
-		if saved_active in PADDLE_IDS and owned_paddles.has(saved_active):
+		if saved_active in PADDLE_IDS and owned_paddles.has(saved_active) and is_paddle_unlocked(saved_active):
 			active_paddle_id = saved_active
 		total_salvage = maxi(
 			0,
@@ -263,11 +312,150 @@ func load_meta_progression() -> void:
 		colony_six_slot_migrated = true
 		migrated_legacy_colony = true
 	paddle_affinity = active_paddle_id
-	if migrated_legacy_colony:
+	if migrated_legacy_colony or migrated_unlocks or error == ERR_FILE_NOT_FOUND:
+		save_meta_progression()
+
+
+
+# Tracker events never evaluate achievements or change account unlocks.
+func _reset_achievement_stats() -> void:
+	_achievement_stats = {
+		"total_bricks_destroyed": 0, "total_runs_started": 0,
+		"total_runs_completed": 0, "total_bosses_defeated": 0,
+		"highest_depth_reached": 0, "ball_bricks_destroyed": 0,
+		"fireball_bricks_destroyed": 0, "pierce_bricks_destroyed": 0,
+		"weapon_bricks_destroyed": {}, "boss_defeats_by_id": {}
+	}
+	for card_id in WeaponCards.CARDS:
+		_achievement_stats["weapon_bricks_destroyed"][card_id] = 0
+	_achievement_seen_bricks.clear()
+	_achievement_seen_bosses.clear()
+
+
+func _load_achievement_stats(config: ConfigFile) -> void:
+	var saved: Variant = config.get_value("achievement_stats", "lifetime", {})
+	if not saved is Dictionary:
+		return
+	for key in _achievement_stats:
+		if key == "weapon_bricks_destroyed":
+			var weapons: Variant = saved.get(key, {})
+			if weapons is Dictionary:
+				for card_id in WeaponCards.CARDS:
+					_achievement_stats[key][card_id] = _achievement_count(weapons.get(card_id, 0))
+		elif key == "boss_defeats_by_id":
+			var bosses: Variant = saved.get(key, {})
+			if bosses is Dictionary:
+				for boss_id in ACHIEVEMENT_BOSS_IDS:
+					var count := _achievement_count(bosses.get(boss_id, 0))
+					if count > 0:
+						_achievement_stats[key][boss_id] = count
+		else:
+			_achievement_stats[key] = _achievement_count(saved.get(key, 0))
+
+
+func _achievement_count(value: Variant) -> int:
+	return maxi(0, value) if value is int else 0
+
+
+func get_achievement_stats() -> Dictionary:
+	return _achievement_stats.duplicate(true)
+
+
+func get_total_bricks_destroyed() -> int:
+	return int(_achievement_stats.get("total_bricks_destroyed", 0))
+
+
+func get_weapon_bricks_destroyed(card_id: StringName) -> int:
+	return int(_achievement_stats.get("weapon_bricks_destroyed", {}).get(card_id, 0))
+
+
+func get_boss_defeat_count(boss_id: StringName) -> int:
+	return int(_achievement_stats.get("boss_defeats_by_id", {}).get(boss_id, 0))
+
+
+func record_brick_destroyed(source_id: StringName, brick: Node, ball_source: StringName = &"ball") -> bool:
+	if not _achievement_run_active or not is_instance_valid(brick) or brick.is_queued_for_deletion():
+		return false
+	if not brick.is_in_group("game_brick") or brick.get("is_destroyed") != true or int(brick.get("health")) > 0:
+		return false
+	var instance_id := brick.get_instance_id()
+	if _achievement_seen_bricks.has(instance_id):
+		return false
+	_achievement_seen_bricks[instance_id] = true
+	_achievement_stats["total_bricks_destroyed"] += 1
+	var card_id := WeaponCards.get_card_id_for_damage_source(source_id)
+	if card_id != &"":
+		_achievement_stats["weapon_bricks_destroyed"][card_id] += 1
+	elif source_id in [&"fireball", &"napalm"]:
+		_achievement_stats["fireball_bricks_destroyed"] += 1
+	elif source_id == &"ball":
+		match ball_source:
+			&"fireball_ball":
+				_achievement_stats["fireball_bricks_destroyed"] += 1
+			&"piercing_ball":
+				_achievement_stats["pierce_bricks_destroyed"] += 1
+			_:
+				_achievement_stats["ball_bricks_destroyed"] += 1
+	# Shared Chain Lightning and intrinsic explosive-brick chains have no
+	# unambiguous mounted owner: total only, never guess attribution.
+	return true
+
+
+func record_boss_defeated(boss_id: StringName, boss: Node) -> bool:
+	if not _achievement_run_active or boss_id not in ACHIEVEMENT_BOSS_IDS or not is_instance_valid(boss):
+		return false
+	if not boss.is_in_group("game_boss") or boss.get_meta("achievement_boss_id", &"") != boss_id or boss_id == &"":
+		return false
+	var hp: Variant = boss.get("current_hp")
+	if not hp is int or hp > 0:
+		return false
+	var instance_id := boss.get_instance_id()
+	if _achievement_seen_bosses.has(instance_id):
+		return false
+	_achievement_seen_bosses[instance_id] = true
+	_achievement_stats["total_bosses_defeated"] += 1
+	var counts: Dictionary = _achievement_stats["boss_defeats_by_id"]
+	counts[boss_id] = int(counts.get(boss_id, 0)) + 1
+	return true
+
+
+func record_run_started() -> bool:
+	if not _achievement_run_pending or _achievement_run_active:
+		return false
+	_achievement_run_pending = false
+	_achievement_run_active = true
+	_achievement_stats["total_runs_started"] += 1
+	record_depth_reached(run_depth)
+	save_meta_progression()
+	return true
+
+
+func record_run_completed() -> bool:
+	if not _achievement_run_active:
+		return false
+	_achievement_stats["total_runs_completed"] += 1
+	record_run_ended()
+	return true
+
+
+func record_run_ended() -> void:
+	_achievement_run_active = false
+	_achievement_run_pending = false
+
+
+func record_depth_reached(depth: int) -> void:
+	if _achievement_run_active and depth > int(_achievement_stats.get("highest_depth_reached", 0)):
+		_achievement_stats["highest_depth_reached"] = depth
+
+
+func _notification(what: int) -> void:
+	if is_node_ready() and what in [NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_APPLICATION_PAUSED]:
 		save_meta_progression()
 
 
 func save_meta_progression() -> void:
+	if not _meta_save_writable:
+		return
 	var config := ConfigFile.new()
 	var owned_ids: Array[String] = []
 	for paddle_id: StringName in PADDLE_IDS:
@@ -276,6 +464,14 @@ func save_meta_progression() -> void:
 	config.set_value("meta", "total_coins", total_coins)
 	config.set_value("meta", "owned_paddles", owned_ids)
 	config.set_value("meta", "active_paddle_id", String(active_paddle_id))
+	config.set_value("meta", "schema_version", META_SCHEMA_VERSION)
+	config.set_value("achievement_stats", "lifetime", _achievement_stats.duplicate(true))
+	config.set_value("unlocks", "card_levels", card_unlock_levels.duplicate(true))
+	var unlocked_ids: Array[String] = []
+	for paddle_id in PADDLE_IDS:
+		if is_paddle_unlocked(paddle_id):
+			unlocked_ids.append(String(paddle_id))
+	config.set_value("unlocks", "paddles", unlocked_ids)
 	config.set_value("colony", "total_salvage", total_salvage)
 	config.set_value("colony", "platform_buildings", colony_platform_buildings.duplicate(true))
 	config.set_value("colony", "reactor_built", reactor_built)
@@ -292,6 +488,126 @@ func save_meta_progression() -> void:
 	var error := config.save(META_SAVE_PATH)
 	if error != OK:
 		push_warning("Meta progression save failed: %s" % error_string(error))
+
+
+func _reset_account_unlocks() -> void:
+	card_unlock_levels = {}
+	for card_id in WeaponCards.CARDS:
+		card_unlock_levels[card_id] = 1 if card_id == &"plasma" else 0
+	for card_id in UNLOCK_CORE_IDS:
+		card_unlock_levels[card_id] = 0
+	unlocked_paddles = {PADDLE_NEUTRAL: true}
+
+
+func _load_account_unlocks(config: ConfigFile) -> void:
+	var saved_levels: Variant = config.get_value("unlocks", "card_levels", {})
+	if saved_levels is Dictionary:
+		for card_id in card_unlock_levels:
+			var value: Variant = saved_levels.get(String(card_id), card_unlock_levels[card_id])
+			if value is int:
+				card_unlock_levels[card_id] = clampi(value, 0, MAX_WEAPON_LEVEL)
+	var saved_paddles: Variant = config.get_value("unlocks", "paddles", [])
+	if saved_paddles is Array:
+		for value in saved_paddles:
+			if value is String or value is StringName:
+				var paddle_id := StringName(String(value).to_upper())
+				if paddle_id in PADDLE_IDS:
+					unlocked_paddles[paddle_id] = true
+
+
+func get_card_unlock_level(card_id: StringName) -> int:
+	if WeaponCards.CARDS.has(card_id) or card_id in UNLOCK_CORE_IDS:
+		return clampi(int(card_unlock_levels.get(card_id, 1 if card_id == &"plasma" else 0)), 0, MAX_WEAPON_LEVEL)
+	# Standard passives keep their existing progression; no account lock here.
+	return CardPool.get_max_level(card_id) if CardPool.has_card(card_id) else 0
+
+
+func unlock_card_level(card_id: StringName, level: int) -> bool:
+	if not _meta_save_writable or level < 1 or level > MAX_WEAPON_LEVEL:
+		return false
+	if not WeaponCards.CARDS.has(card_id) and card_id not in UNLOCK_CORE_IDS:
+		return false
+	if level <= get_card_unlock_level(card_id):
+		return false
+	card_unlock_levels[card_id] = level
+	save_meta_progression()
+	return true
+
+
+func unlock_weapon_level(card_id: StringName, level: int) -> bool:
+	if not WeaponCards.CARDS.has(card_id):
+		return false
+	return unlock_card_level(card_id, level)
+
+
+func can_purchase_weapon_level(card_id: StringName, level: int) -> bool:
+	var price: int = WEAPON_UNLOCK_PRICES.get_price(card_id, level)
+	return (
+		_meta_save_writable and WeaponCards.CARDS.has(card_id) and price >= 0
+		and level == get_card_unlock_level(card_id) + 1 and total_coins >= price
+	)
+
+
+func purchase_weapon_level(card_id: StringName, level: int) -> bool:
+	if not can_purchase_weapon_level(card_id, level):
+		return false
+	var previous_coins := total_coins
+	var previous_level := get_card_unlock_level(card_id)
+	total_coins -= WEAPON_UNLOCK_PRICES.get_price(card_id, level)
+	# Existing unlock API saves Coin and access together in the same ConfigFile.
+	if not unlock_weapon_level(card_id, level):
+		total_coins = previous_coins
+		return false
+	# Do not report a paid unlock if the existing save operation failed.
+	var receipt := ConfigFile.new()
+	var saved := receipt.load(META_SAVE_PATH) == OK
+	if saved:
+		var levels: Variant = receipt.get_value("unlocks", "card_levels", {})
+		saved = (
+			levels is Dictionary and int(levels.get(card_id, -1)) == level
+			and int(receipt.get_value("meta", "total_coins", -1)) == total_coins
+		)
+	if not saved:
+		total_coins = previous_coins
+		card_unlock_levels[card_id] = previous_level
+		push_warning("Weapon purchase could not be persisted; purchase cancelled.")
+		return false
+	total_coins_changed.emit(total_coins)
+	return true
+
+
+func is_paddle_unlocked(paddle_id: StringName) -> bool:
+	return paddle_id in PADDLE_IDS and bool(unlocked_paddles.get(paddle_id, false))
+
+
+func unlock_paddle(paddle_id: StringName) -> bool:
+	if not _meta_save_writable or paddle_id not in PADDLE_IDS or is_paddle_unlocked(paddle_id):
+		return false
+	# Unlock permits existing purchase/equip flow; prices and ownership do not change.
+	unlocked_paddles[paddle_id] = true
+	save_meta_progression()
+	return true
+
+
+func development_reset_progression() -> bool:
+	if not DEVELOPMENT_PROGRESS_RESET or not OS.is_debug_build() or not _meta_save_writable:
+		return false
+	_reset_achievement_stats()
+	_reset_account_unlocks()
+	active_paddle_id = PADDLE_NEUTRAL
+	best_depth = 0
+	best_boss_kills = 0
+	total_runs = 0
+	lifetime_boss_kills = 0
+	lifetime_bricks_destroyed = 0
+	ascension_level = 0
+	highest_ascension_cleared = -1
+	start_directly = false
+	# Keep bank balances, Colony investments and purchased paddle ownership.
+	# Current schema prevents legacy migration from reopening these unlocks.
+	reset_run()
+	save_meta_progression()
+	return true
 
 
 func build_colony_reactor(slot_id: String = "top_left", cost: int = 10) -> bool:
@@ -537,7 +853,7 @@ func add_coins(amount: int) -> void:
 
 
 func purchase_paddle(paddle_id: StringName) -> bool:
-	if paddle_id not in PADDLE_IDS or owned_paddles.has(paddle_id):
+	if not is_paddle_unlocked(paddle_id) or owned_paddles.has(paddle_id):
 		return false
 	var price := int(PADDLE_PRICES.get(paddle_id, 0))
 	if total_coins < price:
@@ -550,7 +866,7 @@ func purchase_paddle(paddle_id: StringName) -> bool:
 
 
 func activate_paddle(paddle_id: StringName) -> bool:
-	if paddle_id not in PADDLE_IDS or not owned_paddles.has(paddle_id):
+	if not is_paddle_unlocked(paddle_id) or not owned_paddles.has(paddle_id):
 		return false
 	active_paddle_id = paddle_id
 	save_meta_progression()
@@ -666,7 +982,10 @@ func get_layout_safe_rect(viewport_size: Vector2) -> Rect2:
 
 var level = 1
 var lives = 3
-var run_depth = 1
+var run_depth: int = 1:
+	set(value):
+		run_depth = value
+		record_depth_reached(value)
 
 var start_directly = false
 var music_enabled := true
@@ -721,8 +1040,14 @@ var colony_shield_charges := 0
 
 
 func reset_run():
+	_achievement_run_active = false
+	_achievement_run_pending = true
+	_achievement_seen_bricks.clear()
+	_achievement_seen_bosses.clear()
 
 	has_weapon_upgrade = false
+	if not is_paddle_unlocked(active_paddle_id) or not owned_paddles.has(active_paddle_id):
+		active_paddle_id = PADDLE_NEUTRAL
 	paddle_affinity = active_paddle_id
 
 	level = 1

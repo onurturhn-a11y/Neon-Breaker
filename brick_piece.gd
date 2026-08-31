@@ -277,7 +277,7 @@ func set_health(value):
 # DARBE ALDI
 # --------------------------------------------------
 
-func hit(source = "ball", damage_context = null):
+func hit(source = "ball", damage_context = null, achievement_source: StringName = &""):
 
 	if is_destroyed:
 		return
@@ -325,6 +325,7 @@ func hit(source = "ball", damage_context = null):
 	# --------------------------------------------------
 
 	is_destroyed = true
+	GameManager.record_brick_destroyed(StringName(source), self, achievement_source)
 
 	if is_shield_brick and is_instance_valid(shield_controller):
 		shield_controller.release_neighbors(true)

@@ -85,6 +85,9 @@ static func get_card_level_cap(card_id: StringName, state: Dictionary) -> int:
 	# Core modules retain boss-gated Lv1/Lv2/Lv3; Ascension scales passives only.
 	var bonus := get_ascension_level_bonus(card_id, state)
 	var pool_cap: int = CardPool.get_max_level(card_id) + bonus
+	var gm: Node = state.get("gm")
+	if gm != null and (CardPool.is_mounted_weapon(card_id) or card_id in [&"fireball", &"pierce"]):
+		pool_cap = mini(pool_cap, gm.get_card_unlock_level(card_id))
 	if CardPool.is_weapon(card_id):
 		return mini(pool_cap, get_weapon_level_cap(state) + bonus)
 	return pool_cap
