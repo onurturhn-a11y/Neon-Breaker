@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1r5dfuq2315j"
-path="res://.godot/imported/mortar_card.png-3a2951c4041b0bea876681a580f0e101.ctex"
+uid="uid://c4f23pmu5slib"
+path="res://.godot/imported/crit_hit.png-99b817e8210dc9e4aada2755330be050.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/cards/mortar_card.png"
-dest_files=["res://.godot/imported/mortar_card.png-3a2951c4041b0bea876681a580f0e101.ctex"]
+source_file="res://assets/cards/crit_hit.png"
+dest_files=["res://.godot/imported/crit_hit.png-99b817e8210dc9e4aada2755330be050.ctex"]
 
 [params]
 

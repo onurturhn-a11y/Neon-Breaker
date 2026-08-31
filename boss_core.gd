@@ -17,6 +17,8 @@ signal defeated
 @export_range(1.0, 1.6, 0.05) var mobile_boss_scale_multiplier: float = 1.35
 
 const PROJECTILE_SCENE = preload("res://boss_projectile.tscn")
+const MAX_ACTIVE_CORE_PROJECTILES := 2
+var owned_projectiles: Array[WeakRef] = []
 
 ## Ayni anda ucusta olabilecek en fazla mermi. Ates araligi 1.8-2.4s ve
 ## mermi ekrani gecmesi daha uzun surdugu icin ust uste birikebiliyordu.
@@ -154,12 +156,30 @@ func _telegraph_and_fire() -> void:
 
 
 func _spawn_projectile(shot_direction: Vector2) -> void:
+	owned_projectiles = owned_projectiles.filter(func(ref: WeakRef) -> bool:
+		var node = ref.get_ref()
+		return is_instance_valid(node) and not node.is_queued_for_deletion())
+	if owned_projectiles.size() >= MAX_ACTIVE_CORE_PROJECTILES:
+		return
 	var projectile := PROJECTILE_SCENE.instantiate()
 	get_parent().add_child(projectile)
+	owned_projectiles.append(weakref(projectile))
 	projectile.global_position = global_position + shot_direction * (72.0 * absf(global_scale.x))
 	projectile.setup(get_parent(), shot_direction, projectile_speed)
 	if get_parent().has_method("notify_boss_projectile_fired"):
 		get_parent().notify_boss_projectile_fired()
+
+
+func _clear_owned_projectiles() -> void:
+	for ref in owned_projectiles:
+		var projectile = ref.get_ref()
+		if is_instance_valid(projectile):
+			projectile.queue_free()
+	owned_projectiles.clear()
+
+
+func _exit_tree() -> void:
+	_clear_owned_projectiles()
 
 
 func _spawn_projectile_pattern(center_direction: Vector2) -> void:
@@ -312,9 +332,7 @@ func _defeat() -> void:
 	if is_instance_valid(charge_tween):
 		charge_tween.kill()
 	collision_shape.set_deferred("disabled", true)
-	for projectile: Node in get_tree().get_nodes_in_group("boss_projectile"):
-		if is_instance_valid(projectile):
-			projectile.queue_free()
+	_clear_owned_projectiles()
 	print("THE CORE defeated")
 	_spawn_death_burst()
 	var fade := visual_root.create_tween().set_parallel(true)

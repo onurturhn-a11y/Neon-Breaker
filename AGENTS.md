@@ -244,15 +244,17 @@ Birleştirme yalnızca PR ile, karşı tarafın onayıyla.
 - Faz 5 (Claude) — elit tuğla, iniş hızı doygunluğu, koloni tavanı denetimi
 - Faz 6 (Claude) — ilerleme eğrisi, ascension hasar tavanı, tehlike hattı
   ekonomisi
-- Codex — 7 silah + plazma (Arc Cannon, Scatter Cannon, Railgun, Homing
-  Missile, Pulse Laser, Mine Launcher, Mortar), 2 yuvalı silah sistemi,
-  `ensure_runtime_controller` kancası, rastgele kart eli, mobil kontroller
+- Codex — 8 silah + plazma (Arc Cannon, Scatter Cannon, Railgun, Homing
+  Missile, Pulse Laser, Mortar, Drone Bay, Orbital Strike), 2 yuvalı silah
+  sistemi, `ensure_runtime_controller` kancası, rastgele kart eli, mobil
+  kontroller, 20 kartlık görsel seti
 
-Kart havuzu: **18 kart** (10 pasif + 8 silah).
+Kart havuzu: **19 kart** (10 pasif + 9 silah). Mine Launcher kaldırıldı,
+yerine Drone Bay ve Orbital Strike geldi.
 
 **Run yapısı (ölçüldü):** depth 1 → 56, 7 boss (depth 8, 16, 24, 32, 40, 48,
 56). Tuğla inişi ~12.3 dakika, boss dövüşleri hariç. Bir run 21 kart seçimi
-veriyor; havuz kapasitesi 48.
+veriyor; havuz kapasitesi 51.
 
 **Sıradaki:** görev dağılımı `GOREVLER.md`, mesajlaşma `ILETISIM.md`.
 

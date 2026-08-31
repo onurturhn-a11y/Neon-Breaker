@@ -46,7 +46,7 @@ const CARDS := {
 			"",
 			"Vurduğu tuğladan komşularına elektrik sıçratır.",
 			"Sıçrama menzili ve hedef sayısı artar.",
-			"Zincir daha uzun sürer ve daha çok tuğlaya ulaşır.",
+			"İlk hedeften 4 ek tuğlaya kadar sıçrar; son noktada küçük bir enerji boşalması oluşur.",
 		],
 	},
 	&"scatter_cannon": {
@@ -62,7 +62,7 @@ const CARDS := {
 			"",
 			"Yelpaze şeklinde küçük mermiler yollar.",
 			"Daha çok mermi, daha geniş yelpaze.",
-			"En yoğun yelpaze; yakın menzilde ezici.",
+			"5 mermilik yelpaze korunur. Mermiler çarpışınca iki küçük parçaya ayrılır.",
 		],
 	},
 	&"railgun": {
@@ -78,7 +78,7 @@ const CARDS := {
 			"",
 			"Dikey ince ışın; aynı sütundaki tuğlaları deler.",
 			"Işın daha hızlı şarj olur ve daha çok tuğla deler.",
-			"Tam sütun delme; en yüksek tek hedef hasarı.",
+			"Daha sık ateşler; dar atış koridorundaki tüm uygun tuğlalara ulaşır.",
 		],
 	},
 	&"homing_missile": {
@@ -92,9 +92,9 @@ const CARDS := {
 		"icon": "res://assets/cards/homing_missile_card.png",
 		"descriptions": [
 			"",
-			"En yakın tuğlayı takip eden füze yollar.",
-			"Daha sık ateş eder, takip keskinleşir.",
-			"Çoklu füze; tehlike çizgisine yakın hedefleri önceler.",
+			"Tehlikedeki tuğlalara yönelen bir güdümlü füze yollar.",
+			"İki güdümlü füze yollar; dönüşleri keskinleşir.",
+			"İki füze korunur; çarpışmada yakındaki en fazla iki ek tuğlaya küçük patlama hasarı verir.",
 		],
 	},
 	&"pulse_laser": {
@@ -110,7 +110,7 @@ const CARDS := {
 			"",
 			"Periyodik olarak kısa süreli sürekli ışın açar.",
 			"Işın daha uzun sürer ve daha sık gelir.",
-			"Neredeyse kesintisiz ışın; sürekli hasar yığar.",
+			"Lazer daha uzun ve geniş çalışır; kapanırken hattındaki tuğlalara ek enerji darbesi verir. Atışlar arasında bekler.",
 		],
 	},
 	&"mortar": {
@@ -146,7 +146,7 @@ const CARDS := {
 			"",
 			"Raketi takip eden bir savaş drone'u tehlikedeki tuğlalara otomatik ateş eder.",
 			"İki bağımsız drone farklı hedeflere ateş ederek alan kontrolünü güçlendirir.",
-			"Drone'lar daha sık ateş eder; her üçüncü atış küçük bir enerji patlaması oluşturur.",
+			"İki drone daha sık ateş eder; her üçüncü atış yakındaki bir ek tuğlaya da vurabilir.",
 		],
 	},
 	&"orbital_marker": {

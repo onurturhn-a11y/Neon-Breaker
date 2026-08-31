@@ -53,7 +53,6 @@ var aim_guide: Node2D
 var pierce_level = 0
 var pierce_passes_remaining = 0
 var pierce_sequence_active = false
-var pierce_resonance_checked_for_capacity := false
 var pierce_distance_since_hit = 0.0
 var pierced_bricks = []
 var chain_trigger_available = true
@@ -572,12 +571,6 @@ func should_pierce_brick(_brick):
 
 	if pierce_level <= 0 or pierce_passes_remaining <= 0:
 		return false
-	if not pierce_resonance_checked_for_capacity:
-		pierce_resonance_checked_for_capacity = true
-		if GameManager.consume_core_resonance(&"pierce"):
-			pierce_passes_remaining += GameManager.CORE_RESONANCE_PIERCE_BONUS
-			if is_instance_valid(ball_visual) and ball_visual.has_method("play_core_resonance_proc"):
-				ball_visual.play_core_resonance_proc(&"pierce")
 	return true
 
 
@@ -658,7 +651,6 @@ func refresh_card_modifiers() -> void:
 func refill_pierce_capacity(reset_chain_trigger = true):
 
 	reset_pierce_sequence()
-	pierce_resonance_checked_for_capacity = false
 	pierce_passes_remaining = pierce_level
 	if pierce_level > 0:
 		# Bina herkese temel delme verir; Delici rakette iki katina cikar.

@@ -29,6 +29,8 @@ var heart_pickup_scene = preload("res://heart_pickup.tscn")
 var magnet_pickup_scene = preload("res://magnet_pickup.tscn")
 var coin_pickup_scene = preload("res://coin_pickup.tscn")
 var building_part_pickup_scene = preload("res://building_part_pickup.tscn")
+var active_building_part_drop: Node2D
+var active_coin_drop: Node2D
 var temporary_power_pickup_scene = preload("res://temporary_power_pickup.tscn")
 var desktop_gameplay_camera: Camera2D
 var brick_field_scene = preload("res://continuous_brick_field.gd")
@@ -267,6 +269,9 @@ var coin_debug_button: Button
 var sector_background_tween: Tween
 var menu_records_label: HBoxContainer
 var menu_records_icon: TextureRect
+var mobile_card_info: Control
+var mobile_hud_row: HBoxContainer
+var mobile_xp_panel: Control
 var menu_records_text: Label
 var ascension_row: HBoxContainer
 var ascension_label: Label
@@ -296,16 +301,12 @@ var sentinel_shield_indicator: Label
 var sentinel_feedback_label: Label
 var sentinel_feedback_tween: Tween
 var mobile_safe_area_refresh_timer := 0.0
-var build_identity_panel: PanelContainer
-var build_identity_core_label: Label
-var build_identity_slots_label: Label
 var card_slot_state_panel: PanelContainer
 var card_slot_state_label: Label
 var hud_status_toast: Label
 var hud_status_toast_tween: Tween
 var danger_line_visual: Line2D
 var ui_feedback_refresh_left := 0.0
-var last_build_identity_signature := ""
 var sentinel_hint_shown := false
 const CARD_MOVE_SOUND_COOLDOWN_MSEC := 70
 const UI_FEEDBACK_REFRESH_INTERVAL := 0.10
@@ -332,17 +333,16 @@ func _set_mobile_rect(control: Control, rect: Rect2) -> void:
 	control.size = rect.size
 
 
-func _is_full_card_art(_card: Button) -> bool:
-	# Her slot artik havuzdaki herhangi bir karti gosterebildigi icin
-	# tum slotlar ayni standart yerlesimi kullanir.
-	return false
+func _is_full_card_art(card: Button) -> bool:
+	return bool(card.get_meta("full_card_art", false))
 
 
 func _configure_full_card_art(card: Button, image_rect: Rect2) -> void:
 	var image := card.get_node_or_null("CardImage") as TextureRect
 	if is_instance_valid(image):
 		image.visible = true
-		image.texture = PIERCING_CARD_TEXTURE
+		image.modulate = Color.WHITE
+		image.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		_set_mobile_rect(image, image_rect)
@@ -356,6 +356,10 @@ func _configure_full_card_art(card: Button, image_rect: Rect2) -> void:
 	var piercing_icon := card.get_node_or_null("PiercingIcon") as Control
 	if is_instance_valid(piercing_icon):
 		piercing_icon.visible = false
+	for overlay_name in ["RarityTag", "TypeTag", "ImpactRing", "ImpactBrick"]:
+		var overlay := card.get_node_or_null(overlay_name) as CanvasItem
+		if is_instance_valid(overlay):
+			overlay.visible = false
 
 func _configure_mobile_card_visual(card: Button) -> void:
 	card.size = MOBILE_CARD_SIZE
@@ -411,11 +415,52 @@ func _setup_card_presentation() -> void:
 		evolution_description.clip_text = true
 	$EvolutionScreen/Panel/Title.text = "EVR\u0130M"
 
+func _setup_mobile_hud_row() -> void:
+	if is_instance_valid(mobile_hud_row):
+		return
+	mobile_hud_row = HBoxContainer.new()
+	mobile_hud_row.name = "MobileTopRow"
+	mobile_hud_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$HUD/Layout.add_child(mobile_hud_row)
+	# Reuse actual controls and their existing data/signal connections.
+	mobile_xp_panel = xp_bar.get_parent() as Control
+	for control: Control in [mobile_xp_panel, building_part_counter, total_coin_counter, pause_button]:
+		control.reparent(mobile_hud_row, false)
+		control.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		control.size_flags_horizontal = Control.SIZE_FILL
+	mobile_xp_panel.custom_minimum_size = Vector2(120, 60)
+	mobile_xp_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	building_part_counter.custom_minimum_size = Vector2(80, 38)
+	total_coin_counter.custom_minimum_size = Vector2(86, 38)
+	pause_button.custom_minimum_size = Vector2(48, 48)
+	_set_mobile_rect(building_part_label, Rect2(32, 3, 48, 32))
+	_set_mobile_rect(total_coin_label, Rect2(32, 3, 54, 32))
+	building_part_label.clip_text = true
+	total_coin_label.clip_text = true
+	total_coin_label.add_theme_font_size_override("font_size", 18)
+	_on_carried_salvage_changed(GameManager.carried_salvage)
+	mobile_xp_panel.resized.connect(_layout_mobile_xp_contents)
+
+
+func _layout_mobile_xp_contents() -> void:
+	if not is_instance_valid(mobile_xp_panel):
+		return
+	var inner_width := maxf(mobile_xp_panel.size.x - 16.0, 104.0)
+	_set_mobile_rect(level_label, Rect2(8, 2, inner_width, 26))
+	level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	level_label.clip_text = true
+	level_label.add_theme_font_size_override("font_size", 18)
+	_set_mobile_rect(xp_bar, Rect2(8, 30, inner_width, 24))
+	xp_label.add_theme_font_size_override("font_size", 16)
+	xp_bar.pivot_offset = xp_bar.size * 0.5
+
+
 func _apply_mobile_portrait_layout() -> void:
 	var viewport_size := get_viewport_rect().size
 	var safe_rect := GameManager.refresh_mobile_safe_area(viewport_size)
 	var safe_right := safe_rect.position.x + safe_rect.size.x
-	GameManager.PLAYFIELD_TOP = safe_rect.position.y + 190.0
+	GameManager.PLAYFIELD_TOP = safe_rect.position.y + 152.0
 	paddle.global_position.x = safe_rect.position.x + safe_rect.size.x * 0.5
 	paddle.velocity.x = 0.0
 
@@ -433,35 +478,31 @@ func _apply_mobile_portrait_layout() -> void:
 		if is_instance_valid(background):
 			_set_mobile_rect(background, Rect2(Vector2.ZERO, viewport_size))
 
-	# Portrait HUD: iki kompakt ÃƒÆ’Ã‚Â¼st satÃƒâ€Ã‚Â±r ve altÃƒâ€Ã‚Â±nda yatay build grid.
-	_set_mobile_rect(lives_panel, Rect2(safe_rect.position + Vector2(12, 12), Vector2(150, 44)))
-	var xp_panel := $HUD/Layout/XPPanel as Control
-	_set_mobile_rect(xp_panel, Rect2(
-		safe_rect.position + Vector2(174, 12),
-		Vector2(maxf(safe_rect.size.x - 246.0, 220.0), 52)
+	# One safe-area row; the container owns horizontal spacing and centering.
+	var hud_width := safe_rect.size.x - 24.0
+	var left_width := minf(150.0, hud_width * 0.24)
+	_set_mobile_rect(lives_panel, Rect2(safe_rect.position + Vector2(12, 20), Vector2(left_width, 44)))
+	lives_label.clip_text = true
+	lives_label.add_theme_font_size_override("font_size", 27)
+	lives_panel.pivot_offset = lives_panel.size * 0.5
+	_setup_mobile_hud_row()
+	_set_mobile_rect(mobile_hud_row, Rect2(
+		safe_rect.position + Vector2(12.0 + left_width + 8.0, 12.0),
+		Vector2(hud_width - left_width - 8.0, 60.0)
 	))
-	_set_mobile_rect(pause_button, Rect2(safe_right - 60.0, safe_rect.position.y + 12.0, 48.0, 48.0))
+	mobile_hud_row.add_theme_constant_override("separation", 6)
+	_layout_mobile_xp_contents()
 	_set_mobile_rect(pause_panel, Rect2(
 		safe_rect.position.x + (safe_rect.size.x - 360.0) * 0.5,
 		safe_rect.position.y + (safe_rect.size.y - 264.0) * 0.5,
-		360.0,
-		264.0
+		360.0, 264.0
 	))
-	_set_mobile_rect(level_label, Rect2(10, 10, 78, 32))
-	_set_mobile_rect(xp_bar, Rect2(92, 11, xp_panel.size.x - 102.0, 30))
-	lives_label.add_theme_font_size_override("font_size", 27)
-	level_label.add_theme_font_size_override("font_size", 18)
-	xp_label.add_theme_font_size_override("font_size", 16)
-	xp_bar.pivot_offset = xp_bar.size * 0.5
-	lives_panel.pivot_offset = lives_panel.size * 0.5
-	_set_mobile_rect(depth_label, Rect2(safe_rect.position + Vector2(12, 66), Vector2(188, 48)))
+	_set_mobile_rect(depth_label, Rect2(safe_rect.position + Vector2(12, 80), Vector2(hud_width * 0.5, 28)))
 	depth_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	depth_label.add_theme_font_size_override("font_size", 14)
-	_set_mobile_rect(total_coin_counter, Rect2(safe_rect.position.x + safe_rect.size.x * 0.5 - 65.0, safe_rect.position.y + 66.0, 130.0, 38.0))
-	total_coin_label.add_theme_font_size_override("font_size", 18)
 
 
-	_set_mobile_rect(build_hud, Rect2(safe_rect.position + Vector2(12, 150), Vector2(safe_rect.size.x - 24.0, 38)))
+	_set_mobile_rect(build_hud, Rect2(safe_rect.position + Vector2(12, 112), Vector2(safe_rect.size.x - 24.0, 38)))
 	var build_title := $HUD/BuildHUD/Title as Control
 	_set_mobile_rect(build_title, Rect2(0, 0, 42, 16))
 	(build_title as Label).add_theme_font_size_override("font_size", 9)
@@ -472,7 +513,7 @@ func _apply_mobile_portrait_layout() -> void:
 	build_list.add_theme_constant_override("v_separation", 3)
 
 	var combo_rank := $HUD/ComboManager/RankLabel as Control
-	_set_mobile_rect(combo_rank, Rect2(safe_right - 170.0, safe_rect.position.y + 112.0, 145, 58))
+	_set_mobile_rect(combo_rank, Rect2(safe_right - 170.0, safe_rect.position.y + 80.0, 158, 28))
 	_layout_readability_ui()
 
 	_set_mobile_rect(boss_hp_panel, Rect2(safe_rect.position.x + 64.0, GameManager.PLAYFIELD_TOP + 12.0, safe_rect.size.x - 128.0, 54))
@@ -593,6 +634,8 @@ func _refresh_mobile_safe_layout() -> void:
 	if not OS.has_feature("mobile") or not is_inside_tree():
 		return
 	_apply_mobile_portrait_layout()
+	if is_instance_valid(mobile_card_info) and choosing_card:
+		mobile_card_info.layout()
 	if is_instance_valid(brick_field) and brick_field.has_method("refresh_safe_area_layout"):
 		brick_field.refresh_safe_area_layout()
 
@@ -807,7 +850,7 @@ func _setup_building_part_hud() -> void:
 	building_part_counter.add_child(building_part_label)
 
 
-func _on_total_salvage_changed(total: int) -> void:
+func _on_carried_salvage_changed(total: int) -> void:
 	if is_instance_valid(building_part_label):
 		building_part_label.text = str(total)
 
@@ -828,29 +871,8 @@ func _make_readability_panel_style(tone: Color, alpha := 0.90) -> StyleBoxFlat:
 
 
 func _setup_readability_ui() -> void:
-	if is_instance_valid(build_identity_panel):
+	if is_instance_valid(card_slot_state_panel):
 		return
-	build_identity_panel = PanelContainer.new()
-	build_identity_panel.name = "BuildIdentity"
-	build_identity_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	build_identity_panel.add_theme_stylebox_override(
-		"panel", _make_readability_panel_style(Color(0.32, 0.91, 1.0, 1.0))
-	)
-	$HUD.add_child(build_identity_panel)
-	var identity_lines := VBoxContainer.new()
-	identity_lines.add_theme_constant_override("separation", 0)
-	identity_lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	build_identity_panel.add_child(identity_lines)
-	build_identity_core_label = Label.new()
-	build_identity_core_label.add_theme_color_override("font_color", Color(0.62, 0.96, 1.0, 1.0))
-	build_identity_core_label.add_theme_font_size_override("font_size", 13)
-	build_identity_core_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	identity_lines.add_child(build_identity_core_label)
-	build_identity_slots_label = Label.new()
-	build_identity_slots_label.add_theme_color_override("font_color", Color(0.90, 0.94, 1.0, 0.96))
-	build_identity_slots_label.add_theme_font_size_override("font_size", 12)
-	build_identity_slots_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	identity_lines.add_child(build_identity_slots_label)
 
 	card_slot_state_panel = PanelContainer.new()
 	card_slot_state_panel.name = "WeaponSlotState"
@@ -892,17 +914,11 @@ func _setup_readability_ui() -> void:
 
 
 func _layout_readability_ui() -> void:
-	if not is_instance_valid(build_identity_panel):
+	if not is_instance_valid(card_slot_state_panel):
 		return
 	var viewport_size := get_viewport_rect().size
 	if OS.has_feature("mobile"):
 		var safe_rect := GameManager.get_layout_safe_rect(viewport_size)
-		var identity_width := maxf(280.0, safe_rect.size.x - 194.0)
-		_set_mobile_rect(build_identity_panel, Rect2(
-			safe_rect.position + Vector2(12.0, 112.0), Vector2(identity_width, 36.0)
-		))
-		build_identity_core_label.add_theme_font_size_override("font_size", 10)
-		build_identity_slots_label.add_theme_font_size_override("font_size", 9)
 		var state_width := minf(520.0, safe_rect.size.x - 28.0)
 		_set_mobile_rect(card_slot_state_panel, Rect2(
 			Vector2(safe_rect.get_center().x - state_width * 0.5, safe_rect.position.y + 184.0),
@@ -913,11 +929,6 @@ func _layout_readability_ui() -> void:
 			Vector2(safe_rect.size.x - 48.0, 38.0)
 		))
 	else:
-		_set_mobile_rect(build_identity_panel, Rect2(
-			Vector2(viewport_size.x - 432.0, 84.0), Vector2(414.0, 58.0)
-		))
-		build_identity_core_label.add_theme_font_size_override("font_size", 13)
-		build_identity_slots_label.add_theme_font_size_override("font_size", 12)
 		_set_mobile_rect(card_slot_state_panel, Rect2(
 			Vector2(viewport_size.x * 0.5 - 270.0, 116.0), Vector2(540.0, 48.0)
 		))
@@ -953,38 +964,6 @@ func _weapon_slot_text(slot_index: int, compact := false) -> String:
 	return "S%d %s %s%d%s" % [slot_index + 1, _weapon_short_name(weapon_id), level_prefix, level, max_suffix]
 
 
-func _active_core_text() -> String:
-	if GameManager.fireball_level > 0:
-		return "FIREBALL Lv%d" % GameManager.fireball_level
-	if GameManager.pierce_level > 0:
-		return "PIERCING Lv%d" % GameManager.pierce_level
-	return "EMPTY"
-
-
-func _refresh_build_identity_hud(force := false) -> void:
-	if not is_instance_valid(build_identity_panel):
-		return
-	var resonance_text := (
-		"READY" if GameManager.is_core_resonance_ready()
-		else "%d/%d" % [GameManager.core_resonance_charge, GameManager.CORE_RESONANCE_MAX_CHARGE]
-	)
-	var signature := "%s|%s|%s|%s|%d" % [
-		_active_core_text(), _weapon_slot_text(0), _weapon_slot_text(1),
-		resonance_text, GameManager.colony_shield_charges
-	]
-	if not force and signature == last_build_identity_signature:
-		return
-	last_build_identity_signature = signature
-	build_identity_core_label.text = "CORE %s   ·   REZONANS %s" % [_active_core_text(), resonance_text]
-	build_identity_core_label.modulate = (
-		Color(1.0, 0.78, 0.28, 1.0) if GameManager.is_core_resonance_ready()
-		else Color.WHITE
-	)
-	build_identity_slots_label.text = "%s   ·   %s   ·   KALKAN %d" % [
-		_weapon_slot_text(0, OS.has_feature("mobile")),
-		_weapon_slot_text(1, OS.has_feature("mobile")),
-		GameManager.colony_shield_charges,
-	]
 
 
 func _refresh_card_slot_state() -> void:
@@ -1185,8 +1164,8 @@ func _ready():
 	_setup_main_menu_assets()
 	_setup_building_part_hud()
 	_setup_readability_ui()
-	if not GameManager.total_salvage_changed.is_connected(_on_total_salvage_changed):
-		GameManager.total_salvage_changed.connect(_on_total_salvage_changed)
+	if not GameManager.carried_salvage_changed.is_connected(_on_carried_salvage_changed):
+		GameManager.carried_salvage_changed.connect(_on_carried_salvage_changed)
 	_setup_arc_cannon_controller()
 	_setup_scatter_cannon_controller()
 	_setup_railgun_controller()
@@ -1305,7 +1284,6 @@ func _ready():
 
 	update_labels()
 	build_hud.refresh_from_run_state(false)
-	_refresh_build_identity_hud(true)
 	paddle.apply_run_upgrades(
 		GameManager.plasma_level,
 		GameManager.plasma_evolution
@@ -2289,8 +2267,9 @@ func _trigger_run_victory() -> void:
 	if run_victory:
 		return
 	run_victory = true
-	# Taşınan PARÇA zaferle birlikte tam olarak güvenceye alınır — kayıp yok.
-	var banked: int = GameManager.bank_carried_salvage()
+	# Factory dahil tüm taşınan PARÇA tek seferde, ölüm cezası olmadan aktarılır.
+	_award_colony_run_end_bonus_once(true)
+	var banked: int = run_salvage_rescued
 	var unlocked_new_tier: bool = GameManager.register_ascension_clear()
 	print("RUN VICTORY | ascension=%d yeni_katman=%s kasaya_giren=%d" % [
 		GameManager.run_ascension, unlocked_new_tier, banked
@@ -2301,7 +2280,6 @@ func _trigger_run_victory() -> void:
 func _show_victory_screen(banked_salvage: int, unlocked_new_tier: bool) -> void:
 	GameManager.pending_card_choices = 0
 	game_over = true
-	_award_colony_run_end_bonus_once()
 	_populate_run_summary()
 
 	choosing_card = false
@@ -2434,37 +2412,74 @@ func _create_paddle_shop() -> void:
 	paddle_shop_coin_label.add_theme_color_override("font_color", Color(1.0, 0.78, 0.18, 1.0))
 	layout.add_child(paddle_shop_coin_label)
 
+	var scroll := ScrollContainer.new()
+	scroll.name = "UpgradeScroll"
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	scroll.scroll_deadzone = 12
+	layout.add_child(scroll)
+	var items := VBoxContainer.new()
+	items.name = "Items"
+	items.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	items.add_theme_constant_override("separation", 12)
+	scroll.add_child(items)
 	for paddle_id: StringName in GameManager.PADDLE_IDS:
-		var paddle_button := Button.new()
-		paddle_button.custom_minimum_size = Vector2(440.0, 76.0)
-		paddle_button.text = ""
-		paddle_button.pressed.connect(_on_paddle_shop_pressed.bind(paddle_id))
-		layout.add_child(paddle_button)
-		paddle_shop_buttons[paddle_id] = paddle_button
-
+		var card := PanelContainer.new()
+		card.name = String(paddle_id)
+		card.mouse_filter = Control.MOUSE_FILTER_PASS
+		card.custom_minimum_size = Vector2(0, 212 if OS.has_feature("mobile") else 190)
+		var card_style := panel_style.duplicate() as StyleBoxFlat
+		card_style.bg_color = Color(0.015, 0.04, 0.075, 0.96)
+		card.add_theme_stylebox_override("panel", card_style)
+		items.add_child(card)
+		var margin := MarginContainer.new()
+		for edge in ["left", "right", "top", "bottom"]:
+			margin.add_theme_constant_override("margin_" + edge, 12)
+		margin.mouse_filter = Control.MOUSE_FILTER_PASS
+		card.add_child(margin)
+		var content := VBoxContainer.new()
+		content.mouse_filter = Control.MOUSE_FILTER_PASS
+		content.add_theme_constant_override("separation", 8)
+		margin.add_child(content)
+		var heading := HBoxContainer.new()
+		heading.mouse_filter = Control.MOUSE_FILTER_PASS
+		heading.add_theme_constant_override("separation", 12)
+		content.add_child(heading)
 		var preview := TextureRect.new()
 		preview.texture = _get_paddle_shop_texture(paddle_id)
 		preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		preview.position = Vector2(10.0, 10.0)
-		preview.size = Vector2(142.0, 56.0)
+		preview.custom_minimum_size = Vector2(96, 44)
 		preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		paddle_button.add_child(preview)
+		heading.add_child(preview)
 		paddle_shop_images[paddle_id] = preview
-
+		var name_label := Label.new()
+		name_label.name = "UpgradeName"
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.add_theme_font_size_override("font_size", 22 if OS.has_feature("mobile") else 20)
+		name_label.text = _get_paddle_shop_copy(paddle_id).get_slice(String.chr(10), 0)
+		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		heading.add_child(name_label)
 		var copy_label := Label.new()
-		copy_label.position = Vector2(160.0, 4.0)
-		copy_label.size = Vector2(270.0, 68.0)
-		copy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		copy_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		copy_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		copy_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		copy_label.add_theme_font_size_override("font_size", 14)
+		copy_label.add_theme_font_size_override("font_size", 18 if OS.has_feature("mobile") else 16)
 		copy_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		paddle_button.add_child(copy_label)
+		content.add_child(copy_label)
 		paddle_shop_text_labels[paddle_id] = copy_label
+		var paddle_button := Button.new()
+		paddle_button.custom_minimum_size = Vector2(0, 48)
+		paddle_button.add_theme_font_size_override("font_size", 18)
+		paddle_button.pressed.connect(_on_paddle_shop_pressed.bind(paddle_id))
+		content.add_child(paddle_button)
+		paddle_shop_buttons[paddle_id] = paddle_button
 
 	paddle_shop_status_label = Label.new()
 	paddle_shop_status_label.custom_minimum_size = Vector2(0.0, 24.0)
+	paddle_shop_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	paddle_shop_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	paddle_shop_status_label.add_theme_font_size_override("font_size", 15)
 	paddle_shop_status_label.add_theme_color_override("font_color", Color(1.0, 0.42, 0.32, 1.0))
@@ -2481,6 +2496,7 @@ func _create_paddle_shop() -> void:
 
 	paddle_shop.visible = false
 	_layout_paddle_shop()
+	get_viewport().size_changed.connect(_layout_paddle_shop)
 
 
 func _layout_paddle_shop() -> void:
@@ -2489,7 +2505,7 @@ func _layout_paddle_shop() -> void:
 	var viewport_size := get_viewport_rect().size
 	var safe_rect := GameManager.get_layout_safe_rect(viewport_size)
 	var panel_width := minf(560.0, safe_rect.size.x - 28.0)
-	var panel_height := minf(610.0, safe_rect.size.y - 36.0)
+	var panel_height := minf(1100.0 if OS.has_feature("mobile") else 760.0, safe_rect.size.y - 36.0)
 	_set_mobile_rect(paddle_shop_panel, Rect2(
 		safe_rect.position.x + (safe_rect.size.x - panel_width) * 0.5,
 		safe_rect.position.y + (safe_rect.size.y - panel_height) * 0.5,
@@ -2555,7 +2571,9 @@ func _refresh_paddle_shop() -> void:
 			action = "SATIN AL \u2014 %d" % int(GameManager.PADDLE_PRICES[paddle_id])
 			button.modulate = Color(0.78, 0.84, 0.90, 1.0)
 		var copy_label := paddle_shop_text_labels[paddle_id] as Label
-		copy_label.text = _get_paddle_shop_copy(paddle_id) + String.chr(10) + action
+		var lines := _get_paddle_shop_copy(paddle_id).split(String.chr(10), true, 1)
+		copy_label.text = lines[1] if lines.size() > 1 else ""
+		button.text = action
 
 
 func _get_paddle_affinity_color(paddle_id: StringName) -> Color:
@@ -2575,6 +2593,7 @@ func _open_colony() -> void:
 
 
 func _open_paddle_shop() -> void:
+	_layout_paddle_shop()
 	_refresh_paddle_shop()
 	main_menu.visible = false
 	_refresh_coin_debug_visibility()
@@ -2717,11 +2736,6 @@ func brick_destroyed(brick_position, brick_color, source = "ball", damage_contex
 	if unique_destroy:
 		var row_xp_scale := float(destroyed_brick.get_meta("xp_row_scale", 1.0)) if is_instance_valid(destroyed_brick) else 1.0
 		_resolve_brick_collectible_drop(brick_position, drop_chance_multiplier, row_xp_scale)
-		var resonance_became_ready := GameManager.register_core_resonance_weapon_kill(
-			StringName(source)
-		)
-		if resonance_became_ready and OS.is_debug_build():
-			print("CORE RESONANCE READY: %s" % GameManager.get_active_core_module_id())
 	$HUD/FrameGlow.flash(brick_color)
 	var contributes_to_combo = true
 	if source == "explosion" and damage_context is Dictionary:
@@ -2869,6 +2883,11 @@ func _resolve_brick_collectible_drop(spawn_position: Vector2, drop_multiplier: f
 		* drop_multiplier
 		* GameManager.get_salvage_drop_multiplier()
 	)
+	# Capped world drops are ineligible, not dead ranges in the shared roll.
+	if _has_active_world_drop(active_building_part_drop):
+		building_part_chance = 0.0
+	if _has_active_world_drop(active_coin_drop):
+		coin_chance = 0.0
 	var drop_roll: float = randf()
 	var range_end: float = building_part_chance
 	if drop_roll < range_end:
@@ -2916,14 +2935,29 @@ func spawn_xp_orb(brick_position, row_xp_scale: float = 1.0):
 	orb.global_position = brick_position
 
 
+func _has_active_world_drop(pickup) -> bool:
+	return (
+		is_instance_valid(pickup)
+		and not pickup.is_queued_for_deletion()
+		and pickup.get_parent() == self
+		and not bool(pickup.get("collected"))
+	)
+
+
 func spawn_coin_pickup(spawn_position: Vector2) -> void:
+	if _has_active_world_drop(active_coin_drop):
+		return
 	var coin := coin_pickup_scene.instantiate()
+	active_coin_drop = coin # Reserve before add_child/_ready or another spawn.
 	add_child(coin)
 	coin.global_position = spawn_position
 
 
 func spawn_building_part_pickup(spawn_position: Vector2) -> void:
+	if _has_active_world_drop(active_building_part_drop):
+		return
 	var pickup := building_part_pickup_scene.instantiate()
+	active_building_part_drop = pickup
 	add_child(pickup)
 	pickup.global_position = spawn_position
 	print("BUILDING PART DROPPED")
@@ -2945,7 +2979,7 @@ func _award_run_salvage(amount: int) -> void:
 
 func collect_building_part(_pickup_position: Vector2) -> void:
 	_award_run_salvage(1)
-	print("BUILDING PART COLLECTED - TOTAL: %d" % GameManager.total_salvage)
+	print("BUILDING PART COLLECTED - CARRIED: %d" % GameManager.carried_salvage)
 
 
 func _clear_building_part_pickups() -> void:
@@ -3067,7 +3101,6 @@ func _process(delta):
 	ui_feedback_refresh_left -= delta
 	if ui_feedback_refresh_left <= 0.0:
 		ui_feedback_refresh_left = UI_FEEDBACK_REFRESH_INTERVAL
-		_refresh_build_identity_hud()
 		_update_danger_line_feedback()
 
 
@@ -3135,9 +3168,6 @@ func trigger_fireball_blast(origin_position: Vector2, primary_brick: Node, level
 	)
 	if damage_radius <= 0.0:
 		return
-	var resonance_boosted := GameManager.consume_core_resonance(&"fireball")
-	if resonance_boosted:
-		damage_radius *= GameManager.CORE_RESONANCE_FIREBALL_RADIUS_SCALE
 	var is_inferno: bool = GameManager.fireball_evolution == &"inferno" and level >= 3
 	var is_napalm: bool = GameManager.fireball_evolution == &"napalm" and level >= 3
 	if is_inferno:
@@ -3360,10 +3390,7 @@ func add_xp(amount, apply_depth_scale := true, row_xp_scale: float = 1.0):
 		GameManager.current_xp -= GameManager.xp_required
 		GameManager.run_level += 1
 		GameManager.pending_card_choices += 1
-		GameManager.xp_required = roundi(
-			100.0
-			* pow(1.20, GameManager.run_level - 1)
-		)
+		GameManager.xp_required = GameManager.get_run_xp_requirement(GameManager.run_level)
 		leveled_up = true
 
 	update_labels(false)
@@ -3829,6 +3856,8 @@ func choose_random_cards(force_plasma = false):
 		slot.focus_neighbor_right = slot.get_path_to(right_slot)
 
 	_refresh_card_action_buttons()
+	if OS.has_feature("mobile") and is_instance_valid(mobile_card_info):
+		mobile_card_info.show_hand()
 
 
 func _setup_card_action_buttons() -> void:
@@ -3840,6 +3869,13 @@ func _setup_card_action_buttons() -> void:
 	banish_button = _make_card_action_button("KARTI YOK ET", Color(1.0, 0.52, 0.34, 1.0))
 	banish_button.pressed.connect(_on_banish_pressed)
 	card_panel.add_child(banish_button)
+	if OS.has_feature("mobile"):
+		mobile_card_info = Control.new()
+		mobile_card_info.set_script(preload("res://mobile_card_info.gd"))
+		mobile_card_info.name = "MobileCardInfo"
+		card_panel.add_child(mobile_card_info)
+		mobile_card_info.configure(self)
+		mobile_card_info.hide()
 	_layout_card_action_buttons()
 
 
@@ -3876,6 +3912,9 @@ func _make_card_action_button(label: String, tone: Color) -> Button:
 func _layout_card_action_buttons() -> void:
 	if not is_instance_valid(reroll_button):
 		return
+	if OS.has_feature("mobile") and is_instance_valid(mobile_card_info):
+		mobile_card_info.layout()
+		return
 	var button_size := Vector2(200.0, 40.0)
 	var spacing := 18.0
 	var total_width := button_size.x * 2.0 + spacing
@@ -3910,6 +3949,8 @@ func _refresh_card_action_buttons() -> void:
 		banish_button.text = "YOK EDİLECEK KARTI SEÇ"
 	else:
 		banish_button.text = "KARTI YOK ET (%d)" % GameManager.banishes_remaining
+	if is_instance_valid(mobile_card_info):
+		mobile_card_info.refresh_action()
 
 
 func _on_reroll_pressed() -> void:
@@ -3959,6 +4000,9 @@ func _get_card_icon(card_id: StringName) -> Texture2D:
 	if card_icon_cache.has(card_id):
 		return card_icon_cache[card_id]
 	var path := CardPool.get_icon_path(card_id)
+	var full_art_path := CardPool.get_full_card_art_path(card_id)
+	if full_art_path != "" and ResourceLoader.exists(full_art_path):
+		path = full_art_path
 	var texture: Texture2D = null
 	if path != "" and ResourceLoader.exists(path):
 		texture = load(path) as Texture2D
@@ -3980,6 +4024,8 @@ func _make_card_slot_style(tone: Color) -> StyleBoxFlat:
 func _render_card_slot(slot: Button, card_id: StringName) -> void:
 	slot.text = ""
 	slot.set_meta("card_id", String(card_id))
+	var full_art_path := CardPool.get_full_card_art_path(card_id)
+	slot.set_meta("full_card_art", full_art_path != "" and ResourceLoader.exists(full_art_path))
 	var next_level: int = mini(
 		CardPool.get_display_level(GameManager, card_id) + 1,
 		CardPool.get_max_level(card_id)
@@ -4000,9 +4046,26 @@ func _render_card_slot(slot: Button, card_id: StringName) -> void:
 
 	var image := slot.get_node_or_null("CardImage") as TextureRect
 	if is_instance_valid(image):
+		if not image.has_meta("original_stretch_mode"):
+			image.set_meta("original_stretch_mode", image.stretch_mode)
 		image.visible = true
 		image.texture = _get_card_icon(card_id)
 		image.modulate = Color.WHITE if CardPool.is_weapon(card_id) else tone
+		# A reused slot must restore its original icon layout after full art.
+		if not _is_full_card_art(slot):
+			image.stretch_mode = int(image.get_meta("original_stretch_mode"))
+			if OS.has_feature("mobile"):
+				_configure_mobile_card_visual(slot)
+			else:
+				_set_mobile_rect(image, Rect2(5, 5, 206, 166))
+
+	if _is_full_card_art(slot):
+		_configure_full_card_art(slot, Rect2(Vector2(4, 4), slot.size - Vector2(8, 8)))
+		return
+	for overlay_name in ["Description", "RarityTag", "TypeTag"]:
+		var overlay := slot.get_node_or_null(overlay_name) as CanvasItem
+		if is_instance_valid(overlay):
+			overlay.visible = true
 
 	var title_panel := slot.get_node_or_null("TitlePanel") as Control
 	if is_instance_valid(title_panel):
@@ -4079,8 +4142,11 @@ func _get_slot_card_id(slot: Button) -> StringName:
 	return StringName(String(slot.get_meta("card_id")))
 
 
-func _on_card_slot_pressed(slot: Button) -> void:
+func _on_card_slot_pressed(slot: Button, confirmed: bool = false) -> void:
 	if not choosing_card or card_selection_committing or not slot.visible:
+		return
+	if OS.has_feature("mobile") and not confirmed and is_instance_valid(mobile_card_info):
+		mobile_card_info.preview(slot)
 		return
 	var card_id := _get_slot_card_id(slot)
 	if card_id == &"none" or not CardPool.has_card(card_id):
@@ -4111,7 +4177,6 @@ func _apply_card_selection(card_id: StringName) -> void:
 	if WeaponSystem.handles(card_id):
 		WeaponSystem.apply(self, card_id, next_level)
 		build_hud.refresh_from_run_state()
-		_refresh_build_identity_hud(true)
 		refresh_dynamic_build_difficulty()
 		call_deferred("_try_resolve_pending_rewards")
 		return
@@ -4136,7 +4201,6 @@ func _apply_card_selection(card_id: StringName) -> void:
 			GameManager.revive_available = true
 
 	build_hud.refresh_from_run_state()
-	_refresh_build_identity_hud(true)
 	if previous_level <= 0 and card_id in [&"fireball", &"pierce"]:
 		var selected_name := "FIREBALL" if card_id == &"fireball" else "PIERCING"
 		var blocked_name := "PIERCING" if card_id == &"fireball" else "FIREBALL"
@@ -4187,6 +4251,8 @@ func close_card_selection():
 # ==================================================
 
 func _on_card_focus_entered(card: Control) -> void:
+	if OS.has_feature("mobile") and choosing_card and is_instance_valid(mobile_card_info) and card in visible_cards:
+		mobile_card_info.preview(card)
 	if not (choosing_card or evolution_selection_active) or not card.visible:
 		return
 	if last_focused_card == null:
@@ -4821,13 +4887,17 @@ func _show_new_record_badge(active: bool) -> void:
 	reveal.tween_property(badge, "modulate:a", 1.0, 0.22)
 
 
-func _award_colony_run_end_bonus_once() -> void:
+func _award_colony_run_end_bonus_once(victory: bool = false) -> void:
 	if run_colony_bonus_awarded:
 		return
 	run_colony_bonus_awarded = true
 	run_colony_parts_bonus = GameManager.get_colony_run_end_salvage()
 	if run_colony_parts_bonus > 0:
 		_award_run_salvage(run_colony_parts_bonus)
+	if victory:
+		run_salvage_rescued = GameManager.bank_carried_salvage()
+		run_salvage_lost = 0
+		return
 	# Kasaya alınmamış PARÇA'nın yarısı ölümle birlikte kaybolur.
 	var settlement: Dictionary = GameManager.settle_carried_salvage_on_death()
 	run_salvage_rescued = int(settlement.get("rescued", 0))
