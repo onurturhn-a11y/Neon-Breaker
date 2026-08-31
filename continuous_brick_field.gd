@@ -869,6 +869,48 @@ func clear_bricks_for_boss(fade_duration: float = 0.28) -> void:
 			brick.queue_free()
 
 
+## THE HARVESTER icin: tehlike hattina en yakin tuglalari sahadan sokup alir.
+##
+## Bossun mekanigi bunun uzerine kurulu - yedigi her tugla ona zirh plakasi
+## oluyor ama ayni anda oyuncunun bogurdugu sahayi temizliyor. Bu yuzden
+## "en asagidaki" tuglalar seciliyor: yem gercekten ise yarasin.
+##
+## Sayim clear_bricks_for_boss ile ayni yoldan gidiyor (grup cikar, carpismayi
+## kapat, bricks_left dus, sonra queue_free); aksi halde bricks_left sapiyor.
+func harvest_lowest_bricks(count: int) -> int:
+	if count <= 0:
+		return 0
+	var candidates: Array[Node2D] = _get_active_field_bricks()
+	if candidates.is_empty():
+		return 0
+	candidates.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return a.global_position.y > b.global_position.y
+	)
+	var taken: Array[Node] = []
+	for brick: Node2D in candidates.slice(0, mini(count, candidates.size())):
+		if not is_instance_valid(brick):
+			continue
+		brick.remove_from_group("game_brick")
+		brick.remove_from_group("explosive_brick")
+		brick.remove_from_group("shield_brick")
+		var shape := brick.get_node_or_null("CollisionShape2D") as CollisionShape2D
+		if is_instance_valid(shape):
+			shape.set_deferred("disabled", true)
+		var suck := brick.create_tween().set_parallel(true)
+		suck.tween_property(brick, "modulate:a", 0.0, 0.30)
+		suck.tween_property(brick, "scale", Vector2(0.25, 0.25), 0.30).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		taken.append(brick)
+	if taken.is_empty():
+		return 0
+	game.bricks_left = maxi(game.bricks_left - taken.size(), 0)
+	get_tree().create_timer(0.34).timeout.connect(func() -> void:
+		for brick: Node in taken:
+			if is_instance_valid(brick):
+				brick.queue_free()
+	)
+	return taken.size()
+
+
 func resume_after_boss() -> void:
 	stop_boss_side_waves()
 	boss_board_drain_pending = false

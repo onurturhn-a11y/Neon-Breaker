@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://boss_inversion.gd" id="1_boss"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_inversion_body"]
+size = Vector2(150, 260)
+
+[node name="TheInversion" type="StaticBody2D"]
+z_index = 5
+collision_mask = 0
+script = ExtResource("1_boss")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_inversion_body")
+
+[node name="VisualRoot" type="Node2D" parent="."]
+
+[node name="PoseRoot" type="Node2D" parent="VisualRoot"]
+
+[node name="FallbackVisual" type="Node2D" parent="VisualRoot/PoseRoot"]
+position = Vector2(0, 18)
+
+[node name="Torso" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual"]
+color = Color(0.04, 0.06, 0.12, 1)
+polygon = PackedVector2Array(-30, -58, 30, -58, 38, -10, 26, 44, -26, 44, -38, -10)
+
+[node name="ChestCore" type="Polygon2D" parent="VisualRoot/PoseRoot/FallbackVisual"]
+position = Vector2(0, -18)
+color = Color(0.3, 0.96, 0.94, 1)
+polygon = PackedVector2Array(0, -15, 14, 0, 0, 15, -14, 0)
+
+[node name="PoseA" type="Sprite2D" parent="VisualRoot/PoseRoot"]
+visible = false
+
+[node name="PoseB" type="Sprite2D" parent="VisualRoot/PoseRoot"]
+visible = false
+
+[node name="CoreGlow" type="Polygon2D" parent="VisualRoot"]
+color = Color(0.3, 0.96, 0.94, 0.18)
+polygon = PackedVector2Array(34, 0, 29.44, 17, 17, 29.44, 0, 34, -17, 29.44, -29.44, 17, -34, 0, -29.44, -17, -17, -29.44, 0, -34, 17, -29.44, 29.44, -17)

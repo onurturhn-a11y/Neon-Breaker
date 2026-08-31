@@ -43,6 +43,9 @@ var boss_void_scene = preload("res://boss_void.tscn")
 var boss_void_sovereign_scene = preload("res://boss_void_sovereign.tscn")
 var boss_void_architect_scene = preload("res://boss_void_architect.tscn")
 var boss_chronoform_scene = preload("res://boss_chronoform.tscn")
+var boss_harvester_scene = preload("res://boss_harvester.tscn")
+var boss_chorus_scene = preload("res://boss_chorus.tscn")
+var boss_inversion_scene = preload("res://boss_inversion.tscn")
 var napalm_field_scene = preload("res://napalm_field.tscn")
 var brick_field
 var active_boss: Node
@@ -1360,7 +1363,7 @@ func _get_debug_boss_request() -> StringName:
 		if not arg.begins_with("--boss="):
 			continue
 		var value := arg.trim_prefix("--boss=").strip_edges().to_lower()
-		if value in ["core", "sentinel", "celestial", "void", "sovereign", "architect", "chronoform"]:
+		if value in ["core", "sentinel", "celestial", "void", "sovereign", "architect", "chronoform", "harvester", "chorus", "inversion"]:
 			return StringName(value)
 		push_warning("Bilinmeyen --boss degeri: %s" % value)
 	return &"none"
@@ -1481,6 +1484,24 @@ func _unhandled_key_input(event):
 	elif event.keycode == KEY_G:
 
 		start_boss_encounter(event.shift_pressed, &"chronoform")
+
+
+	# DEBUG / TEST: Yeni boss THE HARVESTER encounter'ini baslatir.
+	elif event.keycode == KEY_Y:
+
+		start_boss_encounter(event.shift_pressed, &"harvester")
+
+
+	# DEBUG / TEST: Yeni boss THE CHORUS encounter'ini baslatir.
+	elif event.keycode == KEY_U:
+
+		start_boss_encounter(event.shift_pressed, &"chorus")
+
+
+	# DEBUG / TEST: Yeni boss THE INVERSION encounter'ini baslatir.
+	elif event.keycode == KEY_I:
+
+		start_boss_encounter(event.shift_pressed, &"inversion")
 
 
 	elif event.keycode == KEY_K:
@@ -1664,7 +1685,7 @@ func _run_progression_boss_warning() -> void:
 func start_boss_encounter(is_progression_boss: bool = false, boss_type: StringName = &"core") -> void:
 	if boss_active or is_instance_valid(active_boss):
 		return
-	if boss_type not in [&"core", &"sentinel", &"celestial", &"void", &"sovereign", &"architect", &"chronoform"]:
+	if boss_type not in [&"core", &"sentinel", &"celestial", &"void", &"sovereign", &"architect", &"chronoform", &"harvester", &"chorus", &"inversion"]:
 		return
 	boss_active = true
 	active_boss_is_progression = is_progression_boss
@@ -1712,6 +1733,12 @@ func _get_boss_scene(boss_type: StringName) -> PackedScene:
 			return boss_void_architect_scene
 		&"chronoform":
 			return boss_chronoform_scene
+		&"harvester":
+			return boss_harvester_scene
+		&"chorus":
+			return boss_chorus_scene
+		&"inversion":
+			return boss_inversion_scene
 		_:
 			return boss_core_scene
 
@@ -1730,6 +1757,12 @@ func _get_boss_display_name(boss_type: StringName) -> String:
 			return "THE VOID ARCHITECT"
 		&"chronoform":
 			return "THE CHRONOFORM"
+		&"harvester":
+			return "THE HARVESTER"
+		&"chorus":
+			return "THE CHORUS"
+		&"inversion":
+			return "THE INVERSION"
 		_:
 			return "THE CORE"
 
@@ -2103,14 +2136,18 @@ func _setup_boss_hud(boss_type: StringName) -> void:
 			)
 	else:
 		boss_name_label.text = _get_boss_display_name(boss_type)
-		boss_name_label.size.x = 210.0 if boss_type in [&"sovereign", &"architect"] else 168.0 if boss_type == &"chronoform" else (178.0 if boss_type == &"void" else (150.0 if boss_type == &"celestial" else 112.0))
+		boss_name_label.size.x = 210.0 if boss_type in [&"sovereign", &"architect"] else 168.0 if boss_type == &"chronoform" else (178.0 if boss_type == &"void" else (160.0 if boss_type in [&"harvester", &"inversion"] else (150.0 if boss_type in [&"celestial", &"chorus"] else 112.0)))
 		sentinel_left_indicator.visible = false
 		sentinel_right_indicator.visible = false
 		sentinel_shield_indicator.visible = false
 		if boss_type == &"celestial":
 			boss_hp_bar.modulate = Color(0.86, 0.62, 1.0, 1.0)
-		elif boss_type in [&"void", &"sovereign", &"architect", &"chronoform"]:
+		elif boss_type in [&"void", &"sovereign", &"architect", &"chronoform", &"chorus"]:
 			boss_hp_bar.modulate = Color(0.36, 0.96, 0.94, 1.0)
+		elif boss_type == &"harvester":
+			boss_hp_bar.modulate = Color(1.0, 0.54, 0.17, 1.0)
+		elif boss_type == &"inversion":
+			boss_hp_bar.modulate = Color(1.0, 0.28, 0.80, 1.0)
 
 
 func _ensure_sentinel_hud_indicators() -> void:
