@@ -553,6 +553,13 @@ davranış ilk iki bossa **kendiliğinden gelmez.** Ascension HP ölçeklemesi
 onlarda ayrı ayrı yazılmış ve doğru — ama bir sonraki eklemede bu
 hatırlanmalı.
 
+> **✅ KAPANDI — Faz 9 (2026-08-31).** CORE ve SENTINEL de
+> `boss_sprite_entity.gd`'ye taşındı. Artık **tek mimari** var ve 10 bossun
+> hepsi sprite sheet kullanıyor. Yukarıdaki tablo tarihsel kayıt olarak
+> duruyor. `tests/boss_scaling_test.gd` →
+> `test_tum_bosslar_tek_mimariden_turuyor` bunu koruyor: biri yeniden ayrı
+> bir mimari açarsa yakalar.
+
 **Bulunan tek hata benimdi.** Faz 6.2'deki boss HP tablosunun ilk iki
 satırı yanlıştı; düzeltildi (yukarıda).
 

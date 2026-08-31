@@ -66,3 +66,15 @@ Tuval **335x259**, kesim sonrasi %50 kucultuldu.
 Jeneratörler govdeye gore sabit ofsette duruyor; mevcut kod
 `LEFT_GENERATOR_X = -86.0` / `RIGHT_GENERATOR_X = 86.0` kullaniyor,
 yeni sprite'a gore yeniden olculmeli.
+
+## Yerine gectigi dosya
+
+Eski tek duz PNG (`assets/bosses/the_sentinel.png`) bu tasima ile SILINDI - referanssiz
+kalmisti ve canli sanatin yaninda duran olu sanat okuyani yaniltiyor
+(bkz. xp_orb / exp_orb karisikligi).
+
+Kaybolmadi: git gecmisinde duruyor. Geri almak icin:
+
+```
+git show 3c80ace:assets/bosses/the_sentinel.png > eski.png
+```

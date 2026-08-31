@@ -49,3 +49,15 @@ Tuval **324x364**, kesim sonrasi %50 kucultuldu.
 **Bilinen artiklar:** `attack_release` karesindeki isi pusu ve `defeat_a`
 karesindeki duman prompt'ta ISTENEN seylerdi, artik degiller - ama kesim
 sonrasi kenarlari sert kaliyor. Rotus yapilacaksa oradan baslanmali.
+
+## Yerine gectigi dosya
+
+Eski tek duz PNG (`assets/bosses/the_core.png`) bu tasima ile SILINDI - referanssiz
+kalmisti ve canli sanatin yaninda duran olu sanat okuyani yaniltiyor
+(bkz. xp_orb / exp_orb karisikligi).
+
+Kaybolmadi: git gecmisinde duruyor. Geri almak icin:
+
+```
+git show 3c80ace:assets/bosses/the_core.png > eski.png
+```
