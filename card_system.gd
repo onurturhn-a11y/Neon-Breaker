@@ -81,13 +81,30 @@ static func get_weapon_level_cap(state: Dictionary) -> int:
 	return 1
 
 
+## Hesap kilidi TABAN tavani sinirlar; ascension bonusu ONUN USTUNE biner.
+##
+## ILETISIM A15 - iki sistem carpisiyordu:
+## Faz 6.2 karari, ascension esiklerinde ASCENSION_SCALED_CARDS'a
+## (crit_hit, pierce, fireball) +1 max_level veriyor. Sebebi olculmustu:
+## ascension boss HP'sini katman basina %12 artiriyor ama oyuncunun hasar
+## tavanini hic artirmiyordu.
+##
+## Kilit acma dukkani eklendiginde bonus mini()'nin ICINDE kaliyordu:
+##     pool_cap = mini(taban + bonus, get_card_unlock_level(...))
+## get_card_unlock_level MAX_WEAPON_LEVEL=3 ile kirpiliyor ve pierce'in
+## taban max_level'i de 3. Yani mini(3 + bonus, 3) = 3: bonus SATIN ALINSA
+## BILE her zaman yutuluyordu. Faz 6.2 uc karttan ikisinde gecersizdi.
+##
+## Duzeltme: kilit once TABANA uygulanir, bonus sonra eklenir. Sahip
+## olunmayan kart (taban 0) bonus ALMAZ - kilit sisteminin niyeti korunur,
+## ascension kilidi acmiyor, yalnizca acilmis kartin tavanini yukseltiyor.
 static func get_card_level_cap(card_id: StringName, state: Dictionary) -> int:
-	# Core modules retain boss-gated Lv1/Lv2/Lv3; Ascension scales passives only.
 	var bonus := get_ascension_level_bonus(card_id, state)
-	var pool_cap: int = CardPool.get_max_level(card_id) + bonus
 	var gm: Node = state.get("gm")
+	var base_cap: int = CardPool.get_max_level(card_id)
 	if gm != null and (CardPool.is_mounted_weapon(card_id) or card_id in [&"fireball", &"pierce"]):
-		pool_cap = mini(pool_cap, gm.get_card_unlock_level(card_id))
+		base_cap = mini(base_cap, gm.get_card_unlock_level(card_id))
+	var pool_cap: int = base_cap + (bonus if base_cap > 0 else 0)
 	if CardPool.is_weapon(card_id):
 		return mini(pool_cap, get_weapon_level_cap(state) + bonus)
 	return pool_cap
