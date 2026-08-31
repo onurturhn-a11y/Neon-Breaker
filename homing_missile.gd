@@ -42,10 +42,16 @@ func _physics_process(delta: float) -> void:
 func _get_valid_target() -> Node2D:
 	if target_ref == null: return null
 	var target := target_ref.get_ref() as Node2D
+	if is_instance_valid(target) and target == TARGETING.get_homing_boss(game):
+		return target
 	return target if TARGETING.is_valid_brick(target) else null
 
 func _retarget_once() -> Node2D:
 	if not is_instance_valid(game): return null
+	var boss := TARGETING.get_homing_boss(game)
+	if boss != null:
+		target_ref = weakref(boss)
+		return boss
 	var paddle := game.get_tree().get_first_node_in_group("game_paddle") as Node2D
 	var reference := paddle.global_position if is_instance_valid(paddle) else global_position
 	var targets := TARGETING.select_danger_targets(game.get_tree(), reference, 1)
@@ -59,6 +65,8 @@ func _on_body_entered(body: Node) -> void:
 	if impact_resolved or is_queued_for_deletion(): return
 	if body.is_in_group("game_wall"): return
 	if body.is_in_group("game_boss") and body.has_method("hit_from_plasma"):
+		if body != TARGETING.get_homing_boss(game):
+			return
 		impact_resolved = true
 		body.hit_from_plasma(get_instance_id())
 		queue_free()

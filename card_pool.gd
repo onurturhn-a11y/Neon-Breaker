@@ -61,9 +61,9 @@ const CARDS := {
 		"icon": "res://ball_card.png",
 		"descriptions": [
 			"",
-			"İlk tuğla vuruşunda çevresel patlama oluşturur.\nKüçük yarıçaplı patlama.",
-			"İlk tuğla vuruşunda çevresel patlama oluşturur.\nOrta yarıçaplı patlama.",
-			"İlk tuğla vuruşunda çevresel patlama oluşturur.\nGeniş yarıçaplı patlama.",
+			"Tuğla çarpışmalarında yakındaki tuğlalara hasar veren küçük patlama oluşturur.",
+			"Tuğla çarpışmalarındaki patlamanın alanı genişler.",
+			"Tuğla çarpışmalarındaki patlama daha geniş bir alana ulaşır.",
 		],
 	},
 
@@ -225,14 +225,40 @@ const CARDS := {
 
 ## Havuz = bu dosyadaki kartlar + weapons/weapon_cards.gd kayitlari.
 ## Codex silah eklerken bu dosyaya dokunmaz.
+# Selection art is separate from the existing HUD/evolution icon paths.
+const FULL_CARD_ART := {
+	&"fireball": "fireball", &"pierce": "pierce", &"plasma": "plazma",
+	# Supplied filenames intentionally have exchanged contents.
+	&"arc_cannon": "scatter", &"scatter_cannon": "arc_cannon",
+	&"railgun": "railgun", &"homing_missile": "homing", &"pulse_laser": "pulse",
+	&"mortar": "mortar", &"drone_bay": "drone_bay", &"orbital_marker": "orbital",
+	&"xp_gain": "xp_gain", &"drop_rate": "drop_rate",
+	&"magnet_duration": "magnet_duration", &"combo_window": "combo_window",
+	&"crit_hit": "crit_hit", &"salvage_find": "salvage_find",
+	&"ball_speed": "ball_speed", &"revive": "revive", &"slow_descent": "slow_descent",
+}
+
+
+static func get_full_card_art_path(card_id: StringName) -> String:
+	return "res://assets/cards/%s.png" % FULL_CARD_ART[card_id] if FULL_CARD_ART.has(card_id) else ""
+
+
+# Keep metadata for compatibility/helpers, but never offer these as run cards.
+const RETIRED_CARD_IDS: Array[StringName] = [
+	&"paddle_width", &"paddle_speed", &"extra_ball",
+]
+
+
 static func get_ids() -> Array:
 	var ids: Array = CARDS.keys()
+	for card_id in RETIRED_CARD_IDS:
+		ids.erase(card_id)
 	ids.append_array(WeaponCards.CARDS.keys())
 	return ids
 
 
 static func has_card(card_id: StringName) -> bool:
-	return CARDS.has(card_id) or WeaponCards.CARDS.has(card_id)
+	return card_id not in RETIRED_CARD_IDS and (CARDS.has(card_id) or WeaponCards.CARDS.has(card_id))
 
 
 static func get_data(card_id: StringName) -> Dictionary:
