@@ -217,12 +217,6 @@ func get_effective_armored_chance() -> float:
 	if not has_any_run_upgrade():
 		return 0.0
 	var effective_chance: float = armored_chance
-	if GameManager.run_depth >= 4:
-		match GameManager.get_build_threat():
-			2:
-				effective_chance += 0.04
-			3:
-				effective_chance += 0.06
 	if GameManager.run_depth >= 21:
 		effective_chance += 0.10
 	elif GameManager.run_depth >= 17:
@@ -255,6 +249,31 @@ func get_effective_shield_chance() -> float:
 	elif GameManager.run_depth >= 9:
 		effective_chance += 0.02
 	return minf(effective_chance, 0.07)
+
+
+func _apply_build_toughness(bricks: Array, parent: Node) -> void:
+	# Finish the existing spawn batch, never spawn extra bricks or touch rewards.
+	# Boss waves and materialization keep their existing composition.
+	var ratio := GameManager.get_build_tough_brick_ratio()
+	if ratio <= 0.0 or parent.get("boss_side_wave_active") == true:
+		return
+	var tough_count := 0
+	var candidates: Array = []
+	for brick in bricks:
+		if int(brick.max_health) > 1:
+			tough_count += 1
+		elif not brick.explosive and not brick.is_shield_brick and not brick.is_elite:
+			candidates.append(brick)
+	# Stochastic rounding avoids always rounding small mobile rows down.
+	# Never promote over half a batch, and always retain a normal 1 HP brick.
+	var expected := float(bricks.size()) * ratio
+	var target := floori(expected) + int(randf() < expected - floorf(expected))
+	target = mini(target, floori(float(bricks.size()) * 0.5))
+	var promotions := mini(maxi(0, target - tough_count), maxi(0, candidates.size() - 1))
+	candidates.shuffle()
+	for index in range(promotions):
+		# Canonical 2 HP armor, with the same hit/drop/visual behavior.
+		candidates[index].set_health(2)
 
 
 func get_row_xp_scale(actual_brick_count: int) -> float:
@@ -333,6 +352,7 @@ func create_continuous_row(parent, row_y, row_index):
 		brick.set_meta("xp_row_scale", row_xp_scale)
 		row_bricks[column] = brick
 
+	_apply_build_toughness(row_bricks.values(), parent)
 	for column in occupied:
 		var shield_brick = row_bricks[column]
 		if shield_brick.get("is_shield_brick") != true:
@@ -379,6 +399,7 @@ func create_side_wave_group(
 		) as Node2D
 		created_bricks.append(brick)
 		row_bricks[column] = brick
+	_apply_build_toughness(created_bricks, parent)
 	for column in columns:
 		var shield_brick = row_bricks[column]
 		if shield_brick.get("is_shield_brick") == true:
@@ -387,6 +408,17 @@ func create_side_wave_group(
 				row_bricks.get(column + 1)
 			)
 	return created_bricks
+
+
+func create_materialized_brick(parent: Node2D, pos: Vector2, column: int) -> Node2D:
+	# Use the canonical brick setup without adding a special/elite roulette.
+	var previous_cap: int = special_brick_cap_count
+	special_brick_cap_count = 0
+	var row_id: int = next_continuous_row_id
+	next_continuous_row_id += 1
+	var brick: Node2D = create_brick(parent, pos, colors.pick_random(), row_id, column, false)
+	special_brick_cap_count = previous_cap
+	return brick
 
 
 func create_brick(

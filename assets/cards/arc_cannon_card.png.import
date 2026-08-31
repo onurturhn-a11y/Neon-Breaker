@@ -17,6 +17,7 @@ dest_files=["res://.godot/imported/arc_cannon_card.png-19eba1f995d57c390018f7a6f
 
 compress/mode=0
 compress/high_quality=false
+compress/high_quality_mode=0
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

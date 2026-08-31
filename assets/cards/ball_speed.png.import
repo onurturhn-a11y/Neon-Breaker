@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1r5dfuq2315j"
-path="res://.godot/imported/mortar_card.png-3a2951c4041b0bea876681a580f0e101.ctex"
+uid="uid://bijfbqrcg36st"
+path="res://.godot/imported/ball_speed.png-0107977596e209bd0a12526be9474dfd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/cards/mortar_card.png"
-dest_files=["res://.godot/imported/mortar_card.png-3a2951c4041b0bea876681a580f0e101.ctex"]
+source_file="res://assets/cards/ball_speed.png"
+dest_files=["res://.godot/imported/ball_speed.png-0107977596e209bd0a12526be9474dfd.ctex"]
 
 [params]
 

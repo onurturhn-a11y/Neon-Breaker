@@ -33,6 +33,9 @@ func _fire(level: int, config: Dictionary = {}) -> Array[Node]:
 	if config.is_empty(): config = LEVEL_CONFIG[safe_level]
 	var missile_count := int(config["missiles"])
 	var targets := TARGETING.select_danger_targets(game.get_tree(), paddle.global_position, missile_count)
+	var boss := TARGETING.get_homing_boss(game)
+	if boss != null:
+		targets.assign([boss])
 	var spawned: Array[Node] = []
 	for index in range(missile_count):
 		var target: Node2D = targets[index] if index < targets.size() else (targets[0] if not targets.is_empty() else null)

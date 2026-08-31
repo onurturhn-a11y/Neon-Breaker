@@ -2,6 +2,7 @@ extends Node
 
 signal total_coins_changed(total: int)
 signal total_salvage_changed(total: int)
+signal carried_salvage_changed(total: int)
 
 
 # HUD alt kenarıyla ortak oyun alanı üst sınırı.
@@ -14,10 +15,6 @@ const META_SAVE_PATH := "user://neon_break_meta.cfg"
 const BUILDING_PART_DROP_CHANCE := 0.08
 const MAX_WEAPON_SLOTS := 2
 const MAX_WEAPON_LEVEL := 3
-const CORE_RESONANCE_MAX_CHARGE := 6
-const CORE_RESONANCE_CHARGE_COOLDOWN_MSEC := 300
-const CORE_RESONANCE_FIREBALL_RADIUS_SCALE := 1.12
-const CORE_RESONANCE_PIERCE_BONUS := 1
 const WEAPON_PLASMA: StringName = &"PLASMA"
 const WEAPON_ARC_CANNON: StringName = &"ARC_CANNON"
 const WEAPON_SCATTER_CANNON: StringName = &"SCATTER_CANNON"
@@ -696,7 +693,12 @@ var current_sector := 1
 # Faz 4 risk sistemi: kabul edilen lanetler ve taşınan (henüz güvenceye
 # alınmamış) PARÇA. Ölürsen taşınanın yarısını kaybedersin.
 var active_curses: Dictionary = {}
-var carried_salvage := 0
+var carried_salvage: int = 0:
+	set(value):
+		if carried_salvage == value:
+			return
+		carried_salvage = value
+		carried_salvage_changed.emit(carried_salvage)
 
 # Pasif kart seviyeleri: StringName -> int. Silah kartları yukarıdaki kendi alanlarını kullanır.
 var card_levels: Dictionary = {}
@@ -713,14 +715,14 @@ var weapon_slots: Array[Dictionary] = [
 	{"weapon_id": &"", "level": 0},
 	{"weapon_id": &"", "level": 0},
 ]
-var core_resonance_charge := 0
-var last_core_resonance_charge_msec := -CORE_RESONANCE_CHARGE_COOLDOWN_MSEC
+var has_weapon_upgrade := false # Run-only side-wave density latch.
 # Kalkan Jeneratörü'nden gelen, can kaybını önleyen ücretsiz yükler.
 var colony_shield_charges := 0
 
 
 func reset_run():
 
+	has_weapon_upgrade = false
 	paddle_affinity = active_paddle_id
 
 	level = 1
@@ -730,7 +732,7 @@ func reset_run():
 	run_level = 1
 	current_xp = 0
 	xp_normalization_remainder = 0.0
-	xp_required = 100
+	xp_required = get_run_xp_requirement(run_level)
 	pending_card_choices = 0
 	first_card_selection_done = false
 
@@ -749,7 +751,6 @@ func reset_run():
 	carried_salvage = 0
 	card_levels = {}
 	banished_cards = {}
-	reset_core_resonance()
 	reset_weapon_slots()
 	_apply_paddle_profile_to_run()
 
@@ -860,6 +861,8 @@ func acquire_or_upgrade_weapon(weapon_id: StringName) -> int:
 			MAX_WEAPON_LEVEL
 		)
 	var level := get_weapon_level(weapon_id)
+	if level >= 2:
+		has_weapon_upgrade = true
 	if weapon_id == WEAPON_PLASMA:
 		plasma_level = level
 	debug_print_weapon_slots()
@@ -956,6 +959,25 @@ func get_paddle_width_multiplier() -> float:
 	return (1.0 + 0.08 * float(get_card_level(&"paddle_width"))) * get_paddle_width_scale()
 
 
+## Cost at the current run level to reach the next; independent of build/platform.
+func get_run_xp_requirement(level_value: int) -> int:
+	var current_level := maxi(level_value, 1)
+	var multiplier := 1.0
+	if current_level >= 16:
+		multiplier = 2.25
+	elif current_level >= 13:
+		multiplier = 2.00
+	elif current_level >= 10:
+		multiplier = 1.75
+	elif current_level >= 8:
+		multiplier = 1.50
+	elif current_level >= 6:
+		multiplier = 1.30
+	elif current_level >= 4:
+		multiplier = 1.15
+	return roundi(100.0 * pow(1.20, current_level - 1) * multiplier)
+
+
 func normalize_collected_xp(amount: int, row_scale: float) -> int:
 	# Apply AFTER the existing modifier rounding, without per-orb rounding bias.
 	# Unscaled side waves/debug sources retain their exact existing reward.
@@ -1018,90 +1040,52 @@ func get_active_core_module_id() -> StringName:
 	return &""
 
 
-func reset_core_resonance() -> void:
-	core_resonance_charge = 0
-	last_core_resonance_charge_msec = -CORE_RESONANCE_CHARGE_COOLDOWN_MSEC
-
-
-func register_core_resonance_weapon_kill(source: StringName) -> bool:
-	if get_active_core_module_id() == &"":
-		return false
-	var source_card_id := WeaponCards.get_card_id_for_damage_source(source)
-	if source_card_id == &"":
-		return false
-	var source_weapon_id := WeaponCards.get_weapon_id(source_card_id)
-	if get_weapon_level(source_weapon_id) <= 0:
-		return false
-	if core_resonance_charge >= CORE_RESONANCE_MAX_CHARGE:
-		return false
-	var now_msec := Time.get_ticks_msec()
-	if now_msec - last_core_resonance_charge_msec < CORE_RESONANCE_CHARGE_COOLDOWN_MSEC:
-		return false
-	last_core_resonance_charge_msec = now_msec
-	core_resonance_charge = mini(core_resonance_charge + 1, CORE_RESONANCE_MAX_CHARGE)
-	return core_resonance_charge == CORE_RESONANCE_MAX_CHARGE
-
-
-func is_core_resonance_ready(core_id: StringName = &"") -> bool:
-	var active_core := get_active_core_module_id()
-	return (
-		active_core != &""
-		and (core_id == &"" or core_id == active_core)
-		and core_resonance_charge >= CORE_RESONANCE_MAX_CHARGE
-	)
-
-
-func consume_core_resonance(core_id: StringName) -> bool:
-	if not is_core_resonance_ready(core_id):
-		return false
-	core_resonance_charge = 0
-	last_core_resonance_charge_msec = Time.get_ticks_msec()
-	return true
-
-
-func get_core_resonance_ratio() -> float:
-	return clampf(
-		float(core_resonance_charge) / float(CORE_RESONANCE_MAX_CHARGE),
-		0.0,
-		1.0
-	)
 
 
 func get_build_threat_score() -> int:
-	var score := maxi(fireball_level, pierce_level)
-	var mounted_count := 0
-	var mounted_level_total := 0
-	var legendary_count := 0
+	# Derived from this run only; ownership is already included in weapon level.
+	var score := int(fireball_level > 0) + int(pierce_level > 0)
 	for slot: Dictionary in weapon_slots:
 		var weapon_id := StringName(slot.get("weapon_id", &""))
 		var weapon_level := clampi(int(slot.get("level", 0)), 0, MAX_WEAPON_LEVEL)
 		if weapon_id == &"" or weapon_level <= 0:
 			continue
-		mounted_count += 1
-		mounted_level_total += weapon_level
-		if WeaponCards.is_legendary_weapon(weapon_id):
-			legendary_count += 1
-	score += mounted_level_total
-	score += mounted_count
-	score += legendary_count
-	if plasma_level > 0 and plasma_evolution != &"none":
-		score += 1
-	if fireball_level > 0 and fireball_evolution != &"none":
-		score += 1
-	if pierce_level > 0 and pierce_evolution != &"none":
+		score += weapon_level
+	if (fireball_level > 0 and fireball_evolution != &"none") or (pierce_level > 0 and pierce_evolution != &"none"):
 		score += 1
 	return score
 
 
 func get_build_threat() -> int:
 	var score := get_build_threat_score()
-	if score >= 9:
+	if score >= 6:
 		return 3
-	if score >= 5:
+	if score >= 4:
 		return 2
-	if score >= 3:
+	if score >= 2:
 		return 1
 	return 0
+
+
+func get_build_tough_brick_ratio() -> float:
+	var score := get_build_threat_score()
+	if score >= 6:
+		return 0.50
+	if score >= 4:
+		return 0.35 if score == 4 else 0.45
+	if score == 3:
+		return 0.275
+	if score == 2:
+		return 0.175
+	return 0.0
+
+
+func get_build_recovery_interval_multiplier() -> float:
+	# Speed increase (not interval reduction): at most 1.25x recovery cadence.
+	var speed_bonus := clampf(float(get_build_threat_score()) * 0.05, 0.0, 0.25)
+	if get_build_threat_score() < 3:
+		return 1.0
+	return 1.0 / (1.0 + speed_bonus)
 
 
 ## Build pressure remains separate from sector, curse and Ascension modifiers.
