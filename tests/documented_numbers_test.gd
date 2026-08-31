@@ -61,7 +61,7 @@ func test_kart_havuzu_sayilari_belgeyle_ayni() -> void:
 
 
 func test_boss_derinlikleri_belgeyle_ayni() -> void:
-	# Belge: "7 boss (depth 8, 16, 24, 32, 40, 48, 56)"
+	# Belge: "10 boss (depth 6, 12, 18, 24, 30, 36, 42, 48, 54, 60)"
 	# Kod: POST_BOSS_DEPTH sabitleri, her biri boss derinliginin bir fazlasi.
 	var main_gd := _read("res://main.gd")
 	var regex := RegEx.new()
@@ -71,8 +71,8 @@ func test_boss_derinlikleri_belgeyle_ayni() -> void:
 		post_derinlikler.append(int(m.get_string(1)))
 
 	assert_int(post_derinlikler.size()).override_failure_message(
-		"Belge 7 boss diyor, kodda %d POST_BOSS_DEPTH var" % post_derinlikler.size()
-	).is_equal(7)
+		"Belge 10 boss diyor, kodda %d POST_BOSS_DEPTH var" % post_derinlikler.size()
+	).is_equal(10)
 
 	var belge := _read("res://CLAUDE.md")
 	for post_depth: int in post_derinlikler:

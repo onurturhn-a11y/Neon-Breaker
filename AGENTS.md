@@ -252,9 +252,17 @@ Birleştirme yalnızca PR ile, karşı tarafın onayıyla.
 Kart havuzu: **19 kart** (10 pasif + 9 silah). Mine Launcher kaldırıldı,
 yerine Drone Bay ve Orbital Strike geldi.
 
-**Run yapısı (ölçüldü):** depth 1 → 56, 7 boss (depth 8, 16, 24, 32, 40, 48,
-56). Tuğla inişi ~12.3 dakika, boss dövüşleri hariç. Bir run 21 kart seçimi
-veriyor; havuz kapasitesi 51.
+**Run yapısı (ölçüldü):** depth 1 → 60, **10 boss** (depth 6, 12, 18, 24, 30,
+36, 42, 48, 54, 60). Tuğla inişi **~13.1 dakika**, boss dövüşleri hariç
+(Faz 9'da yeniden ölçüldü; 7 bossluk yapıda 12.3 dakikaydı, +%6.5).
+Kartların havuz kapasitesi 51.
+
+> **Yeniden ölçülmesi gereken:** "bir run 21 kart seçimi veriyor" sayısı
+> 7 bossluk yapıda ölçülmüştü. Run uzadı ve boss ödülü 7'den 10'a çıktı,
+> yani bu sayı artık yanlış — ama tahminle değiştirmedim, oyun testiyle
+> ölçülmeli. Aynı şekilde boss ödül ekonomisi: run başına toplam PARÇA
+> 100 → 192, coin 61 → 125 (yarısı boss sayısından, yarısı ödül dizisinin
+> tamamının kullanılır hale gelmesinden). `GOREVLER.md` 6.2 kalemi.
 
 **Sıradaki:** görev dağılımı `GOREVLER.md`, mesajlaşma `ILETISIM.md`.
 

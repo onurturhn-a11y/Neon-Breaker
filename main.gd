@@ -58,25 +58,48 @@ var fourth_boss_defeated := false
 var fifth_boss_defeated := false
 var sixth_boss_defeated := false
 var seventh_boss_defeated := false
+# Faz 9'un uc yeni bossu. Sirasal ad kullanilmadi: birinci/ikinci gibi
+# adlar eski bosslara bagli ve CardSystem.make_state ilk iki bossu
+# (core, sentinel) kart uygunlugu icin okuyor - anlamlari kaymasin.
+var harvester_boss_defeated := false
+var chorus_boss_defeated := false
+var inversion_boss_defeated := false
 var pending_boss_type: StringName = &"none"
 var active_boss_type: StringName = &"none"
 var active_boss_is_progression := false
 var boss_warning_running := false
 
-const FIRST_BOSS_MILESTONE_DEPTH := 8
-const FIRST_POST_BOSS_DEPTH := 9
-const SECOND_BOSS_MILESTONE_DEPTH := 16
-const SECOND_POST_BOSS_DEPTH := 17
+# Faz 9: kadro 7 -> 10 boss. Aralik 8'den 6'ya indi; run derinligi 56 -> 60,
+# yani %7 uzadi. Alternatif (8 araligini koruyup 80'e uzatmak) run'i %43
+# uzatiyordu - olculmus 12.3 dakikalik tugla inisi ~17.6'ya cikiyordu.
+#
+# Sabitlerin ADLARI kasitli olarak degismedi (ORTAK dosya, Codex'le cakisma
+# yuzeyi dar kalsin). Sirasal adlar eski bosslara bagli kaldi, uc yeni boss
+# kendi adiyla eklendi. Iki deger hic degismedi: celestial 24, architect 48.
+#
+# Kadro sirasi:  core 6 | sentinel 12 | HARVESTER 18 | celestial 24 |
+#                void 30 | CHORUS 36 | sovereign 42 | architect 48 |
+#                INVERSION 54 | chronoform 60
+const FIRST_BOSS_MILESTONE_DEPTH := 6
+const FIRST_POST_BOSS_DEPTH := 7
+const SECOND_BOSS_MILESTONE_DEPTH := 12
+const SECOND_POST_BOSS_DEPTH := 13
+const HARVESTER_BOSS_MILESTONE_DEPTH := 18
+const HARVESTER_POST_BOSS_DEPTH := 19
 const THIRD_BOSS_MILESTONE_DEPTH := 24
 const THIRD_POST_BOSS_DEPTH := 25
-const FOURTH_BOSS_MILESTONE_DEPTH := 32
-const FOURTH_POST_BOSS_DEPTH := 33
-const FIFTH_BOSS_MILESTONE_DEPTH := 40
-const FIFTH_POST_BOSS_DEPTH := 41
+const FOURTH_BOSS_MILESTONE_DEPTH := 30
+const FOURTH_POST_BOSS_DEPTH := 31
+const CHORUS_BOSS_MILESTONE_DEPTH := 36
+const CHORUS_POST_BOSS_DEPTH := 37
+const FIFTH_BOSS_MILESTONE_DEPTH := 42
+const FIFTH_POST_BOSS_DEPTH := 43
 const SIXTH_BOSS_MILESTONE_DEPTH := 48
 const SIXTH_POST_BOSS_DEPTH := 49
-const SEVENTH_BOSS_MILESTONE_DEPTH := 56
-const SEVENTH_POST_BOSS_DEPTH := 57
+const INVERSION_BOSS_MILESTONE_DEPTH := 54
+const INVERSION_POST_BOSS_DEPTH := 55
+const SEVENTH_BOSS_MILESTONE_DEPTH := 60
+const SEVENTH_POST_BOSS_DEPTH := 61
 const MOBILE_PORTRAIT_REFERENCE := Vector2i(648, 1152)
 const MOBILE_CARD_SIZE := Vector2(236.0, 310.0)
 const PIERCING_CARD_TEXTURE: Texture2D = preload("res://assets/cards/piercing_card.png")
@@ -1518,14 +1541,20 @@ func on_continuous_row_spawned(row_depth: int) -> void:
 		pending_boss_type = &"core"
 	elif row_depth == SECOND_BOSS_MILESTONE_DEPTH and not second_boss_defeated:
 		pending_boss_type = &"sentinel"
+	elif row_depth == HARVESTER_BOSS_MILESTONE_DEPTH and not harvester_boss_defeated:
+		pending_boss_type = &"harvester"
 	elif row_depth == THIRD_BOSS_MILESTONE_DEPTH and not third_boss_defeated:
 		pending_boss_type = &"celestial"
 	elif row_depth == FOURTH_BOSS_MILESTONE_DEPTH and not fourth_boss_defeated:
 		pending_boss_type = &"void"
+	elif row_depth == CHORUS_BOSS_MILESTONE_DEPTH and not chorus_boss_defeated:
+		pending_boss_type = &"chorus"
 	elif row_depth == FIFTH_BOSS_MILESTONE_DEPTH and not fifth_boss_defeated:
 		pending_boss_type = &"sovereign"
 	elif row_depth == SIXTH_BOSS_MILESTONE_DEPTH and not sixth_boss_defeated:
 		pending_boss_type = &"architect"
+	elif row_depth == INVERSION_BOSS_MILESTONE_DEPTH and not inversion_boss_defeated:
+		pending_boss_type = &"inversion"
 	elif row_depth == SEVENTH_BOSS_MILESTONE_DEPTH and not seventh_boss_defeated:
 		pending_boss_type = &"chronoform"
 	else:
@@ -1772,20 +1801,35 @@ func _get_boss_display_name(boss_type: StringName) -> String:
 const BOSS_REWARD_SALVAGE := [8, 10, 12, 14, 16, 18, 22, 26, 30, 36]
 const BOSS_REWARD_COINS := [4, 5, 7, 8, 10, 12, 15, 18, 21, 25]
 
+## Odul index'i KADRO SIRASINA gore. Diziler zaten 10 elemanliydi; 7 boss
+## varken yalnizca ilk 7'si kullaniliyordu. Faz 9'da kadro 10'a cikinca
+## dizinin tamami kullanilir hale geldi.
+##
+## DIKKAT - bu bir denge degisikligi: eski bosslarin index'i de kaydi
+## (celestial 2->3, void 3->4, sovereign 4->6, architect 5->7,
+## chronoform 6->9). Run basina toplam PARCA 100 -> 192. Yarisi boss
+## sayisindan (7->10), yarisi index kaymasindan geliyor.
+## Oyun testi sonrasi olculmeli (GOREVLER 6.2).
 func _get_boss_reward_index(boss_type: StringName) -> int:
 	match boss_type:
 		&"sentinel":
 			return 1
-		&"celestial":
+		&"harvester":
 			return 2
-		&"void":
+		&"celestial":
 			return 3
-		&"sovereign":
+		&"void":
 			return 4
-		&"architect":
+		&"chorus":
 			return 5
-		&"chronoform":
+		&"sovereign":
 			return 6
+		&"architect":
+			return 7
+		&"inversion":
+			return 8
+		&"chronoform":
+			return 9
 	return 0
 
 
@@ -2255,6 +2299,12 @@ func _on_boss_defeated() -> void:
 		pending_boss_type = &"none"
 		if is_instance_valid(brick_field):
 			brick_field.resume_after_progression_boss(SECOND_POST_BOSS_DEPTH)
+	elif defeated_progression_boss and defeated_boss_type == &"harvester":
+		harvester_boss_defeated = true
+		boss_pending = false
+		pending_boss_type = &"none"
+		if is_instance_valid(brick_field):
+			brick_field.resume_after_progression_boss(HARVESTER_POST_BOSS_DEPTH)
 	elif defeated_progression_boss and defeated_boss_type == &"celestial":
 		third_boss_defeated = true
 		boss_pending = false
@@ -2267,6 +2317,12 @@ func _on_boss_defeated() -> void:
 		pending_boss_type = &"none"
 		if is_instance_valid(brick_field):
 			brick_field.resume_after_progression_boss(FOURTH_POST_BOSS_DEPTH)
+	elif defeated_progression_boss and defeated_boss_type == &"chorus":
+		chorus_boss_defeated = true
+		boss_pending = false
+		pending_boss_type = &"none"
+		if is_instance_valid(brick_field):
+			brick_field.resume_after_progression_boss(CHORUS_POST_BOSS_DEPTH)
 	elif defeated_progression_boss and defeated_boss_type == &"sovereign":
 		fifth_boss_defeated = true
 		boss_pending = false
@@ -2279,6 +2335,12 @@ func _on_boss_defeated() -> void:
 		pending_boss_type = &"none"
 		if is_instance_valid(brick_field):
 			brick_field.resume_after_progression_boss(SIXTH_POST_BOSS_DEPTH)
+	elif defeated_progression_boss and defeated_boss_type == &"inversion":
+		inversion_boss_defeated = true
+		boss_pending = false
+		pending_boss_type = &"none"
+		if is_instance_valid(brick_field):
+			brick_field.resume_after_progression_boss(INVERSION_POST_BOSS_DEPTH)
 	elif defeated_progression_boss and defeated_boss_type == &"chronoform":
 		seventh_boss_defeated = true
 		boss_pending = false
