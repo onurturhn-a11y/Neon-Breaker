@@ -43,33 +43,56 @@ func test_ascension_bossu_asla_kolaylastirmaz() -> void:
 		assert_float(gm.get_ascension_boss_hp_scale()).is_greater_equal(1.0)
 
 
-func test_her_boss_mimarisi_ascension_olceklemesi_uyguluyor() -> void:
-	# Iki mimari var; olcekleme her birinde ayri yazilmis.
-	# Birinde unutulursa oyuncu o bossta ascension'i hic hissetmez.
+## Faz 9'a kadar IKI boss mimarisi vardi: CORE ve SENTINEL StaticBody2D'den,
+## diger sekizi boss_sprite_entity.gd'den turuyordu. Ascension olceklemesi
+## ucunde de AYRI AYRI yaziliydi; bu testin eski hali "her dosyada o cagri
+## var mi" diye bakiyordu, cunku birinde unutulursa oyuncu o bossta
+## ascension'i hic hissetmezdi.
+##
+## Faz 9'da ikisi de taban sinifa tasindi. Artik daha guclu bir sey
+## dogrulanabiliyor: TEK mimari var, olcekleme tek yerde, "birinde
+## unutulmus olma" ihtimali ortadan kalkti.
+##
+## Test kirilirsa: biri yeniden ayri bir mimari acmistir.
+func test_tum_bosslar_tek_mimariden_turuyor() -> void:
+	var taban_yolu := "res://boss_sprite_entity.gd"
 	for yol: String in [
-		"res://boss_core.gd",
-		"res://boss_sentinel.gd",
-		"res://boss_sprite_entity.gd",
+		"res://boss_core.gd", "res://boss_sentinel.gd", "res://boss_harvester.gd",
+		"res://boss_celestial.gd", "res://boss_void.gd", "res://boss_chorus.gd",
+		"res://boss_void_sovereign.gd", "res://boss_void_architect.gd",
+		"res://boss_inversion.gd", "res://boss_chronoform.gd",
 	]:
 		var dosya := FileAccess.open(yol, FileAccess.READ)
 		assert_object(dosya).override_failure_message("%s acilamadi" % yol).is_not_null()
 		var icerik := dosya.get_as_text()
 		dosya.close()
-		assert_bool(icerik.contains("get_ascension_boss_hp_scale")) \
-			.override_failure_message(
-				"%s ascension HP olceklemesini uygulamiyor" % yol
-			).is_true()
+		assert_bool(icerik.begins_with("extends \"%s\"" % taban_yolu)).override_failure_message(
+			"%s taban sinifi genisletmiyor - ayri bir mimari acilmis. " % yol
+			+ "Ascension olceklemesi ve poz sistemi ona kendiliginden gelmez."
+		).is_true()
+
+	var taban := FileAccess.open(taban_yolu, FileAccess.READ)
+	assert_object(taban).is_not_null()
+	var taban_icerik := taban.get_as_text()
+	taban.close()
+	assert_bool(taban_icerik.contains("get_ascension_boss_hp_scale")).override_failure_message(
+		"Taban sinif ascension HP olceklemesini uygulamiyor - artik hicbir boss uygulamiyor."
+	).is_true()
 
 
 func test_boss_hp_egrisi_artan_sirada() -> void:
 	# Faz 7.4'te olculen gercek degerler. Bir boss oncekinden kolay olmamali.
+	# Faz 9: kadro 10 bossa cikti, yeni ucu mevcutlarin ARASINA girdi.
 	var hp_tablosu := {
 		"res://boss_core.gd": 100,
 		"res://boss_sentinel.gd": 145,
+		"res://boss_harvester.gd": 175,
 		"res://boss_celestial.gd": 200,
 		"res://boss_void.gd": 260,
+		"res://boss_chorus.gd": 290,
 		"res://boss_void_sovereign.gd": 330,
 		"res://boss_void_architect.gd": 410,
+		"res://boss_inversion.gd": 455,
 		"res://boss_chronoform.gd": 500,
 	}
 	var previous := 0

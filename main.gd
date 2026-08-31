@@ -1857,8 +1857,10 @@ func _get_boss_scene(boss_type: StringName) -> PackedScene:
 
 func _get_boss_display_name(boss_type: StringName) -> String:
 	match boss_type:
+		&"core":
+			return "THE FURNACE"
 		&"sentinel":
-			return "THE SENTINEL"
+			return "THE WARDEN"
 		&"celestial":
 			return "THE CELESTIAL"
 		&"void":
@@ -2247,8 +2249,8 @@ func _setup_boss_hud(boss_type: StringName) -> void:
 	sentinel_feedback_label.visible = false
 	sentinel_feedback_label.size.x = boss_hp_panel.size.x
 	if boss_type == &"sentinel":
-		boss_name_label.text = "THE SENTINEL"
-		boss_name_label.size.x = 120.0
+		boss_name_label.text = "THE WARDEN"
+		boss_name_label.size.x = 128.0
 		sentinel_left_indicator.visible = true
 		sentinel_right_indicator.visible = true
 		sentinel_shield_indicator.visible = true
@@ -2263,7 +2265,7 @@ func _setup_boss_hud(boss_type: StringName) -> void:
 			)
 	else:
 		boss_name_label.text = _get_boss_display_name(boss_type)
-		boss_name_label.size.x = 210.0 if boss_type in [&"sovereign", &"architect"] else 168.0 if boss_type == &"chronoform" else (178.0 if boss_type == &"void" else (160.0 if boss_type in [&"harvester", &"inversion"] else (150.0 if boss_type in [&"celestial", &"chorus"] else 112.0)))
+		boss_name_label.size.x = 210.0 if boss_type in [&"sovereign", &"architect"] else 168.0 if boss_type == &"chronoform" else (178.0 if boss_type == &"void" else (160.0 if boss_type in [&"harvester", &"inversion"] else (150.0 if boss_type in [&"celestial", &"chorus"] else (140.0 if boss_type == &"core" else 112.0))))
 		sentinel_left_indicator.visible = false
 		sentinel_right_indicator.visible = false
 		sentinel_shield_indicator.visible = false
