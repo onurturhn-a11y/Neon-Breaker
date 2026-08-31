@@ -17,9 +17,9 @@ Uretim prompt'u ve saldiri paterni tasarimi: boss kadrosu tasarim notu
 | `defeat_a.png` | 11. kare | yenilgi |
 
 Sheet 9 yerine **11 poz** ile geldi ve etiketsizdi; esleme goze gore
-yapildi. Kullanilmayan iki fazla poz `alt_grab.png` (4. kare) ve
-`alt_lift.png` (6. kare) olarak saklandi — silinmedi, esleme yanlissa
-oradan duzeltilir.
+yapildi ve **Onur tarafindan onaylandi (2026-08-31)**. Kullanilmayan iki
+fazla poz `alt_grab.png` (4. kare) ve `alt_lift.png` (6. kare) olarak
+saklandi — silinmedi, ileride poz degistirmek istenirse oradan alinir.
 
 Mermi dokusu ayrica uretilmedi. Efektlerin tamami kodda ciziliyor
 (`_add_gradient_band`, `_column_polygon`, `_apply_additive`); mermi

@@ -17,12 +17,24 @@ extends "res://boss_sprite_entity.gd"
 # ==================================================
 
 ## Emilebilecek oyuncu mermisi gruplari. Top burada YOK: kasitli.
+##
+## YENI SILAH EKLERKEN buraya mermi grubunu da yaz, yoksa o silah aynadan
+## muaf kalir ve bossun mekanigi sessizce delinir.
+##
+## Dogal olarak muaf olanlar (mermi dugumu uretmiyorlar, anlik/isin):
+##   Railgun, Pulse Laser, Arc Cannon. Bu bir eksiklik degil - oyuncunun
+##   ogrenecegi bir sey: aynaya karsi isin silahlari guvenli.
+##
+## Eksik: Mortar. mortar_shell.gd hicbir gruba girmiyor (yalnizca carpma
+## efekti icin mortar_impact_vfx var), dolayisiyla ucustaki mermi
+## bulunamiyor. Codex bolgesi - ILETISIM A13'te soruldu.
+## Orbital Strike de yok: hedefin uzerinde doguyor, sahayi katederek
+## gelen bir dugum degil; emilmesi ayri bir kanca ister.
 const ABSORB_GROUPS: Array[StringName] = [
 	&"plasma_projectile",
 	&"scatter_projectile",
 	&"homing_missile",
 	&"drone_bay_projectile",
-	&"scatter_cannon_projectile",
 ]
 
 const BAND_HALF_HEIGHT := 17.0

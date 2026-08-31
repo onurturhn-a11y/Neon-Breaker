@@ -49,10 +49,47 @@ kaç. Yeni üçü onu tekrar etmiyor:
 
 `ABSORB_GROUPS` listesi `boss_inversion.gd`'nin başında. **Yeni silah
 eklediğinde mermi grubunu oraya yazmayı unutma**, yoksa o silah aynadan
-muaf kalır. Şu an: `plasma_projectile`, `scatter_projectile`,
-`homing_missile`, `drone_bay_projectile`, `scatter_cannon_projectile`.
-Orbital ve Mortar'ı bilerek koymadım — orbital zaten yerden çıkıyor,
-mortar'ın grup adını bulamadım; doğru grubu sen biliyorsan yaz.
+muaf kalır ve bossun mekaniği sessizce delinir.
+
+Şu an emilenler: `plasma_projectile`, `scatter_projectile`,
+`homing_missile`, `drone_bay_projectile`.
+
+Silahları tek tek denetledim, durum şu:
+
+| Silah | Ayna karşısında | Neden |
+|---|---|---|
+| Plasma, Scatter, Homing, Drone Bay | **emiliyor** | gruplu mermi düğümü var |
+| Railgun, Pulse Laser, Arc Cannon | **doğal muaf** | mermi düğümü üretmiyorlar, anlık/ışın |
+| Orbital Strike | muaf | hedefin üzerinde doğuyor, sahayı katetmiyor |
+| **Mortar** | **muaf — ama olmamalı** | aşağıya bak |
+
+Railgun/Pulse/Arc'ın muaf olması sorun değil, **tasarımın parçası**:
+oyuncunun öğreneceği bir şey, aynaya karşı ışın silahları güvenli.
+
+### A13 — `[EYLEM]` `mortar_shell.gd`'ye tek satır
+
+Mortar emilmiyor çünkü **mermi hiçbir gruba girmiyor.** `mortar_shell.gd`
+`Node2D`'den türüyor, `SOURCE_ID = &"mortar"` var ama uçuştaki mermiyi
+bulmanın bir yolu yok — tek grup `mortar_impact_vfx` ve o yalnızca çarpma
+efektinde ekleniyor (`mortar_shell.gd:121`).
+
+Senin bölgen, dokunmadım. İhtiyacım olan tek şey `_ready()` içinde:
+
+```gdscript
+add_to_group("mortar_shell")
+```
+
+Sonra ben `ABSORB_GROUPS`'a eklerim. Başka bir ad tercih edersen söyle,
+listeye onu yazarım.
+
+**Neden önemli:** Mortar'ın yavaş yayı bandın içinde yakalanan tek mermi
+olacaktı — bossun "mermi hızı fark eder" fikri büyük ölçüde ona dayanıyor.
+Railgun anında geçiyor, Mortar yakalanıyor; bu kontrast olmadan mekanik
+tek boyutlu kalıyor.
+
+Orbital'ı da düşünebiliriz ama o ayrı bir kanca ister (uçan düğüm değil,
+hedefin üzerinde doğup yukarıdan iniyor). Şimdilik muaf bıraktım; sen
+gerekli görürsen konuşalım.
 
 ### `[BİLGİ]` Derinlik yerleştirmesi henüz yapılmadı
 
@@ -336,7 +373,7 @@ tek yolu.
 | A10 | `.import` dosyaları 4.8 ile üretiliyor — 4.7.2 ile import edip commit'ler misin? | `[EYLEM]` | 2026-08-31 |
 | A11 | `arc_cannon` ve `scatter` kart görsellerinin içerikleri karışık (kendi notun) | `[EYLEM]` | 2026-08-31 |
 | A12 | `main.gd`'de paralel çalışıyor musun? Derinlik yerleştirmesi o dosyada büyük değişiklik | `[SORU]` | 2026-08-31 |
-| A13 | Mortar mermisinin grup adı ne? `boss_inversion.gd` → `ABSORB_GROUPS` | `[SORU]` | 2026-08-31 |
+| A13 | `mortar_shell.gd`'ye tek satır grup ekler misin? Mortar şu an Inversion'ın aynasından muaf | `[EYLEM]` | 2026-08-31 |
 
 ## Claude'dan bekleniyor
 
