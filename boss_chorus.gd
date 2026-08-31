@@ -125,6 +125,20 @@ func _ready() -> void:
 	_build_voices()
 
 
+## Taban sinif girişte tek govde kutusunu aciyor. Halka yasarken o kutu
+## KAPALI kalmali (ortasi bos), bunun yerine uye sekilleri aciliyor.
+## Duet birlestiginde tersi: uye sekilleri kapanir, govde kutusu acilir.
+func begin_entry(target_position: Vector2) -> void:
+	await super(target_position)
+	if not accepting_damage:
+		return
+	collision_shape.set_deferred("disabled", true)
+	for v: Dictionary in voices:
+		var shape: CollisionShape2D = v.get("shape")
+		if is_instance_valid(shape) and int(v.get("hp", 0)) > 0:
+			shape.set_deferred("disabled", false)
+
+
 func _build_voices() -> void:
 	var idle := _frame(&"idle", 0)
 	var scale_factor := _resolve_pose_scale()
@@ -135,7 +149,19 @@ func _build_voices() -> void:
 		sprite.texture = idle
 		sprite.scale = Vector2.ONE * scale_factor
 		holder.add_child(sprite)
-		voices.append({"node": holder, "sprite": sprite, "hp": VOICE_HP, "index": i})
+		# Her uyenin KENDI carpisma sekli var. Tek buyuk kutu kullanilamaz:
+		# top kutunun yuzeyine carpiyor ve temas noktasi halkanin bos
+		# ortasina/kenarina dusuyordu, hicbir uyeye yazilamiyordu.
+		var shape := CollisionShape2D.new()
+		var circle := CircleShape2D.new()
+		circle.radius = VOICE_HIT_RADIUS
+		shape.shape = circle
+		shape.disabled = true
+		add_child(shape)
+		voices.append({
+			"node": holder, "sprite": sprite, "shape": shape,
+			"hp": VOICE_HP, "index": i,
+		})
 	_layout_ring()
 
 
@@ -151,6 +177,9 @@ func _layout_ring() -> void:
 			continue
 		var angle := deg_to_rad(ring_spin) + TAU * float(i) / float(n) - PI * 0.5
 		holder.position = Vector2(cos(angle), sin(angle) * 0.55) * radius
+		var shape: CollisionShape2D = live[i].get("shape")
+		if is_instance_valid(shape):
+			shape.position = holder.position
 
 
 func _physics_process(delta: float) -> void:
@@ -174,7 +203,10 @@ func _region_from_global_hit(hit_position: Vector2) -> StringName:
 		return &"duet"
 	var local := to_local(hit_position)
 	var best := -1
-	var best_dist := VOICE_HIT_RADIUS
+	# Yaricap kapisi YOK: temas zaten uyenin kendi sekliyle olusuyor,
+	# dolayisiyla en yakin uye dogru uyedir. Eskiden buradaki kapi
+	# yuzunden vuruslarin cogu "miss" donuyordu ve boss hasar almiyordu.
+	var best_dist := INF
 	for v: Dictionary in voices:
 		if int(v.get("hp", 0)) <= 0:
 			continue
@@ -214,10 +246,13 @@ func _apply_region_hit(region: StringName, source: StringName, attacker_id: int,
 			v["hp"] = maxi(int(v.get("hp", 0)) - base_damage, 0)
 			if int(v["hp"]) <= 0:
 				_kill_voice(v)
+			else:
+				_voice_hit_feedback(v, hit_position)
 			break
 	_play_armor_hit(hit_position)
 	health_changed.emit(current_hp, max_hp)
-	_flinch(hit_position)
+	if duet_active:
+		_flinch(hit_position)
 	if current_hp <= 0:
 		_defeat()
 		return
@@ -226,8 +261,37 @@ func _apply_region_hit(region: StringName, source: StringName, attacker_id: int,
 		_merge_duet()
 
 
+## Vurulan uyeye ozel tepki. Taban sinif tek govde icin _play_anim(&"hit")
+## calistiriyor ama burada bes ayri sprite var - hangisinin vuruldugunu
+## oyuncunun gormesi gerekiyor, yoksa hasar verdigini anlamiyor.
+func _voice_hit_feedback(v: Dictionary, hit_position: Vector2) -> void:
+	var sprite: Sprite2D = v.get("sprite")
+	var holder: Node2D = v.get("node")
+	if is_instance_valid(sprite):
+		var hit_frame := _frame(&"hit", 0)
+		if hit_frame != null:
+			sprite.texture = hit_frame
+			sprite.modulate = Color(1.6, 1.6, 1.6, 1.0)
+			var back := sprite.create_tween()
+			back.tween_property(sprite, "modulate", Color.WHITE, 0.18)
+			back.tween_callback(func() -> void:
+				if is_instance_valid(sprite) and int(v.get("hp", 0)) > 0:
+					sprite.texture = _frame(&"idle", 0)
+			)
+	if is_instance_valid(holder):
+		# Halkanin merkezinden disa dogru kucuk bir geri tepme.
+		var away := (holder.global_position - hit_position).normalized() * 9.0
+		var base_pos := holder.position
+		var kick := holder.create_tween()
+		kick.tween_property(holder, "position", base_pos + away, 0.06).set_trans(Tween.TRANS_QUAD)
+		kick.tween_property(holder, "position", base_pos, 0.12).set_trans(Tween.TRANS_SINE)
+
+
 func _kill_voice(v: Dictionary) -> void:
 	deaths += 1
+	var shape: CollisionShape2D = v.get("shape")
+	if is_instance_valid(shape):
+		shape.set_deferred("disabled", true)
 	var holder: Node2D = v.get("node")
 	if is_instance_valid(holder):
 		var sprite: Sprite2D = v.get("sprite")
@@ -245,6 +309,11 @@ func _kill_voice(v: Dictionary) -> void:
 func _merge_duet() -> void:
 	duet_active = true
 	var live := _live_voices()
+	for v: Dictionary in voices:
+		var shape: CollisionShape2D = v.get("shape")
+		if is_instance_valid(shape):
+			shape.set_deferred("disabled", true)
+	collision_shape.set_deferred("disabled", false)
 	for v: Dictionary in live:
 		var holder: Node2D = v.get("node")
 		if is_instance_valid(holder):
