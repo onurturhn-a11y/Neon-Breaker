@@ -71,6 +71,8 @@ var pierce_indicator: Polygon2D
 var warm_palette_shader: Shader
 var orange_trail_material: ShaderMaterial
 var fire_ball_visual: Node2D
+var core_resonance_ready := false
+var core_resonance_indicator: Line2D
 
 var base_scale = Vector2(0.069615, 0.069615)
 var core_scale = Vector2(0.07541625, 0.07541625)
@@ -89,11 +91,14 @@ func _ready():
 
 	setup_ball_skin()
 	create_pierce_indicator()
+	create_core_resonance_indicator()
 
 
 func _process(delta):
 
 	pulse_time += delta
+	set_core_resonance_ready(GameManager.is_core_resonance_ready())
+	update_core_resonance_indicator()
 
 	var speed_ratio = clamp(
 		(ball.speed - 500.0) / (ball.max_speed - 500.0),
@@ -245,6 +250,60 @@ func spawn_trail(speed_ratio):
 	fade.tween_property(trail, "scale", trail.scale * 0.72, lifetime)
 	fade.tween_property(trail, "modulate:a", 0.0, lifetime)
 	fade.chain().tween_callback(trail.queue_free)
+
+
+func create_core_resonance_indicator() -> void:
+	if is_instance_valid(core_resonance_indicator):
+		return
+	core_resonance_indicator = Line2D.new()
+	core_resonance_indicator.name = "CoreResonanceReady"
+	core_resonance_indicator.width = 1.8
+	core_resonance_indicator.closed = true
+	core_resonance_indicator.antialiased = true
+	core_resonance_indicator.z_index = 7
+	for index in range(28):
+		core_resonance_indicator.add_point(
+			Vector2.from_angle(TAU * float(index) / 28.0) * 24.0
+		)
+	add_child(core_resonance_indicator)
+	core_resonance_indicator.visible = false
+
+
+func set_core_resonance_ready(value: bool) -> void:
+	core_resonance_ready = value
+	if is_instance_valid(core_resonance_indicator):
+		core_resonance_indicator.visible = value
+
+
+func update_core_resonance_indicator() -> void:
+	if not core_resonance_ready or not is_instance_valid(core_resonance_indicator):
+		return
+	var pulse := 0.5 + 0.5 * sin(pulse_time * TAU / 0.90)
+	var color := Color(1.0, 0.46, 0.12, 1.0) if fireball_level > 0 else Color(0.56, 0.88, 1.0, 1.0)
+	core_resonance_indicator.default_color = color
+	core_resonance_indicator.modulate.a = 0.34 + pulse * 0.30
+	core_resonance_indicator.scale = Vector2.ONE * (0.97 + pulse * 0.06)
+
+
+func play_core_resonance_proc(core_id: StringName) -> void:
+	var flash := Line2D.new()
+	flash.name = "CoreResonanceProc"
+	flash.width = 2.4
+	flash.closed = true
+	flash.antialiased = true
+	flash.z_index = 8
+	flash.default_color = (
+		Color(1.0, 0.48, 0.14, 0.95)
+		if core_id == &"fireball"
+		else Color(0.62, 0.92, 1.0, 0.95)
+	)
+	for index in range(28):
+		flash.add_point(Vector2.from_angle(TAU * float(index) / 28.0) * 23.0)
+	add_child(flash)
+	var tween := flash.create_tween().set_parallel(true)
+	tween.tween_property(flash, "scale", Vector2.ONE * 1.34, 0.20)
+	tween.tween_property(flash, "modulate:a", 0.0, 0.20)
+	tween.chain().tween_callback(flash.queue_free)
 
 
 func setup_ball_skin() -> void:

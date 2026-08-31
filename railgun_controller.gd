@@ -1,5 +1,7 @@
 extends Node
 
+const TARGETING := preload("res://weapon_targeting.gd")
+
 const TELEGRAPH_DURATION := 0.24
 const LEVEL_CONFIG := {
 	1: {"cooldown": 3.0, "half_width": 8.0, "max_hits": 4},
@@ -62,6 +64,7 @@ func _fire(
 	start_position: Vector2 = Vector2.INF,
 	end_position: Vector2 = Vector2.INF
 ) -> Array[Node2D]:
+	TARGETING.apply_boss_cycle_hit(get_tree(), &"railgun", get_instance_id() ^ Time.get_ticks_msec())
 	var safe_level := clampi(level, 1, 3)
 	var config: Dictionary = LEVEL_CONFIG[safe_level]
 	if is_nan(rail_x):

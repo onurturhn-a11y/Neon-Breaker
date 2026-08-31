@@ -570,6 +570,8 @@ func hit_from_ball(attacker_instance_id: int, source: StringName = &"ball") -> v
 	_apply_region_hit(&"armor", source, attacker_instance_id, global_position)
 func hit_from_plasma(attacker_instance_id: int) -> void:
 	_apply_region_hit(&"armor", &"plasma", attacker_instance_id, global_position)
+func hit_from_mounted_weapon(source: StringName, cycle_id: int) -> void:
+	_apply_region_hit(&"armor", source, cycle_id, global_position)
 func _region_from_global_hit(hit_position: Vector2) -> StringName:
 	if to_local(hit_position).distance_to(CORE_LOCAL) <= CORE_HIT_RADIUS:
 		return &"core"

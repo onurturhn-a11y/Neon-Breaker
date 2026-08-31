@@ -55,6 +55,7 @@ var last_damage_request_msec: Dictionary = {}
 var readability_time := 0.0
 var exposure_end_msec := 0
 var shield_hint_count := 0
+var attack_cycle_count := 0
 var last_shield_hint_msec := -1000000
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -139,7 +140,12 @@ func _fire_loop() -> void:
 		await _wait_for_projectile_clearance()
 		if not combat_active or not accepting_damage:
 			return
-		_fire_generator_salvo()
+		attack_cycle_count += 1
+		var heavy_every := 3 if current_phase >= 3 else 4
+		if current_phase >= 2 and attack_cycle_count % heavy_every == 0:
+			await _fire_heavy_shot()
+		else:
+			_fire_generator_salvo()
 
 
 func _fire_generator_salvo() -> void:
@@ -174,6 +180,8 @@ func _fire_heavy_shot() -> void:
 	get_parent().add_child(projectile)
 	projectile.global_position = global_position + Vector2(0.0, 48.0 * absf(global_scale.y))
 	projectile.setup(get_parent(), (target_snapshot - projectile.global_position).normalized(), projectile_speed, true)
+	if get_parent().has_method("notify_boss_projectile_fired"):
+		get_parent().notify_boss_projectile_fired()
 	core_visual.color = original_color
 	core_visual.scale = Vector2.ONE
 
@@ -218,6 +226,10 @@ func hit_from_ball(attacker_instance_id: int, source: StringName = &"ball") -> v
 
 func hit_from_plasma(attacker_instance_id: int) -> void:
 	_apply_region_hit(&"core", &"plasma", attacker_instance_id, global_position)
+
+
+func hit_from_mounted_weapon(source: StringName, cycle_id: int) -> void:
+	_apply_region_hit(&"core", source, cycle_id, global_position)
 
 
 func _region_from_global_hit(hit_position: Vector2) -> StringName:

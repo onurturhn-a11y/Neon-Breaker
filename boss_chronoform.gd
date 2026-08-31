@@ -23,6 +23,7 @@ const SWEEP_DURATION := 1.15
 ## Yelpaze araligi (derece). 0 = saga, 90 = asagi.
 const SWEEP_ANGLE_MIN := 22.0
 const SWEEP_ANGLE_MAX := 158.0
+const MOBILE_SWEEP_IMPACT_VFX_CAP := 10
 
 const WALL_TILE_WIDTH := 130.0
 const WALL_GAP_HALF_WIDTH := 78.0
@@ -195,7 +196,11 @@ func _fire_rune_bolt(angle_degrees: float) -> void:
 	var projectile := PROJECTILE_SCENE.instantiate()
 	get_parent().add_child(projectile)
 	projectile.global_position = global_position + direction * 48.0
-	projectile.setup(get_parent(), direction, projectile_speed * 0.86)
+	var lightweight_impact := (
+		OS.has_feature("mobile")
+		and get_tree().get_nodes_in_group("boss_projectile_impact_vfx").size() >= MOBILE_SWEEP_IMPACT_VFX_CAP
+	)
+	projectile.setup(get_parent(), direction, projectile_speed * 0.86, false, lightweight_impact)
 	if get_parent().has_method("notify_boss_projectile_fired"):
 		get_parent().notify_boss_projectile_fired()
 

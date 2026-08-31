@@ -1,5 +1,7 @@
 extends Node
 
+const TARGETING := preload("res://weapon_targeting.gd")
+
 const FIRE_INTERVAL := 1.5
 const LEVEL_CONFIG := {
 	1: {"max_chain_jumps": 2, "chain_radius": 165.0, "terminal_radius": 0.0},
@@ -32,6 +34,7 @@ func _process(delta: float) -> void:
 	if cooldown_left > 0.0:
 		return
 	cooldown_left = FIRE_INTERVAL
+	TARGETING.apply_boss_cycle_hit(get_tree(), &"arc_cannon", get_instance_id() ^ Time.get_ticks_msec())
 	var active_bricks := _get_active_bricks()
 	var primary := _select_primary_target(active_bricks)
 	if primary == null:

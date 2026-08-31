@@ -47,6 +47,9 @@ var armored_chance = 0.05
 # ==================================================
 
 var continuous_row_fill = 0.45
+# Platform-neutral row budget; captured before mobile/adaptive fill bonuses.
+const XP_REFERENCE_COLUMNS := 13
+var xp_reference_row_fill := 0.45
 @export_range(0.0, 1.0, 0.01) var explosive_chance = 0.05
 @export_range(0.0, 1.0, 0.01) var shield_chance = 0.0
 @export_range(0.0, 1.0, 0.05) var special_brick_row_cap = 0.40
@@ -118,40 +121,56 @@ func configure_for_depth(depth):
 			armored_chance = 0.0
 			explosive_chance = 0.05
 		4:
-			continuous_row_fill = 0.82
-			armored_chance = 0.05
+			continuous_row_fill = 0.80
+			armored_chance = 0.03
 			explosive_chance = 0.05
 		5:
-			continuous_row_fill = 0.90
+			continuous_row_fill = 0.85
 			armored_chance = 0.05
-			explosive_chance = 0.07
+			explosive_chance = 0.06
 		6:
-			continuous_row_fill = 0.91
-			armored_chance = 0.10
-			explosive_chance = 0.08
-			shield_chance = 0.02
+			continuous_row_fill = 0.88
+			armored_chance = 0.08
+			explosive_chance = 0.07
+			shield_chance = 0.015
 		7:
-			continuous_row_fill = 0.92
-			armored_chance = 0.15
-			explosive_chance = 0.09
-			shield_chance = 0.03
+			continuous_row_fill = 0.90
+			armored_chance = 0.12
+			explosive_chance = 0.08
+			shield_chance = 0.025
 		8:
-			continuous_row_fill = 0.93
-			armored_chance = 0.20
-			explosive_chance = 0.10
-			shield_chance = 0.04
+			continuous_row_fill = 0.92
+			armored_chance = 0.17
+			explosive_chance = 0.09
+			shield_chance = 0.035
 		9:
+			continuous_row_fill = 0.93
+			armored_chance = 0.22
+			explosive_chance = 0.10
+			shield_chance = 0.045
+		10:
 			continuous_row_fill = 0.94
 			armored_chance = 0.25
 			explosive_chance = 0.11
 			shield_chance = 0.05
-		_:
-			# Depth 10+ taban değerleri. Faz 4: eskiden 80. depth'e kadar sabitti;
-			# artık patlayıcı ve kalkan oranı derinlikle yavaşça büyür.
+		11:
+			continuous_row_fill = 0.945
+			armored_chance = 0.27
+			explosive_chance = 0.115
+			shield_chance = 0.055
+		12:
 			continuous_row_fill = 0.95
 			armored_chance = 0.30
-			explosive_chance = minf(0.12 + float(depth - 10) * 0.0015, 0.20)
-			shield_chance = minf(0.055 + float(depth - 10) * 0.005, 0.08)
+			explosive_chance = 0.12
+			shield_chance = 0.06
+		_:
+			# Late composition is applied once in the effective chance helpers.
+			continuous_row_fill = 0.95
+			armored_chance = 0.30
+			explosive_chance = 0.12
+			shield_chance = minf(0.055 + float(depth - 10) * 0.005, 0.07)
+
+	xp_reference_row_fill = continuous_row_fill
 
 	# İlk üç depth korunur; mobile board-pressure bonusu Depth 4'te devreye girer.
 	if portrait_mobile_layout and depth >= 4:
@@ -161,65 +180,95 @@ func configure_for_depth(depth):
 		)
 
 func set_mobile_power_synergy(tier: int, pressure_scale: float) -> void:
-	mobile_power_synergy_tier = clampi(tier, 0, 4)
+	mobile_power_synergy_tier = clampi(tier, 0, 3)
 	mobile_power_synergy_pressure_scale = clampf(pressure_scale, 0.0, 1.0)
 
 
 func get_effective_continuous_row_fill() -> float:
-	# Faz 4: sinerji cezası kaldırıldı; yerini sektör modifier'ı aldı.
+	var synergy_bonus := 0.0
+	if portrait_mobile_layout and mobile_power_synergy_tier > 0:
+		synergy_bonus = GameManager.get_power_synergy_row_fill_bonus(
+			mobile_power_synergy_tier
+		) * mobile_power_synergy_pressure_scale
 	return minf(
-		continuous_row_fill + GameManager.get_sector_row_fill_bonus(),
+		continuous_row_fill + synergy_bonus + GameManager.get_sector_row_fill_bonus(),
 		MAX_CONTINUOUS_ROW_FILL
 	)
 
+
 func has_any_run_upgrade() -> bool:
-	return (
-		GameManager.plasma_level > 0
-		or GameManager.pierce_level > 0
-		or GameManager.fireball_level > 0
-	)
+	if GameManager.get_active_core_module_id() != &"":
+		return true
+	for slot: Dictionary in GameManager.weapon_slots:
+		if StringName(slot.get("weapon_id", &"")) != &"" and int(slot.get("level", 0)) > 0:
+			return true
+	return false
+
+
+func get_effective_explosive_chance() -> float:
+	# Interval 0.45 sn tabanına oturduktan sonra kompozisyon çok yavaş çeşitlenir.
+	var late_bonus := 0.0
+	if GameManager.run_depth > 21:
+		late_bonus = minf(float(GameManager.run_depth - 21) * 0.00075, 0.03)
+	return minf(minf(explosive_chance + late_bonus, 0.15) + GameManager.get_sector_explosive_bonus(), 0.32)
 
 
 func get_effective_armored_chance() -> float:
 	if not has_any_run_upgrade():
 		return 0.0
-	# Faz 4: build-tabanlı zırh cezası kaldırıldı; yalnızca derinlik ölçekler.
 	var effective_chance: float = armored_chance
-	if GameManager.run_depth >= 49:
-		effective_chance += 0.16
-	elif GameManager.run_depth >= 33:
-		effective_chance += 0.14
-	elif GameManager.run_depth >= 21:
-		effective_chance += 0.12
+	if GameManager.run_depth >= 4:
+		match GameManager.get_build_threat():
+			2:
+				effective_chance += 0.04
+			3:
+				effective_chance += 0.06
+	if GameManager.run_depth >= 21:
+		effective_chance += 0.10
 	elif GameManager.run_depth >= 17:
-		effective_chance += 0.09
+		effective_chance += 0.08
 	elif GameManager.run_depth >= 13:
-		effective_chance += 0.07
+		effective_chance += 0.06
 	elif GameManager.run_depth >= 9:
-		effective_chance += 0.05
+		effective_chance += 0.04
 	elif GameManager.run_depth >= 5:
 		effective_chance += 0.02
-	return minf(effective_chance + GameManager.get_curse_armor_bonus(), 0.42)
+	return minf(minf(effective_chance, 0.30) + GameManager.get_curse_armor_bonus(), 0.42)
 
 
 func get_effective_shield_chance() -> float:
 	if not has_any_run_upgrade():
 		return 0.0
-	# Faz 4: build-tabanlı kalkan cezası kaldırıldı; yalnızca derinlik ölçekler.
 	var effective_chance: float = shield_chance
-	if GameManager.run_depth >= 49:
-		effective_chance += 0.08
-	elif GameManager.run_depth >= 33:
-		effective_chance += 0.07
-	elif GameManager.run_depth >= 21:
-		effective_chance += 0.06
+	if GameManager.run_depth >= 6:
+		match GameManager.get_build_threat():
+			2:
+				effective_chance += 0.02
+			3:
+				effective_chance += 0.03
+	if GameManager.run_depth >= 21:
+		effective_chance += 0.05
 	elif GameManager.run_depth >= 17:
 		effective_chance += 0.04
 	elif GameManager.run_depth >= 13:
 		effective_chance += 0.03
 	elif GameManager.run_depth >= 9:
 		effective_chance += 0.02
-	return minf(effective_chance, 0.09)
+	return minf(effective_chance, 0.07)
+
+
+func get_row_xp_scale(actual_brick_count: int) -> float:
+	# Snapshot at spawn: later viewport resize must not change this row's rewards.
+	# Post-56 progression is deliberately outside this normalization pass.
+	if GameManager.run_depth > 56 or actual_brick_count <= 0:
+		return 1.0
+	var reference_count := maxi(1, roundi(
+		float(XP_REFERENCE_COLUMNS) * minf(
+			xp_reference_row_fill + GameManager.get_sector_row_fill_bonus(),
+			MAX_CONTINUOUS_ROW_FILL
+		)
+	))
+	return float(reference_count) / float(actual_brick_count)
 
 
 func create_continuous_row(parent, row_y, row_index):
@@ -266,6 +315,7 @@ func create_continuous_row(parent, row_y, row_index):
 		if not occupied.has(fallback_column):
 			occupied.append(fallback_column)
 
+	var row_xp_scale := get_row_xp_scale(target_brick_count)
 	occupied.sort()
 	var row_bricks: Dictionary = {}
 	var row_id = next_continuous_row_id
@@ -280,6 +330,7 @@ func create_continuous_row(parent, row_y, row_index):
 			column,
 			true
 		)
+		brick.set_meta("xp_row_scale", row_xp_scale)
 		row_bricks[column] = brick
 
 	for column in occupied:
@@ -358,9 +409,7 @@ func create_brick(
 			allow_shield and shield_bricks_created < 1
 		) else 0.0
 		var active_armored_chance = get_effective_armored_chance()
-		var active_explosive_chance: float = minf(
-			explosive_chance + GameManager.get_sector_explosive_bonus(), 0.32
-		)
+		var active_explosive_chance := get_effective_explosive_chance()
 		if special_roll < active_shield_chance:
 			make_shield = true
 			shield_bricks_created += 1

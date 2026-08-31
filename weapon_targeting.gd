@@ -24,6 +24,22 @@ static func select_danger_targets(tree: SceneTree, paddle_position: Vector2, cou
 
 static func is_valid_brick(brick: Node) -> bool:
 	return is_instance_valid(brick) and not brick.is_queued_for_deletion() and brick.is_in_group("game_brick") and brick.get("is_destroyed") != true and brick.has_method("hit")
+
+
+static func get_active_boss(tree: SceneTree) -> Node2D:
+	for node: Node in tree.get_nodes_in_group("game_boss"):
+		if node is Node2D and is_instance_valid(node) and not node.is_queued_for_deletion():
+			if node.get("accepting_damage") != false:
+				return node as Node2D
+	return null
+
+
+static func apply_boss_cycle_hit(tree: SceneTree, source: StringName, cycle_id: int) -> bool:
+	var boss := get_active_boss(tree)
+	if boss == null or not boss.has_method("hit_from_mounted_weapon"):
+		return false
+	boss.call("hit_from_mounted_weapon", source, cycle_id)
+	return true
 static func get_vertical_corridor_targets(
 	tree: SceneTree,
 	center_x: float,

@@ -1,5 +1,8 @@
 extends Area2D
 
+const MOBILE_TRAIL_VFX_CAP := 14
+const TRAIL_VFX_GROUP: StringName = &"void_comet_trail_vfx"
+
 # ==================================================
 # VOID KUYRUKLU YILDIZI - THE VOID ARCHITECT'in 1. saldirisi
 #
@@ -107,7 +110,10 @@ func _physics_process(delta: float) -> void:
 func _trail() -> void:
 	if randf() > 0.45:
 		return
+	if OS.has_feature("mobile") and get_tree().get_nodes_in_group(TRAIL_VFX_GROUP).size() >= MOBILE_TRAIL_VFX_CAP:
+		return
 	var mote := Polygon2D.new()
+	mote.add_to_group(TRAIL_VFX_GROUP)
 	mote.polygon = PackedVector2Array([
 		Vector2(0.0, -5.0), Vector2(8.0, 0.0), Vector2(0.0, 5.0), Vector2(-8.0, 0.0)
 	])
