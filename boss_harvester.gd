@@ -304,6 +304,15 @@ func _run_starving_burst() -> void:
 	signature_active = false
 
 
+## Firlatilan sey GERCEKTEN tugla gorunmeli.
+##
+## Onceden mermi dokusu verilmiyordu ve THE CORE'un varsayilan turuncu
+## sarapneline dusuyordu - mekanik dogruydu ama ekranda "blok firlatiyor"
+## diye okunmuyordu. Artik plakalarin dokusunun aynisi kullaniliyor:
+## bossun YEDIGI sey, USTUNDE TASIDIGI sey ve FIRLATTIGI sey ayni.
+##
+## heavy_visual: mermiye agirlik veren hazir bayrak (glow/bolt/core buyur,
+## turuncuya kayar). Pas makinesinin firlatgi kizgin blok icin birebir.
 func _spit_plate() -> void:
 	var paddle := get_tree().get_first_node_in_group("game_paddle") as Node2D
 	if not is_instance_valid(paddle):
@@ -312,10 +321,10 @@ func _spit_plate() -> void:
 	get_parent().add_child(projectile)
 	projectile.global_position = to_global(Vector2(0.0, 40.0))
 	var dir := (paddle.global_position - projectile.global_position).normalized()
-	projectile.setup(get_parent(), dir, projectile_speed * SPIT_SPEED_SCALE)
+	projectile.setup(get_parent(), dir, projectile_speed * SPIT_SPEED_SCALE, true)
 	var palette := _get_projectile_palette()
 	if projectile.has_method("apply_palette") and palette.size() >= 3:
-		projectile.apply_palette(_get_shard_texture(), palette[0], palette[1], palette[2])
+		projectile.apply_palette(_get_plate_texture(), palette[0], palette[1], palette[2])
 	if get_parent().has_method("notify_boss_projectile_fired"):
 		get_parent().notify_boss_projectile_fired()
 	_schedule_fragments(projectile, paddle)
@@ -340,7 +349,8 @@ func _schedule_fragments(projectile: Node2D, paddle: Node2D) -> void:
 			frag.setup(get_parent(), Vector2(sin(spread), cos(spread) * 0.55).normalized(), projectile_speed * 0.9)
 			frag.scale = Vector2(0.7, 0.7)
 			if frag.has_method("apply_palette") and palette.size() >= 3:
-				frag.apply_palette(_get_shard_texture(), palette[0], palette[1], palette[2])
+				# Parcalar da ayni dokudan: blogun kirilmis hali.
+				frag.apply_palette(_get_plate_texture(), palette[0], palette[1], palette[2])
 	)
 
 
