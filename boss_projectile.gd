@@ -11,6 +11,7 @@ var consumed := false
 var impact_paddle_color := Color(1.0, 0.30, 0.08, 1.0)
 var impact_ball_color := Color(1.0, 0.60, 0.16, 1.0)
 var impact_spark_color := Color(1.0, 0.82, 0.44, 1.0)
+var suppress_impact_vfx := false
 
 
 func apply_palette(texture: Texture2D, paddle_color: Color, ball_color: Color, spark_color: Color) -> void:
@@ -33,8 +34,9 @@ func _ready() -> void:
 	area_entered.connect(_on_area_entered)
 
 
-func setup(game_node: Node, travel_direction: Vector2, speed_override: float = -1.0, heavy_visual: bool = false) -> void:
+func setup(game_node: Node, travel_direction: Vector2, speed_override: float = -1.0, heavy_visual: bool = false, lightweight_impact: bool = false) -> void:
 	game = game_node
+	suppress_impact_vfx = lightweight_impact
 	direction = travel_direction.normalized()
 	if speed_override > 0.0:
 		projectile_speed = speed_override
@@ -84,10 +86,13 @@ func _on_area_entered(area: Area2D) -> void:
 
 
 func _spawn_impact(base_color: Color) -> void:
+	if suppress_impact_vfx:
+		return
 	var scene := get_tree().current_scene
 	if not is_instance_valid(scene):
 		return
 	var effect := Node2D.new()
+	effect.add_to_group("boss_projectile_impact_vfx")
 	if OS.has_feature("mobile"):
 		effect.scale = Vector2.ONE * 1.20
 	effect.global_position = global_position

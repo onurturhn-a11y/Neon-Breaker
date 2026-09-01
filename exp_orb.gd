@@ -2,6 +2,8 @@ extends Area2D
 
 @export var fall_speed := 170.0
 @export var exp_value := 10
+# Reward metadata only; never scales visuals/collision or changes drop odds.
+var xp_row_scale := 1.0
 @export var magnet_radius := 120.0
 @export var shell_rotation_period := 5.0
 @export var glow_rotation_period := 7.0
@@ -319,7 +321,7 @@ func _on_body_entered(body: Node) -> void:
 
 	# XP ancak orb bara ulaştığında eklenir.
 	if game.has_method("add_xp"):
-		game.add_xp(exp_value)
+		game.add_xp(exp_value, true, xp_row_scale)
 
 	print(
 		"EXP ORB COLLECTED - +%d EXP - TOTAL: %d"

@@ -247,6 +247,8 @@ func spawn_trail(speed_ratio):
 	fade.chain().tween_callback(trail.queue_free)
 
 
+
+
 func setup_ball_skin() -> void:
 	var active_texture: Texture2D = NORMAL_BALL_TEXTURE
 	var target_diameter := BALL_VISUAL_DIAMETER
@@ -579,11 +581,5 @@ func spawn_contact_sparks(
 		)
 		motion.tween_property(spark, "modulate:a", 0.0, duration)
 		motion.chain().tween_callback(spark.queue_free)
-
-
-
-
-
-
 
 

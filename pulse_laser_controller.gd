@@ -46,6 +46,7 @@ func _process(delta: float) -> void:
 	if firing_left <= 0.0: _finish_firing()
 
 func _start_firing(level: int) -> void:
+	TARGETING.apply_boss_cycle_hit(get_tree(), &"pulse_laser", get_instance_id() ^ Time.get_ticks_msec())
 	active_level = clampi(level, 1, 3)
 	var config: Dictionary = LEVEL_CONFIG[active_level]
 	state = State.FIRING

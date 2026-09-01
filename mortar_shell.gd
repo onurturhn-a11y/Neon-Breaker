@@ -6,6 +6,8 @@ const ARC_HEIGHT_MIN := 95.0
 const ARC_HEIGHT_MAX := 180.0
 const MARKER_SEGMENTS := 32
 const IMPACT_DURATION := 0.20
+const MOBILE_IMPACT_VFX_LIMIT := 2
+const IMPACT_VFX_GROUP: StringName = &"mortar_impact_vfx"
 
 enum State { TRAVEL, IMPACT, RETIRED }
 
@@ -21,6 +23,7 @@ var arc_height := 120.0
 var state := State.TRAVEL
 var marker: Line2D
 var shell_rotation := 0.0
+var impact_visual_enabled := true
 
 
 func configure_shell(
@@ -77,6 +80,8 @@ func _draw() -> void:
 		draw_arc(Vector2.ZERO, 7.0, 0.0, TAU, 18, Color(1.0, 0.62, 0.16, 0.95), 2.2)
 		draw_line(Vector2(-4.0, 0.0), Vector2(4.0, 0.0), Color(1.0, 0.84, 0.35, 0.9), 1.5)
 	else:
+		if not impact_visual_enabled:
+			return
 		var progress := clampf(impact_elapsed / IMPACT_DURATION, 0.0, 1.0)
 		draw_circle(Vector2.ZERO, explosion_radius * progress, Color(1.0, 0.34, 0.08, (1.0 - progress) * 0.24))
 		draw_arc(Vector2.ZERO, explosion_radius * progress, 0.0, TAU, 40, Color(1.0, 0.78, 0.28, 1.0 - progress), 3.0)
@@ -110,6 +115,10 @@ func _impact() -> void:
 		return
 	state = State.IMPACT
 	impact_elapsed = 0.0
+	if OS.has_feature("mobile"):
+		impact_visual_enabled = get_tree().get_nodes_in_group(IMPACT_VFX_GROUP).size() < MOBILE_IMPACT_VFX_LIMIT
+		if impact_visual_enabled:
+			add_to_group(IMPACT_VFX_GROUP)
 	if is_instance_valid(marker):
 		marker.queue_free()
 	var hit_count := _damage_bricks_once()

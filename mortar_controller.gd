@@ -54,9 +54,10 @@ func _process(delta: float) -> void:
 		return
 	var safe_level := clampi(level, 1, 3)
 	var config: Dictionary = LEVEL_CONFIG[safe_level]
+	var boss_hit := TARGETING.apply_boss_cycle_hit(get_tree(), &"mortar", get_instance_id() ^ Time.get_ticks_msec())
 	var targets := _select_impact_positions(safe_level, config)
 	if targets.is_empty():
-		cooldown_left = 0.35
+		cooldown_left = float(config["cooldown"]) if boss_hit else 0.35
 		return
 	cooldown_left = float(config["cooldown"])
 	pending_level = safe_level

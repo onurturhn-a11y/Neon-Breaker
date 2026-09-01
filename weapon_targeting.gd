@@ -24,6 +24,36 @@ static func select_danger_targets(tree: SceneTree, paddle_position: Vector2, cou
 
 static func is_valid_brick(brick: Node) -> bool:
 	return is_instance_valid(brick) and not brick.is_queued_for_deletion() and brick.is_in_group("game_brick") and brick.get("is_destroyed") != true and brick.has_method("hit")
+
+
+static func get_active_boss(tree: SceneTree) -> Node2D:
+	for node: Node in tree.get_nodes_in_group("game_boss"):
+		if node is Node2D and is_instance_valid(node) and not node.is_queued_for_deletion():
+			if node.get("accepting_damage") != false:
+				return node as Node2D
+	return null
+
+
+static func get_homing_boss(game: Node) -> Node2D:
+	# Progression bosses retain boss_pending until defeat; boss_active plus
+	# the entry collider gate distinguish combat from pending/warning.
+	if not is_instance_valid(game) or game.get("boss_active") != true or game.get("boss_warning_running") == true:
+		return null
+	var boss := game.get("active_boss") as Node2D
+	if not is_instance_valid(boss) or boss.is_queued_for_deletion() or not boss.is_in_group("game_boss") or boss.get("accepting_damage") == false:
+		return null
+	var shape := boss.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if shape == null or shape.disabled:
+		return null
+	return boss
+
+
+static func apply_boss_cycle_hit(tree: SceneTree, source: StringName, cycle_id: int) -> bool:
+	var boss := get_active_boss(tree)
+	if boss == null or not boss.has_method("hit_from_mounted_weapon"):
+		return false
+	boss.call("hit_from_mounted_weapon", source, cycle_id)
+	return true
 static func get_vertical_corridor_targets(
 	tree: SceneTree,
 	center_x: float,

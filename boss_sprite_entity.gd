@@ -45,6 +45,31 @@ const FRAME_SETS := {
 	&"hit": ["hit_a.png", "hit_b.png"],
 	&"defeat": ["defeat_a.png"],
 }
+# ==================================================
+# POZ GECIS SURELERI - hepsi tek yerde, ayarlanabilir.
+#
+# Iki Sprite2D katmani ust uste duruyor; alttaki opak, ustteki alfasiyla
+# eriyerek geliyor. Sure ne kadar uzunsa gecis o kadar yumusak, ama iki
+# poz orta noktada ust uste bindigi icin fazla uzatilirsa hayal goruntu
+# belirginlesir. Asagidaki degerler o iki sinirin arasi.
+#
+# EASE_IN_OUT + CUBIC secilme sebebi: egri orta noktadan HIZLI geciyor,
+# yani iki pozun ust uste bindigi en cirkin an en kisa suruyor; buna
+# karsilik uclarda yumusak duruyor. SINE ile ortada daha cok vakit
+# geciriliyordu.
+const POSE_BLEND_TRANS := Tween.TRANS_CUBIC
+const POSE_BLEND_EASE := Tween.EASE_IN_OUT
+
+## Yumusak gecisler.
+const POSE_FADE_IDLE := 0.26
+const POSE_FADE_CHARGE := 0.30
+const POSE_FADE_DEFEAT := 0.34
+
+## Atis anlari. Kasitli olarak kisa: geri tepme (_recoil) vurusu tasiyor,
+## uzun bir erime atisi cansiz gosteriyor. Ama eskiden 0.03'tu - 60 fps'te
+## iki kare, yani pratikte kesme. 0.08 hala snap okunuyor, pop etmiyor.
+const POSE_FADE_RELEASE := 0.08
+
 const IDLE_BLEND_SPEED := 1.55
 const HOVER_SPEED := 1.55
 const HOVER_AMPLITUDE := 5.0
@@ -254,7 +279,7 @@ func _blend_to(target: Texture2D, duration: float) -> Tween:
 	if is_instance_valid(pose_tween):
 		pose_tween.kill()
 	pose_tween = create_tween()
-	pose_tween.tween_method(_set_pose_blend, 0.0, 1.0, duration).set_trans(Tween.TRANS_SINE)
+	pose_tween.tween_method(_set_pose_blend, 0.0, 1.0, duration).set_trans(POSE_BLEND_TRANS).set_ease(POSE_BLEND_EASE)
 	return pose_tween
 func _settle_pose() -> void:
 	pose_texture_a = pose_texture_b
@@ -269,28 +294,28 @@ func _play_anim(anim_name: StringName) -> void:
 	pose_state = anim_name
 	match anim_name:
 		&"idle":
-			var to_idle := _blend_to(_frame(&"idle", 0), 0.18)
+			var to_idle := _blend_to(_frame(&"idle", 0), POSE_FADE_IDLE)
 			if to_idle != null:
 				to_idle.tween_callback(func() -> void:
 					_settle_pose()
 					idle_blend_time = 0.0)
-			_tween_tremble(0.0, 0.14)
+			_tween_tremble(0.0, POSE_FADE_IDLE * 0.6)
 		&"charge":
-			var to_charge := _blend_to(_frame(&"charge", 0), 0.20)
+			var to_charge := _blend_to(_frame(&"charge", 0), POSE_FADE_CHARGE)
 			if to_charge != null:
 				to_charge.tween_callback(_settle_pose)
 			_tween_tremble(3.0, _get_telegraph_duration())
 			_impulse(Vector2(0.0, -7.0), Vector2(0.97, 1.05), 0.22)
 		&"release":
-			var to_release := _blend_to(_frame(&"release", 0), 0.03)
+			var to_release := _blend_to(_frame(&"release", 0), POSE_FADE_RELEASE)
 			if to_release != null:
 				to_release.tween_callback(_settle_pose)
-			_tween_tremble(0.0, 0.06)
+			_tween_tremble(0.0, POSE_FADE_RELEASE)
 			_recoil()
 		&"hit":
 			_hit_sequence()
 		&"defeat":
-			var to_defeat := _blend_to(_frame(&"defeat", 0), 0.24)
+			var to_defeat := _blend_to(_frame(&"defeat", 0), POSE_FADE_DEFEAT)
 			if to_defeat != null:
 				to_defeat.tween_callback(_settle_pose)
 			_tween_tremble(0.0, 0.10)
@@ -298,11 +323,11 @@ func _play_anim(anim_name: StringName) -> void:
 		_:
 			# Alt siniflarin ek pozlari (charge_2 / release_2 gibi).
 			var is_release := String(anim_name).begins_with("release")
-			var to_extra := _blend_to(_frame(anim_name, 0), 0.03 if is_release else 0.20)
+			var to_extra := _blend_to(_frame(anim_name, 0), POSE_FADE_RELEASE if is_release else POSE_FADE_CHARGE)
 			if to_extra != null:
 				to_extra.tween_callback(_settle_pose)
 			if is_release:
-				_tween_tremble(0.0, 0.06)
+				_tween_tremble(0.0, POSE_FADE_RELEASE)
 				_recoil()
 			else:
 				_tween_tremble(3.0, _get_telegraph_duration())
@@ -570,6 +595,8 @@ func hit_from_ball(attacker_instance_id: int, source: StringName = &"ball") -> v
 	_apply_region_hit(&"armor", source, attacker_instance_id, global_position)
 func hit_from_plasma(attacker_instance_id: int) -> void:
 	_apply_region_hit(&"armor", &"plasma", attacker_instance_id, global_position)
+func hit_from_mounted_weapon(source: StringName, cycle_id: int) -> void:
+	_apply_region_hit(&"armor", source, cycle_id, global_position)
 func _region_from_global_hit(hit_position: Vector2) -> StringName:
 	if to_local(hit_position).distance_to(CORE_LOCAL) <= CORE_HIT_RADIUS:
 		return &"core"

@@ -87,30 +87,31 @@ func test_gereken_temizleme_hizi_belgeyle_ayni() -> void:
 
 
 func test_talep_derinlik_24ten_sonra_platoya_cikar() -> void:
-	# Faz 6.4 bulgusu: inis tabani talebi sinirliyor, depth 24-56 arasi
+	# Faz 6.4 bulgusu: inis tabani talebi sinirliyor, depth 24-60 arasi
 	# tuğla talebi SABIT. Bu, ikinci yarinin duz eksenlerinden biri.
 	var d24: float = _bricks_per_row(24) / (_step_interval(24) * _steps_per_row())
-	var d56: float = _bricks_per_row(56) / (_step_interval(56) * _steps_per_row())
-	assert_float(absf(d56 - d24)).override_failure_message(
-		"Depth 24 ve 56 talebi ayrismis (%.1f vs %.1f) - inis tabani artik baglamiyor" % [d24, d56]
+	var d60: float = _bricks_per_row(60) / (_step_interval(60) * _steps_per_row())
+	assert_float(absf(d60 - d24)).override_failure_message(
+		"Depth 24 ve 60 talebi ayrismis (%.1f vs %.1f) - inis tabani artik baglamiyor" % [d24, d60]
 	).is_less(0.6)
 
 
 func test_zafer_run_suresi_belgeyle_ayni() -> void:
-	# Belge: tugla inisi ~12.3 dakika (boss dovusleri haric).
+	# Belge: tugla inisi ~13.1 dakika (boss dovusleri haric).
+	# Faz 9'da olculdu: kadro 7->10, derinlik 56->60, sure 12.3->13.1 (+%6.5).
 	var total := 0.0
-	for depth in range(1, 57):
+	for depth in range(1, 61):
 		total += _step_interval(depth) * float(ROWS_PER_DEPTH) * _steps_per_row()
 	var minutes: float = total / 60.0
 	assert_float(minutes).override_failure_message(
-		"Belge ~12.3 dakika diyor, kod simdi %.1f veriyor." % minutes
-	).is_equal_approx(12.3, 0.6)
+		"Belge ~13.1 dakika diyor, kod simdi %.1f veriyor." % minutes
+	).is_equal_approx(13.1, 0.6)
 
 
 func test_ascension_run_suresini_kisaltir() -> void:
 	var _sure = func() -> float:
 		var t := 0.0
-		for depth in range(1, 57):
+		for depth in range(1, 61):
 			t += _step_interval(depth) * float(ROWS_PER_DEPTH) * _steps_per_row()
 		return t
 	gm.run_ascension = 0

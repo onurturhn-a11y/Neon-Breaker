@@ -25,6 +25,8 @@ var top_row_y = GameManager.PLAYFIELD_TOP + 22.0
 const EXPLOSION_SFX = preload("res://assets/audio/sfx/bricks/explosive_brick.mp3")
 const EXPLOSION_SFX_VOICE_COUNT = 2
 const EXPLOSION_SFX_RETRIGGER_MSEC = 60
+const MOBILE_EXPLOSION_VFX_LIMIT := 4
+const EXPLOSION_VFX_GROUP: StringName = &"explosive_brick_vfx"
 
 var level_generator = preload("res://level_generator.gd").new()
 var step_timer = 0.0
@@ -62,6 +64,127 @@ var boss_side_wave_active := false
 var boss_side_wave_timer := 0.0
 var boss_side_wave_attempt_left := 0.0
 var boss_projectile_separation_left := 0.0
+const MATERIALIZE_COOLDOWN := 4.0
+const MATERIALIZE_TELEGRAPH := 0.7
+var materialize_cooldown_left := MATERIALIZE_COOLDOWN
+var materialize_markers: Array[Polygon2D] = []
+var materialize_tween: Tween
+var mobile_fill_active := false
+const MOBILE_TARGET_OCCUPANCY := 0.45
+const MOBILE_RECOVERY_CAP := 12
+const MAX_MATERIALIZE_PER_EVENT := 24
+const MOBILE_RECOVERY_SPACING := 1.25
+var mobile_pressure_state: StringName = &"normal"
+var mobile_recovery_spacing_left := 0.0
+var mobile_recovery_spawned := 0
+var mobile_side_wave_count := 0
+var mobile_materialize_count := 0
+
+
+func _uses_mobile_pressure() -> bool:
+	var viewport := get_viewport_rect().size
+	return OS.has_feature("mobile") and viewport.y > viewport.x
+
+
+func _mobile_pressure_profile(occupancy: float) -> Dictionary:
+	if occupancy >= MOBILE_TARGET_OCCUPANCY:
+		return {"state": &"normal", "recovery": 1.0, "materialize": 1.0}
+	if occupancy >= 0.30:
+		return {"state": &"low", "recovery": 0.75, "materialize": 0.80}
+	if occupancy >= 0.25:
+		return {"state": &"high", "recovery": 0.50, "materialize": 0.60}
+	return {"state": &"emergency", "recovery": 0.35, "materialize": 0.50}
+
+
+func _mobile_missing_bricks() -> int:
+	var grid := _get_mobile_fill_grid()
+	return maxi(0, roundi(int(grid.capacity) * _mobile_fill_target()) - int(grid.active))
+
+
+func _mobile_fill_target() -> float:
+	var threat := GameManager.get_build_threat_score()
+	return [0.60, 0.60, 0.64, 0.68, 0.70, 0.72, 0.75][clampi(threat, 0, 6)]
+
+
+func _get_mobile_fill_grid() -> Dictionary:
+	var playable := _get_playable_area_rect()
+	var half_height: float = 17.5 * level_generator.brick_scale.y
+	var first_row := ceili((playable.position.y + half_height - top_row_y) / level_generator.gap_y)
+	var last_row := floori((minf(playable.end.y, danger_line_y - SIDE_WAVE_DANGER_DISTANCE) - half_height - 0.01 - top_row_y) / level_generator.gap_y)
+	var free_cells: Array[Vector2] = []
+	for row in range(first_row, last_row + 1):
+		for column in range(level_generator.grid_columns):
+			var target := Vector2(level_generator.start_x + column * level_generator.gap_x, top_row_y + row * level_generator.gap_y)
+			if _materialize_cell_is_safe(target):
+				free_cells.append(target)
+	# Existing bricks count once, even when descent places them between grid rows.
+	# Blocked empty cells (including balls) are not available capacity.
+	var active := 0
+	for brick in _get_active_field_bricks():
+		if _materialize_cell_in_bounds(brick.global_position):
+			active += 1
+	var capacity := free_cells.size() + active
+	return {"capacity": capacity, "active": active, "free": free_cells,
+		"occupancy": float(active) / capacity if capacity > 0 else 1.0}
+
+
+func get_mobile_pressure_metrics() -> Dictionary:
+	var grid := _get_mobile_fill_grid()
+	return {"active": grid.active, "capacity": grid.capacity, "occupancy": grid.occupancy,
+		"target": _mobile_fill_target(), "state": _mobile_pressure_profile(grid.occupancy)["state"],
+		"spawned": mobile_recovery_spawned, "side_waves": mobile_side_wave_count,
+		"materialized": mobile_materialize_count}
+
+
+func _update_mobile_pressure(delta: float) -> void:
+	_update_normal_side_wave_lifecycle(delta)
+	# Reuse the last sampled state; expensive safe-cell scans run at most twice/sec.
+	var profile := _mobile_pressure_profile(float({&"normal": 1.0, &"low": 0.40, &"high": 0.27, &"emergency": 0.20}.get(mobile_pressure_state, 1.0)))
+	# Timers retain their base units, so changing pressure also changes the
+	# remaining wait without resetting normal descent or the row counter.
+	var threat_interval := GameManager.get_build_recovery_interval_multiplier()
+	side_wave_cooldown_left = maxf(0.0, side_wave_cooldown_left - delta / (float(profile["recovery"]) * threat_interval))
+	materialize_cooldown_left = maxf(0.0, materialize_cooldown_left - delta / (float(profile["materialize"]) * threat_interval))
+	mobile_recovery_spacing_left = maxf(0.0, mobile_recovery_spacing_left - delta)
+	side_wave_attempt_left = maxf(0.0, side_wave_attempt_left - delta)
+	if _is_side_wave_blocked() or boss_board_drain_pending:
+		_cancel_materialize()
+		return
+	if side_wave_in_progress or not materialize_markers.is_empty() or mobile_recovery_spacing_left > 0.0:
+		return
+	if side_wave_attempt_left > 0.0:
+		return
+	side_wave_attempt_left = SIDE_WAVE_ATTEMPT_INTERVAL
+	var grid := _get_mobile_fill_grid()
+	var occupancy: float = grid.occupancy
+	mobile_pressure_state = _mobile_pressure_profile(occupancy)["state"]
+	if occupancy >= MOBILE_TARGET_OCCUPANCY and not mobile_fill_active:
+		return
+	var missing := maxi(0, roundi(int(grid.capacity) * _mobile_fill_target()) - int(grid.active))
+	if missing <= 0:
+		mobile_fill_active = false
+		return
+	# Materialize gets first refusal; side entry remains a coordinated fallback.
+	if materialize_cooldown_left <= 0.0:
+		materialize_cooldown_left = MATERIALIZE_COOLDOWN
+		_begin_materialize(mini(missing, MAX_MATERIALIZE_PER_EVENT))
+		if not materialize_markers.is_empty():
+			mobile_recovery_spacing_left = MOBILE_RECOVERY_SPACING
+			return
+	if mobile_fill_active:
+		return # Finish the same recovery through capped events before side entry.
+	if side_wave_cooldown_left > 0.0:
+		return
+	var budget := mini(missing, MOBILE_RECOVERY_CAP)
+	var before := _get_active_field_bricks().size()
+	var force_double := mobile_pressure_state in [&"high", &"emergency"]
+	var spawned := _try_spawn_side_wave(occupancy, false, true, budget, force_double)
+	side_wave_cooldown_left = side_wave_cooldown
+	mobile_recovery_spacing_left = MOBILE_RECOVERY_SPACING
+	var added := _get_active_field_bricks().size() - before
+	if spawned:
+		mobile_recovery_spawned += added
+		mobile_side_wave_count += 1
 
 
 func _ready() -> void:
@@ -78,6 +201,13 @@ func _ready() -> void:
 func initialize(game_node):
 
 	game = game_node
+	mobile_fill_active = false
+	mobile_pressure_state = &"normal"
+	mobile_recovery_spacing_left = 0.0
+	side_wave_attempt_left = 0.0
+	mobile_recovery_spawned = 0
+	mobile_side_wave_count = 0
+	mobile_materialize_count = 0
 	var portrait_mobile := OS.has_feature("mobile")
 	var layout_rect := GameManager.get_gameplay_rect(get_viewport_rect().size)
 	level_generator.configure_for_viewport(layout_rect, portrait_mobile)
@@ -126,6 +256,7 @@ func refresh_safe_area_layout() -> void:
 func _process(delta):
 
 	if not is_instance_valid(game) or game.game_over:
+		_cancel_materialize()
 		return
 	_refresh_danger_line_from_paddle()
 	if boss_paused:
@@ -134,6 +265,7 @@ func _process(delta):
 
 	_refresh_mobile_power_synergy_pressure()
 	_update_side_wave(delta)
+	_update_materialize(delta)
 	danger_cooldown_left = maxf(danger_cooldown_left - delta, 0.0)
 	var active_interval := _get_active_step_interval()
 	step_timer += delta
@@ -191,13 +323,16 @@ func _is_boss_side_wave_blocked() -> bool:
 
 
 func _update_side_wave(delta: float) -> void:
+	if _uses_mobile_pressure():
+		_update_mobile_pressure(delta)
+		return
 	_update_normal_side_wave_lifecycle(delta)
 	side_wave_cooldown_left = maxf(side_wave_cooldown_left - delta, 0.0)
 	side_wave_attempt_left = maxf(side_wave_attempt_left - delta, 0.0)
 	if side_wave_attempt_left > 0.0:
 		return
 	side_wave_attempt_left = SIDE_WAVE_ATTEMPT_INTERVAL
-	if side_wave_in_progress or _is_side_wave_blocked():
+	if side_wave_in_progress or not materialize_markers.is_empty() or _is_side_wave_blocked():
 		return
 	var center_sparse := _get_center_zone_brick_count() <= CENTER_ZONE_LOW_BRICK_COUNT
 	if center_sparse:
@@ -209,6 +344,176 @@ func _update_side_wave(delta: float) -> void:
 		if _get_board_occupancy() >= side_wave_occupancy_threshold:
 			return
 	_try_spawn_side_wave(_get_board_occupancy(), false, center_sparse)
+
+
+func _update_materialize(delta: float) -> void:
+	if _uses_mobile_pressure():
+		return # The existing spawners share one mobile recovery budget.
+	materialize_cooldown_left = maxf(0.0, materialize_cooldown_left - delta)
+	if _is_side_wave_blocked():
+		_cancel_materialize()
+		return
+	if not materialize_markers.is_empty() or side_wave_in_progress:
+		return
+	if materialize_cooldown_left > 0.0 or _get_board_occupancy() >= side_wave_occupancy_threshold:
+		return
+	# Recovery is insufficient only when the central target area stays sparse.
+	# A single survivor from an old side wave is deliberately not a blocker.
+	if _get_center_zone_brick_count() > CENTER_ZONE_LOW_BRICK_COUNT:
+		return
+	materialize_cooldown_left = MATERIALIZE_COOLDOWN
+	_begin_materialize()
+
+
+func _materialize_cell_in_bounds(target: Vector2) -> bool:
+	var half_size: Vector2 = Vector2(100.0, 35.0) * level_generator.brick_scale * 0.5
+	if not _get_playable_area_rect().encloses(Rect2(target - half_size, half_size * 2.0)):
+		return false
+	if target.y + half_size.y >= danger_line_y - SIDE_WAVE_DANGER_DISTANCE:
+		return false
+	return true
+
+
+func _materialize_cell_is_safe(target: Vector2) -> bool:
+	if not _materialize_cell_in_bounds(target):
+		return false
+	var half_size: Vector2 = Vector2(100.0, 35.0) * level_generator.brick_scale * 0.5
+	for brick: Node2D in _get_active_field_bricks():
+		if absf(brick.global_position.x - target.x) < level_generator.gap_x * 0.95 and absf(brick.global_position.y - target.y) < level_generator.gap_y * 0.95:
+			return false
+	# Do not activate a new collider on a ball already passing this cell.
+	for ball: Node2D in get_tree().get_nodes_in_group("game_ball"):
+		if is_instance_valid(ball) and absf(ball.global_position.x - target.x) < half_size.x + 24.0 and absf(ball.global_position.y - target.y) < half_size.y + 24.0:
+			return false
+	return true
+
+
+func _begin_materialize(max_bricks: int = -1) -> void:
+	if max_bricks == 0 or side_wave_in_progress or not materialize_markers.is_empty() or _is_side_wave_blocked():
+		return
+	var chosen: Array[Vector2] = []
+	if _uses_mobile_pressure():
+		var grid := _get_mobile_fill_grid()
+		if boss_board_drain_pending or (float(grid.occupancy) >= MOBILE_TARGET_OCCUPANCY and not mobile_fill_active):
+			return
+		var wanted := mini(MAX_MATERIALIZE_PER_EVENT, maxi(0, roundi(int(grid.capacity) * _mobile_fill_target()) - int(grid.active)))
+		if max_bricks >= 0:
+			wanted = mini(wanted, max_bricks)
+		chosen = _choose_materialize_clusters(grid.free, wanted)
+	else:
+		var playable := _get_playable_area_rect()
+		var gap: float = level_generator.gap_y
+		var first_row := ceili((playable.position.y + playable.size.y * 0.25 - top_row_y) / gap)
+		var last_row := floori((playable.position.y + playable.size.y * 0.60 - top_row_y) / gap)
+		var candidates: Array[Vector2] = []
+		for row in range(first_row, last_row + 1):
+			for column in range(level_generator.grid_columns):
+				var target := Vector2(level_generator.start_x + column * level_generator.gap_x, top_row_y + row * gap)
+				if _materialize_cell_is_safe(target):
+					candidates.append(target)
+		candidates.shuffle()
+		var wanted := 12 if GameManager.has_weapon_upgrade else 8
+		if max_bricks >= 0:
+			wanted = mini(wanted, max_bricks)
+		for target in candidates:
+			var separate := true
+			for other in chosen:
+				if target.distance_to(other) < level_generator.gap_x * 1.25:
+					separate = false
+					break
+			if not separate:
+				continue
+			chosen.append(target)
+			if chosen.size() >= wanted:
+				break
+	if chosen.is_empty():
+		return
+	if _uses_mobile_pressure():
+		mobile_fill_active = true
+	var half_size: Vector2 = Vector2(100.0, 35.0) * level_generator.brick_scale * 0.5
+	materialize_tween = create_tween().set_parallel(true)
+	for target in chosen:
+		var marker := Polygon2D.new()
+		marker.name = "MaterializePreview"
+		marker.polygon = PackedVector2Array([Vector2(-half_size.x,-half_size.y), Vector2(half_size.x,-half_size.y), half_size, Vector2(-half_size.x,half_size.y)])
+		marker.color = Color(0.2, 0.95, 0.85)
+		marker.position = to_local(target)
+		marker.scale = Vector2.ONE * 0.8
+		marker.modulate.a = 0.16
+		add_child(marker)
+		materialize_markers.append(marker)
+		materialize_tween.tween_property(marker, "scale", Vector2.ONE, MATERIALIZE_TELEGRAPH).set_trans(Tween.TRANS_SINE)
+		materialize_tween.tween_property(marker, "modulate:a", 0.40 if _uses_mobile_pressure() else 0.65, MATERIALIZE_TELEGRAPH).set_trans(Tween.TRANS_SINE if _uses_mobile_pressure() else Tween.TRANS_BOUNCE)
+	materialize_tween.finished.connect(_finish_materialize)
+
+
+func _choose_materialize_clusters(cells: Array, wanted: int) -> Array[Vector2]:
+	var rows: Dictionary = {}
+	for cell: Vector2 in cells:
+		var row := roundi((cell.y - top_row_y) / level_generator.gap_y)
+		if not rows.has(row):
+			rows[row] = []
+		rows[row].append(cell)
+	var row_order := rows.keys()
+	row_order.shuffle()
+	var chosen: Array[Vector2] = []
+	while chosen.size() < wanted and not row_order.is_empty():
+		for row in row_order.duplicate():
+			var available: Array = rows[row]
+			var anchor: Vector2 = available.pick_random()
+			var cluster := randi_range(2, 4)
+			for i in range(cluster):
+				if chosen.size() >= wanted:
+					return chosen
+				chosen.append(anchor)
+				available.erase(anchor)
+				var neighbors := available.filter(func(p: Vector2): return absf(p.x - anchor.x) <= level_generator.gap_x * 1.01)
+				if neighbors.is_empty():
+					break
+				anchor = neighbors.pick_random()
+			if available.is_empty():
+				row_order.erase(row)
+	return chosen
+
+
+func _finish_materialize() -> void:
+	if _is_side_wave_blocked() or (_uses_mobile_pressure() and boss_board_drain_pending):
+		_cancel_materialize()
+		return
+	var mobile_budget := _mobile_missing_bricks() if _uses_mobile_pressure() else materialize_markers.size()
+	mobile_budget = mini(mobile_budget, MAX_MATERIALIZE_PER_EVENT) if _uses_mobile_pressure() else mobile_budget
+	var created: Array[Node2D] = []
+	for marker in materialize_markers:
+		if mobile_budget <= 0:
+			break
+		if not is_instance_valid(marker) or not _materialize_cell_is_safe(marker.global_position):
+			continue
+		var column := roundi((marker.global_position.x - level_generator.start_x) / level_generator.gap_x)
+		var brick: Node2D = level_generator.create_materialized_brick(self, marker.position, column)
+		brick.set_meta("is_side_wave_brick", true)
+		brick.set_meta("is_materialized_brick", true)
+		created.append(brick)
+		game.register_spawned_bricks(1)
+		mobile_budget -= 1
+		if _uses_mobile_pressure():
+			mobile_recovery_spawned += 1
+			mobile_materialize_count += 1
+	if _uses_mobile_pressure():
+		level_generator._apply_build_toughness(created, self)
+		mobile_fill_active = _mobile_missing_bricks() > 0
+	_cancel_materialize(false)
+
+
+func _cancel_materialize(clear_recovery: bool = true) -> void:
+	if clear_recovery:
+		mobile_fill_active = false
+	if is_instance_valid(materialize_tween):
+		materialize_tween.kill()
+	materialize_tween = null
+	for marker in materialize_markers:
+		if is_instance_valid(marker):
+			marker.queue_free()
+	materialize_markers.clear()
 
 
 func _update_normal_side_wave_lifecycle(delta: float) -> void:
@@ -290,7 +595,9 @@ func _is_board_near_danger_line() -> bool:
 	return false
 
 
-func _try_spawn_side_wave(occupancy: float, boss_wave: bool = false, center_refill: bool = false) -> bool:
+func _try_spawn_side_wave(occupancy: float, boss_wave: bool = false, center_refill: bool = false, max_bricks: int = -1, force_double: bool = false) -> bool:
+	if not boss_wave and not materialize_markers.is_empty():
+		return false
 	if not boss_wave and is_instance_valid(game) and (
 		bool(game.get("boss_pending"))
 		or bool(game.get("boss_active"))
@@ -298,30 +605,50 @@ func _try_spawn_side_wave(occupancy: float, boss_wave: bool = false, center_refi
 	):
 		return false
 	var wave_size := randi_range(SIDE_WAVE_MIN_BRICKS, SIDE_WAVE_MAX_BRICKS) if boss_wave else NORMAL_SIDE_WAVE_BRICK_COUNT
-	var target_data := _find_side_wave_targets(wave_size, not boss_wave)
+	var double_row := not boss_wave and (GameManager.has_weapon_upgrade or force_double)
+	var target_data := _find_upgraded_side_wave_targets() if double_row else _find_side_wave_targets(wave_size, not boss_wave)
 	if target_data.is_empty():
 		return false
 	var targets: Array[Vector2] = target_data["targets"]
 	var columns: Array[int] = target_data["columns"]
+	if max_bricks >= 0:
+		var safe_targets: Array[Vector2] = []
+		var safe_columns: Array[int] = []
+		for index in range(targets.size()):
+			if safe_targets.size() >= max_bricks:
+				break
+			if _materialize_cell_is_safe(targets[index]):
+				safe_targets.append(targets[index])
+				safe_columns.append(columns[index])
+		targets = safe_targets
+		columns = safe_columns
+		if targets.is_empty():
+			return false
+	var row_size: int = int(target_data.get("row_size", wave_size))
+	wave_size = targets.size()
 	var from_left := randf() < 0.5
 	var layout_rect := GameManager.get_gameplay_rect(get_viewport_rect().size)
 	var spawn_positions: Array[Vector2] = []
 	for index in range(wave_size):
+		var row_column := index % row_size
 		var spawn_global_x: float = (
-			layout_rect.position.x - level_generator.gap_x * float(wave_size - index)
+			layout_rect.position.x - level_generator.gap_x * float(row_size - row_column)
 			if from_left
-			else layout_rect.end.x + level_generator.gap_x * float(index + 1)
+			else layout_rect.end.x + level_generator.gap_x * float(row_column + 1)
 		)
 		spawn_positions.append(to_local(Vector2(spawn_global_x, targets[index].y)))
 
 	var local_targets: Array[Vector2] = []
 	for target in targets:
 		local_targets.append(to_local(target))
-	var wave_bricks: Array[Node2D] = level_generator.create_side_wave_group(
-		self,
-		spawn_positions,
-		columns
-	)
+	var wave_bricks: Array[Node2D] = []
+	# Keep each row's ID, special cap and shield neighbors independent.
+	for row_start in range(0, wave_size, row_size):
+		wave_bricks.append_array(level_generator.create_side_wave_group(
+			self,
+			spawn_positions.slice(row_start, row_start + row_size),
+			columns.slice(row_start, row_start + row_size)
+		))
 	if wave_bricks.is_empty():
 		return false
 
@@ -354,6 +681,54 @@ func _try_spawn_side_wave(occupancy: float, boss_wave: bool = false, center_refi
 			% ["LEFT" if from_left else "RIGHT", wave_bricks.size(), occupancy]
 		)
 	return true
+
+
+func _find_upgraded_side_wave_targets() -> Dictionary:
+	var playable := _get_playable_area_rect()
+	var half_size: Vector2 = Vector2(100.0, 35.0) * level_generator.brick_scale * 0.5
+	var gap: float = level_generator.gap_y
+	var lowest_upper_row: float = danger_line_y - SIDE_WAVE_DANGER_DISTANCE - half_size.y - gap
+	var first_row := ceili((playable.position.y + half_size.y - top_row_y) / gap)
+	var last_row := floori((lowest_upper_row - top_row_y) / gap)
+	if last_row < first_row:
+		return {}
+	var center_row := clampi(roundi((playable.get_center().y - gap * 0.5 - top_row_y) / gap), first_row, last_row)
+	var active := _get_active_field_bricks()
+	# Nearest safe grid rows first; prefer 4+4, then 3+3, then 2+2.
+	var candidate_rows: Array[int] = []
+	for offset in range(last_row - first_row + 1):
+		if center_row - offset >= first_row:
+			candidate_rows.append(center_row - offset)
+		if offset > 0 and center_row + offset <= last_row:
+			candidate_rows.append(center_row + offset)
+	for count in range(mini(NORMAL_SIDE_WAVE_BRICK_COUNT, level_generator.grid_columns), 1, -1):
+		for row in candidate_rows:
+			var start_count: int = level_generator.grid_columns - count + 1
+			var random_start := randi_range(0, start_count - 1)
+			for attempt in range(start_count):
+				var start := (random_start + attempt) % start_count
+				var targets: Array[Vector2] = []
+				var columns: Array[int] = []
+				var safe := true
+				for row_offset in range(2):
+					for column in range(start, start + count):
+						var target := Vector2(level_generator.start_x + column * level_generator.gap_x, top_row_y + (row + row_offset) * gap)
+						if not playable.encloses(Rect2(target - half_size, half_size * 2.0)) or target.y + half_size.y > danger_line_y - SIDE_WAVE_DANGER_DISTANCE:
+							safe = false
+							break
+						for brick: Node2D in active:
+							if absf(brick.global_position.x - target.x) < level_generator.gap_x * 0.72 and absf(brick.global_position.y - target.y) < gap * 0.72:
+								safe = false
+								break
+						if not safe:
+							break
+						targets.append(target)
+						columns.append(column)
+					if not safe:
+						break
+				if safe:
+					return {"targets": targets, "columns": columns, "row_size": count}
+	return {}
 
 
 func _find_side_wave_targets(wave_size: int, center_aligned: bool = false) -> Dictionary:
@@ -453,6 +828,7 @@ func begin_boss_board_drain() -> void:
 
 
 func pause_for_boss() -> void:
+	_cancel_materialize()
 	boss_paused = true
 	stop_boss_side_waves()
 	if is_instance_valid(step_tween) and step_tween.is_valid():
@@ -472,6 +848,7 @@ func lock_for_boss_transition() -> void:
 
 
 func clear_bricks_for_boss(fade_duration: float = 0.28) -> void:
+	_cancel_materialize()
 	var field_bricks: Array[Node] = []
 	for brick: Node in get_tree().get_nodes_in_group("game_brick"):
 		if not is_instance_valid(brick) or not is_ancestor_of(brick):
@@ -490,6 +867,48 @@ func clear_bricks_for_boss(fade_duration: float = 0.28) -> void:
 	for brick: Node in field_bricks:
 		if is_instance_valid(brick):
 			brick.queue_free()
+
+
+## THE HARVESTER icin: tehlike hattina en yakin tuglalari sahadan sokup alir.
+##
+## Bossun mekanigi bunun uzerine kurulu - yedigi her tugla ona zirh plakasi
+## oluyor ama ayni anda oyuncunun bogurdugu sahayi temizliyor. Bu yuzden
+## "en asagidaki" tuglalar seciliyor: yem gercekten ise yarasin.
+##
+## Sayim clear_bricks_for_boss ile ayni yoldan gidiyor (grup cikar, carpismayi
+## kapat, bricks_left dus, sonra queue_free); aksi halde bricks_left sapiyor.
+func harvest_lowest_bricks(count: int) -> int:
+	if count <= 0:
+		return 0
+	var candidates: Array[Node2D] = _get_active_field_bricks()
+	if candidates.is_empty():
+		return 0
+	candidates.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return a.global_position.y > b.global_position.y
+	)
+	var taken: Array[Node] = []
+	for brick: Node2D in candidates.slice(0, mini(count, candidates.size())):
+		if not is_instance_valid(brick):
+			continue
+		brick.remove_from_group("game_brick")
+		brick.remove_from_group("explosive_brick")
+		brick.remove_from_group("shield_brick")
+		var shape := brick.get_node_or_null("CollisionShape2D") as CollisionShape2D
+		if is_instance_valid(shape):
+			shape.set_deferred("disabled", true)
+		var suck := brick.create_tween().set_parallel(true)
+		suck.tween_property(brick, "modulate:a", 0.0, 0.30)
+		suck.tween_property(brick, "scale", Vector2(0.25, 0.25), 0.30).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		taken.append(brick)
+	if taken.is_empty():
+		return 0
+	game.bricks_left = maxi(game.bricks_left - taken.size(), 0)
+	get_tree().create_timer(0.34).timeout.connect(func() -> void:
+		for brick: Node in taken:
+			if is_instance_valid(brick):
+				brick.queue_free()
+	)
+	return taken.size()
 
 
 func resume_after_boss() -> void:
@@ -622,11 +1041,14 @@ func trigger_explosive_blast(origin, source_brick, damage_context = null, is_cha
 
 func spawn_explosion_visual(origin):
 	play_explosion_sfx()
+	if OS.has_feature("mobile") and get_tree().get_nodes_in_group(EXPLOSION_VFX_GROUP).size() >= MOBILE_EXPLOSION_VFX_LIMIT:
+		return
 
 	var effect_root = Node2D.new()
 	effect_root.name = "ExplosiveBrickBlast"
 	effect_root.global_position = origin
 	effect_root.z_index = 35
+	effect_root.add_to_group(EXPLOSION_VFX_GROUP)
 	if OS.has_feature("mobile"):
 		effect_root.scale = Vector2.ONE * 1.20
 	get_tree().current_scene.add_child(effect_root)
@@ -706,7 +1128,7 @@ func apply_depth_settings():
 
 	level_generator.configure_for_depth(GameManager.run_depth)
 
-	var depth_intervals = [1.50, 1.35, 1.20, 1.05, 0.90, 0.75]
+	var depth_intervals = [1.50, 1.35, 1.20, 1.05, 0.95, 0.82]
 	var base_interval: float
 	if GameManager.run_depth == 1 and not OS.has_feature("mobile"):
 		base_interval = desktop_initial_row_step_interval
@@ -719,7 +1141,6 @@ func apply_depth_settings():
 		* GameManager.post_boss_descent_multiplier
 		* GameManager.get_build_speed_multiplier()
 		* GameManager.get_late_game_descent_multiplier()
-		/ GameManager.get_card_descent_multiplier()
 		* GameManager.get_sector_descent_scale()
 		* GameManager.get_curse_descent_scale()
 		* GameManager.get_ascension_descent_scale()
@@ -736,12 +1157,13 @@ func apply_depth_settings():
 func _refresh_mobile_power_synergy_pressure() -> void:
 	if not OS.has_feature("mobile"):
 		level_generator.set_mobile_power_synergy(0, 0.0)
-		row_step_interval = maxf(interval_before_power_synergy, _get_effective_min_step_interval())
+		# Apply the speed reduction after the floor so it also works at saturation.
+		row_step_interval = maxf(interval_before_power_synergy, _get_effective_min_step_interval()) / GameManager.get_card_descent_multiplier()
 		return
 	var tier := GameManager.get_power_synergy_tier()
 	if tier != last_power_synergy_tier:
 		last_power_synergy_tier = tier
-		var tier_names := ["NONE", "TIER 1", "TIER 2", "TIER 3", "EXTREME"]
+		var tier_names := ["NONE", "TIER 1", "TIER 2", "TIER 3"]
 		print("POWER SYNERGY: " + tier_names[tier])
 
 	var pressure_scale := 0.0
@@ -750,10 +1172,11 @@ func _refresh_mobile_power_synergy_pressure() -> void:
 	level_generator.set_mobile_power_synergy(tier, pressure_scale)
 	var synergy_multiplier := GameManager.get_power_synergy_interval_multiplier(tier)
 	var adaptive_multiplier := lerpf(1.0, synergy_multiplier, pressure_scale)
+	# Keep the same floor/pressure calculation, then slow actual movement by 15%.
 	row_step_interval = maxf(
 		interval_before_power_synergy * adaptive_multiplier,
 		_get_effective_min_step_interval()
-	)
+	) / GameManager.get_card_descent_multiplier()
 
 
 func _get_board_synergy_pressure_scale() -> float:
@@ -783,7 +1206,7 @@ func print_difficulty_debug(bricks_this_row):
 			level_generator.get_effective_continuous_row_fill(),
 			level_generator.get_effective_armored_chance(),
 			level_generator.get_effective_shield_chance(),
-			level_generator.explosive_chance,
+			level_generator.get_effective_explosive_chance(),
 			EliteBricks.get_chance(GameManager.run_depth, GameManager.run_ascension),
 			row_step_interval,
 			turret_interval.x,

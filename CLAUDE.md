@@ -244,28 +244,75 @@ Birleştirme yalnızca PR ile, karşı tarafın onayıyla.
 - Faz 5 (Claude) — elit tuğla, iniş hızı doygunluğu, koloni tavanı denetimi
 - Faz 6 (Claude) — ilerleme eğrisi, ascension hasar tavanı, tehlike hattı
   ekonomisi
-- Codex — 7 silah + plazma (Arc Cannon, Scatter Cannon, Railgun, Homing
-  Missile, Pulse Laser, Mine Launcher, Mortar), 2 yuvalı silah sistemi,
-  `ensure_runtime_controller` kancası, rastgele kart eli, mobil kontroller
+- Codex — 8 silah + plazma (Arc Cannon, Scatter Cannon, Railgun, Homing
+  Missile, Pulse Laser, Mortar, Drone Bay, Orbital Strike), 2 yuvalı silah
+  sistemi, `ensure_runtime_controller` kancası, rastgele kart eli, mobil
+  kontroller, 20 kartlık görsel seti
 
-Kart havuzu: **18 kart** (10 pasif + 8 silah).
+Kart havuzu: **19 kart** (10 pasif + 9 silah). Mine Launcher kaldırıldı,
+yerine Drone Bay ve Orbital Strike geldi.
 
-**Run yapısı (ölçüldü):** depth 1 → 56, 7 boss (depth 8, 16, 24, 32, 40, 48,
-56). Tuğla inişi ~12.3 dakika, boss dövüşleri hariç. Bir run 21 kart seçimi
-veriyor; havuz kapasitesi 48.
+**Run yapısı (ölçüldü):** depth 1 → 60, **10 boss** (depth 6, 12, 18, 24, 30,
+36, 42, 48, 54, 60). Tuğla inişi **~13.1 dakika**, boss dövüşleri hariç
+(Faz 9'da yeniden ölçüldü; 7 bossluk yapıda 12.3 dakikaydı, +%6.5).
+Kartların havuz kapasitesi 51.
+
+> **Yeniden ölçülmesi gereken:** "bir run 21 kart seçimi veriyor" sayısı
+> 7 bossluk yapıda ölçülmüştü. Run uzadı ve boss ödülü 7'den 10'a çıktı,
+> yani bu sayı artık yanlış — ama tahminle değiştirmedim, oyun testiyle
+> ölçülmeli. Aynı şekilde boss ödül ekonomisi: run başına toplam PARÇA
+> 100 → 192, coin 61 → 125 (yarısı boss sayısından, yarısı ödül dizisinin
+> tamamının kullanılır hale gelmesinden). `GOREVLER.md` 6.2 kalemi.
 
 **Sıradaki:** görev dağılımı `GOREVLER.md`, mesajlaşma `ILETISIM.md`.
 
-- **Codex** → görsel açık (8 silahın 7'si aynı iki kartı kullanıyor),
-  Krediler ekranı, kalan iki silah
-- **Claude** → Faz 7 bitti. Şeridi **oyun testine kadar kapalı.**
+- **Codex** → Krediler ekranı, ikon yazarlarının doğrulanması
+- **Claude** → Faz 9: boss kadrosu 7 → 10
 
-Faz 4-7'de ölçülebilir olan ölçüldü ve 54 testle korumaya alındı. Kalan
+Faz 4-7'de ölçülebilir olan ölçüldü ve 56 testle korumaya alındı. Kalan
 yedi soru tabloyla değil oynanışla cevaplanıyor (`GOREVLER.md` → "25F
-için"). Bir sonraki Claude işi o cevaplar geldikten sonra başlar:
-**Faz 8 = oyun testi sonrası kalibrasyon.**
+için"); **Faz 8 = oyun testi sonrası kalibrasyon** hâlâ o cevapları
+bekliyor.
 
-Yeni sistem tasarlanmıyor — 25F feature freeze.
+### Faz 9 — boss kadrosu 7 → 10 (Onur talimatı, 2026-08-31)
+
+25F feature freeze **bu iş için kaldırıldı.** Üç yeni boss eklendi; üçü de
+mevcut yedinin kullanmadığı bir mekanik fiil üstüne kurulu, çünkü yedinin
+beşi aynı şeyi yapıyordu (telegraf edilen bölgeden kaç).
+
+| Boss | HP | Fiil |
+|---|---|---|
+| THE HARVESTER | 175 | Tuğla sahasını yer, zırha çevirir — yem/takas |
+| THE CHORUS | 5×58 | Beş gövde, ölen her üye kalanı hızlandırır — hedef seçimi |
+| THE INVERSION | 455 | Kendi ateşini geri döndürür — ateş kesme testi |
+
+HP değerleri mevcutların **arasına** giriyor (100, 145, *175*, 200, 260,
+*290*, 330, 410, *455*, 500), yani yedi bossun hiçbir sayısı değişmedi.
+
+**Bitti — üç yeni boss.** Kare setleri kesildi, üç script + sahne yazıldı,
+debug tuşları açıldı (`Y` / `U` / `I`), ve **ilerleme akışına bağlandılar**:
+boss aralığı 8'den 6'ya indi, kadro derinlik 6…60 arasında on boss.
+
+**Bitti — ilk iki boss yenilendi.** THE CORE ve THE SENTINEL tek düz PNG
+kullanıyordu; **THE FURNACE** (diyafram) ve **THE WARDEN** (omuzdaki iki
+jeneratör) olarak yeniden tasarlandılar. İkisi de `StaticBody2D`'den
+`boss_sprite_entity.gd`'ye taşındı. **Artık on bossun hepsi tek mimariden
+türüyor ve hepsi sprite sheet kullanıyor** — bölüm 7'deki eski "iki mimari"
+notu kapandı. Boss id'leri değişmedi (`&"core"`, `&"sentinel"`).
+
+**Ölçüldü:** tuğla inişi 12.3 → **13.1 dakika** (+%6.5). Boss ödül dizileri
+zaten 10 elemanlıydı, kadro 10 olunca tamamı kullanılır hale geldi: run
+başına PARÇA 100 → **192**, coin 61 → **125**.
+
+**Bitmedi — oyun testi.** Üç şey ölçülmedi:
+- Yeni üç bossun mekanikleri oynanışta gerçekten okunuyor mu
+- Ödül ekonomisinin iki katına çıkması koloniyi ve silah kilit açma
+  dükkânını bozuyor mu (`ILETISIM.md` A14/A16)
+- Belgedeki "bir run 21 kart seçimi veriyor" sayısı 7 bossluk yapıda
+  ölçülmüştü, artık yanlış — tahminle değiştirilmedi
+
+**Bitmedi — Mortar.** `mortar_shell.gd` hiçbir gruba girmediği için THE
+INVERSION'ın ayna bandından muaf. Codex bölgesi, `ILETISIM.md` A13.
 
 **Oyun testi bekliyor.** Faz 6'da üç sayı ölçümle değil tahminle seçildi ve
 oyun testi olmadan doğrulanamaz:
@@ -282,7 +329,6 @@ oyun testi olmadan doğrulanamaz:
   → teklif ağırlığı 1.0'a düşüyor, yaygının 1/45'i
 - `xp_orb.gd` / `xp_orb.tscn` ölü kod — `main.gd` `exp_orb.tscn` yüklüyor
   ama değişken adı `xp_orb_scene`, okuyanı yanıltıyor
-- `main.gd` debug tuşları `OS.is_debug_build()` ile korunmuyor
 - Faz 6.2 kararı yarım: ascension hasar tavanı açıldı (pasif kartlar),
   silah tarafı (3. yuva) Codex'in cevabını bekliyor
 

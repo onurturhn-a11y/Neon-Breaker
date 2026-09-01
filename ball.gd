@@ -177,7 +177,13 @@ func _physics_process(delta):
 					and collider.is_shielded()
 				)
 				var is_critical_hit: bool = randf() < GameManager.get_crit_chance()
-				collider.hit("ball")
+				# Keep the gameplay source unchanged; tag only this ball's final-hit identity.
+				var ball_destroy_source: StringName = (
+					&"fireball_ball" if fireball_level > 0 else (
+						&"piercing_ball" if pierce_level > 0 else &"ball"
+					)
+				)
+				collider.hit("ball", null, ball_destroy_source)
 				# Kritik Rezonans: ayni temasta ikinci hasar uygulanir.
 				if (
 					is_critical_hit
@@ -185,7 +191,7 @@ func _physics_process(delta):
 					and is_instance_valid(collider)
 					and collider.get("is_destroyed") != true
 				):
-					collider.hit("ball")
+					collider.hit("ball", null, ball_destroy_source)
 
 				var can_trigger_fireball: bool = pierce_level <= 0 or fireball_trigger_available
 				if fireball_level > 0 and can_trigger_fireball:
@@ -569,7 +575,9 @@ func set_fireball_level(level):
 
 func should_pierce_brick(_brick):
 
-	return pierce_level > 0 and pierce_passes_remaining > 0
+	if pierce_level <= 0 or pierce_passes_remaining <= 0:
+		return false
+	return true
 
 
 func register_pierced_brick(brick):
