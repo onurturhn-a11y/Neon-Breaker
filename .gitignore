@@ -24,8 +24,15 @@
 # ==================================================
 # Claude ve Codex doğrulama için _ ile başlayan script üretir.
 # Bunlar depoya girmez.
-_*.gd
-_*.gd.uid
+#
+# DIKKAT - kalip KOK DIZINE sabitli (bastaki /). Sabitsiz "_*.gd" agacin
+# her yerinde esleşiyordu ve gdUnit4'un kendi
+# addons/gdUnit4/src/core/_TestCase.gd dosyasini da yutmustu. Sonuc:
+# depo temiz klonlandiginda test kesfi "Could not find type _TestCase"
+# ile coküyordu - testler yalnizca dosyanin yerelde durdugu makinelerde
+# calisiyordu.
+/_*.gd
+/_*.gd.uid
 
 # ==================================================
 # Editör / işletim sistemi artıkları
