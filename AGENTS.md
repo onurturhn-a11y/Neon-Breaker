@@ -289,18 +289,30 @@ beşi aynı şeyi yapıyordu (telegraf edilen bölgeden kaç).
 HP değerleri mevcutların **arasına** giriyor (100, 145, *175*, 200, 260,
 *290*, 330, 410, *455*, 500), yani yedi bossun hiçbir sayısı değişmedi.
 
-**Bitti:** kare setleri kesildi (`assets/bosses/{harvester,chorus,inversion}/`),
-üç script + sahne yazıldı, `main.gd`'ye bağlandı, debug tuşları açıldı
-(`Y` / `U` / `I`).
+**Bitti — üç yeni boss.** Kare setleri kesildi, üç script + sahne yazıldı,
+debug tuşları açıldı (`Y` / `U` / `I`), ve **ilerleme akışına bağlandılar**:
+boss aralığı 8'den 6'ya indi, kadro derinlik 6…60 arasında on boss.
 
-**Bitmedi — derinlik yerleştirmesi.** Bosslar şu an yalnız debug
-tuşuyla açılıyor, ilerleme akışına bağlı değiller. Bağlanması için aralık
-8'den 6'ya inmeli (10 boss, derinlik 6…60; run %7 uzar). Bu `main.gd`'de
-yedi `*_POST_BOSS_DEPTH` sabitinin yeniden yazılması + üç yenisi + üç
-`*_boss_defeated` bayrağı demek, ve `throughput_test` ile
-`documented_numbers_test`'i kırar — ikisi de haklı olarak. Boss ödülü 7'den
-10'a çıktığı için oyuncu güç tavanı da yeniden ölçülmeli (`GOREVLER.md`
-6.2). Ayrı iş olarak duruyor.
+**Bitti — ilk iki boss yenilendi.** THE CORE ve THE SENTINEL tek düz PNG
+kullanıyordu; **THE FURNACE** (diyafram) ve **THE WARDEN** (omuzdaki iki
+jeneratör) olarak yeniden tasarlandılar. İkisi de `StaticBody2D`'den
+`boss_sprite_entity.gd`'ye taşındı. **Artık on bossun hepsi tek mimariden
+türüyor ve hepsi sprite sheet kullanıyor** — bölüm 7'deki eski "iki mimari"
+notu kapandı. Boss id'leri değişmedi (`&"core"`, `&"sentinel"`).
+
+**Ölçüldü:** tuğla inişi 12.3 → **13.1 dakika** (+%6.5). Boss ödül dizileri
+zaten 10 elemanlıydı, kadro 10 olunca tamamı kullanılır hale geldi: run
+başına PARÇA 100 → **192**, coin 61 → **125**.
+
+**Bitmedi — oyun testi.** Üç şey ölçülmedi:
+- Yeni üç bossun mekanikleri oynanışta gerçekten okunuyor mu
+- Ödül ekonomisinin iki katına çıkması koloniyi ve silah kilit açma
+  dükkânını bozuyor mu (`ILETISIM.md` A14/A16)
+- Belgedeki "bir run 21 kart seçimi veriyor" sayısı 7 bossluk yapıda
+  ölçülmüştü, artık yanlış — tahminle değiştirilmedi
+
+**Bitmedi — Mortar.** `mortar_shell.gd` hiçbir gruba girmediği için THE
+INVERSION'ın ayna bandından muaf. Codex bölgesi, `ILETISIM.md` A13.
 
 **Oyun testi bekliyor.** Faz 6'da üç sayı ölçümle değil tahminle seçildi ve
 oyun testi olmadan doğrulanamaz:
